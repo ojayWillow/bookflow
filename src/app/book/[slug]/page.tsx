@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { businessSettings, services, staff } from '@/data/mock'
 import { getSlotsForDate, getAvailableDates } from '@/lib/slots'
+import { saveBooking } from '@/lib/bookingsStore'
 import { format, parseISO } from 'date-fns'
 import { Clock, CheckCircle, MapPin, Phone, Mail, ChevronLeft, Users } from 'lucide-react'
 
@@ -80,6 +81,29 @@ export default function BookingPage() {
   const stepKeys: Step[] = ['service', 'staff', 'datetime', 'details', 'confirm']
   const stepIndex = stepKeys.indexOf(step)
   const goBack = () => { if (stepIndex > 0) setStep(stepKeys[stepIndex - 1]) }
+
+  const handleConfirm = () => {
+    if (!selectedService) return
+    saveBooking({
+      id: `bk_${Date.now()}`,
+      ref: bookingRef,
+      createdAt: new Date().toISOString(),
+      serviceId: selectedService.id,
+      serviceName: selectedService.name,
+      serviceDuration: selectedService.duration,
+      servicePrice: selectedService.price,
+      staffId: selectedStaffId,
+      staffName: selectedStaffMember ? selectedStaffMember.name : 'Anyone available',
+      date: selectedDate,
+      time: selectedTime,
+      customerName: form.name,
+      customerEmail: form.email,
+      customerPhone: form.phone,
+      customerNotes: form.notes,
+      status: 'confirmed',
+    })
+    setStep('success')
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -274,7 +298,7 @@ export default function BookingPage() {
                   placeholder="e.g. Anna Bērziņa"
                 />
                 {touched.name && errors.name && (
-                  <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">⚠ {errors.name}</p>
+                  <p className="text-xs text-red-500 mt-1.5">⚠ {errors.name}</p>
                 )}
                 {touched.name && !errors.name && (
                   <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>
@@ -293,7 +317,7 @@ export default function BookingPage() {
                   placeholder="anna@example.com"
                 />
                 {touched.email && errors.email && (
-                  <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">⚠ {errors.email}</p>
+                  <p className="text-xs text-red-500 mt-1.5">⚠ {errors.email}</p>
                 )}
                 {touched.email && !errors.email && (
                   <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>
@@ -312,7 +336,7 @@ export default function BookingPage() {
                   placeholder="+371 2612 3456"
                 />
                 {touched.phone && errors.phone && (
-                  <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">⚠ {errors.phone}</p>
+                  <p className="text-xs text-red-500 mt-1.5">⚠ {errors.phone}</p>
                 )}
                 {touched.phone && !errors.phone && (
                   <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>
@@ -373,7 +397,8 @@ export default function BookingPage() {
             <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-5">
               <p className="text-xs text-amber-700"><span className="font-semibold">Cancellation policy:</span> {b.cancellationPolicy}</p>
             </div>
-            <button onClick={() => setStep('success')}
+            <button
+              onClick={handleConfirm}
               className="w-full bg-indigo-600 text-white py-4 rounded-xl font-semibold hover:bg-indigo-700 transition-colors">
               Confirm booking ✓
             </button>
