@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { staff as initialStaff, services } from '@/data/mock'
 import type { StaffMember } from '@/data/mock'
-import { Clock, Plus, X } from 'lucide-react'
+import { Clock, Plus, X, Search } from 'lucide-react'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444']
@@ -20,11 +20,12 @@ export default function StaffPage() {
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<StaffMember | null>(null)
   const [form, setForm] = useState({ ...emptyForm })
+  const [skillSearch, setSkillSearch] = useState('')
 
-  const openCreate = () => { setForm({ ...emptyForm }); setEditing(null); setShowModal(true) }
+  const openCreate = () => { setForm({ ...emptyForm }); setEditing(null); setSkillSearch(''); setShowModal(true) }
   const openEdit = (m: StaffMember) => {
     setForm({ name: m.name, role: m.role, bio: m.bio, serviceIds: [...m.serviceIds], workDays: [...m.workDays], workStart: m.workStart, workEnd: m.workEnd, active: m.active, color: m.color })
-    setEditing(m); setShowModal(true)
+    setEditing(m); setSkillSearch(''); setShowModal(true)
   }
 
   const toggleService = (id: string) =>
@@ -49,6 +50,11 @@ export default function StaffPage() {
   const toggleActive = (id: string) =>
     setMembers(prev => prev.map(m => m.id === id ? { ...m, active: !m.active } : m))
 
+  // Filtered services for skill search
+  const filteredServices = services.filter(s =>
+    s.name.toLowerCase().includes(skillSearch.toLowerCase())
+  )
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
@@ -64,14 +70,14 @@ export default function StaffPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 my-4">
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 my-8">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-gray-900">{editing ? 'Edit staff member' : 'New staff member'}</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-700"><X className="w-5 h-5" /></button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               {/* Avatar color */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Avatar colour</label>
@@ -80,9 +86,14 @@ export default function StaffPage() {
                     <button key={c} type="button" onClick={() => setForm(p => ({ ...p, color: c }))}
                       style={{ backgroundColor: c }}
                       className={`w-8 h-8 rounded-full transition-all ${
-                        form.color === c ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : ''
+                        form.color === c ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : 'hover:scale-105'
                       }`} />
                   ))}
+                  {/* Preview */}
+                  <div className="ml-3 w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm"
+                    style={{ backgroundColor: form.color }}>
+                    {form.name ? form.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'AB'}
+                  </div>
                 </div>
               </div>
 
@@ -108,21 +119,57 @@ export default function StaffPage() {
                   rows={2} placeholder="Short description shown to customers" />
               </div>
 
-              {/* Services */}
+              {/* Skills / Services — dynamic from services list */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Services they can perform</label>
-                <div className="flex flex-wrap gap-2">
-                  {services.map(s => (
-                    <button key={s.id} type="button" onClick={() => toggleService(s.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-medium border-2 transition-all ${
-                        form.serviceIds.includes(s.id)
-                          ? 'bg-indigo-600 text-white border-indigo-600'
-                          : 'border-gray-100 text-gray-500 hover:border-indigo-300'
-                      }`}>
-                      {s.name}
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">Skills <span className="text-gray-400 font-normal text-xs">(services from your catalogue)</span></label>
+                  {form.serviceIds.length > 0 && (
+                    <span className="text-xs text-indigo-600 font-medium">{form.serviceIds.length} selected</span>
+                  )}
                 </div>
+
+                {/* Selected skills as tags */}
+                {form.serviceIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {form.serviceIds.map(id => {
+                      const svc = services.find(s => s.id === id)
+                      return svc ? (
+                        <span key={id} className="flex items-center gap-1 bg-indigo-600 text-white text-xs font-medium px-2.5 py-1 rounded-lg">
+                          {svc.name}
+                          <button type="button" onClick={() => toggleService(id)} className="hover:bg-indigo-700 rounded ml-0.5">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ) : null
+                    })}
+                  </div>
+                )}
+
+                {/* Search + add */}
+                <div className="border-2 border-gray-100 rounded-xl overflow-hidden focus-within:border-indigo-400 transition-colors">
+                  <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-50">
+                    <Search className="w-3.5 h-3.5 text-gray-300" />
+                    <input
+                      value={skillSearch}
+                      onChange={e => setSkillSearch(e.target.value)}
+                      placeholder="Search services..."
+                      className="flex-1 text-sm outline-none text-gray-700 placeholder-gray-300 bg-transparent"
+                    />
+                  </div>
+                  <div className="max-h-36 overflow-y-auto">
+                    {filteredServices.filter(s => !form.serviceIds.includes(s.id)).map(s => (
+                      <button key={s.id} type="button" onClick={() => toggleService(s.id)}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors flex items-center justify-between">
+                        <span>{s.name}</span>
+                        <span className="text-xs text-gray-400">{s.duration}min · €{s.price}</span>
+                      </button>
+                    ))}
+                    {filteredServices.filter(s => !form.serviceIds.includes(s.id)).length === 0 && (
+                      <p className="text-xs text-gray-300 text-center py-3">All services assigned</p>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-1.5">Services are pulled from your Services page — add new ones there first.</p>
               </div>
 
               {/* Work days */}
@@ -179,7 +226,6 @@ export default function StaffPage() {
             }`}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-4">
-                  {/* Avatar */}
                   <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0"
                     style={{ backgroundColor: m.color }}>
                     {m.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
@@ -191,15 +237,11 @@ export default function StaffPage() {
                     </div>
                     <p className="text-sm text-indigo-600 font-medium">{m.role}</p>
                     {m.bio && <p className="text-xs text-gray-400 mt-1 max-w-sm leading-relaxed">{m.bio}</p>}
-
-                    {/* Services */}
                     <div className="flex flex-wrap gap-1.5 mt-2.5">
                       {memberServices.map(s => (
                         <span key={s.id} className="text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg font-medium">{s.name}</span>
                       ))}
                     </div>
-
-                    {/* Work schedule */}
                     <div className="flex items-center gap-3 mt-2.5">
                       <div className="flex gap-1">
                         {['S','M','T','W','T','F','S'].map((d, i) => (
@@ -214,8 +256,6 @@ export default function StaffPage() {
                     </div>
                   </div>
                 </div>
-
-                {/* Actions */}
                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
                   <div className="flex gap-2">
                     <button onClick={() => openEdit(m)}
