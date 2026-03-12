@@ -10,7 +10,6 @@ type Step = 'service' | 'staff' | 'datetime' | 'details' | 'confirm' | 'success'
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const STEP_LABELS = ['Service', 'Who', 'Date & Time', 'Details', 'Confirm']
 
-// ---- Validators ----
 const validateName = (v: string) => {
   const parts = v.trim().split(/\s+/)
   if (parts.length < 2) return 'Please enter your first and last name'
@@ -26,7 +25,7 @@ const validatePhone = (v: string) => {
   if (!v.trim()) return 'Phone number is required'
   const digits = v.replace(/[^0-9]/g, '')
   if (digits.length < 7) return 'Please enter a valid phone number (min 7 digits)'
-  if (!/^[\d\s\+\-\(\)]{7,20}$/.test(v.trim())) return 'Only digits, spaces, +, - and () allowed'
+  if (!/^[\d\s+\-()]{7,20}$/.test(v.trim())) return 'Only digits, spaces, +, - and () allowed'
   return ''
 }
 
@@ -132,7 +131,7 @@ export default function BookingPage() {
         {step === 'service' && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Choose a service</h2>
-            <p className="text-gray-400 text-sm mb-6">Select what you\'d like to book</p>
+            <p className="text-gray-400 text-sm mb-6">Select what you&apos;d like to book</p>
             <div className="space-y-3">
               {services.map(s => (
                 <button key={s.id} onClick={() => { setSelectedService(s); setSelectedStaffId('any'); setStep('staff') }}
@@ -156,7 +155,7 @@ export default function BookingPage() {
         {/* STEP 2 — Staff */}
         {step === 'staff' && selectedService && (
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Choose who you\'d like</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Choose who you&apos;d like</h2>
             <p className="text-gray-400 text-sm mb-6">{selectedService.name} · {selectedService.duration} min · €{selectedService.price}</p>
             <div className="space-y-3">
               <button onClick={() => { setSelectedStaffId('any'); setStep('datetime') }}
@@ -201,7 +200,7 @@ export default function BookingPage() {
         {/* STEP 3 — Date & Time */}
         {step === 'datetime' && selectedService && (
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Pick a date & time</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Pick a date &amp; time</h2>
             <div className="flex items-center gap-2 mb-6 flex-wrap">
               <span className="text-sm text-gray-400">{selectedService.name}</span>
               <span className="text-gray-300">·</span>
@@ -261,10 +260,8 @@ export default function BookingPage() {
         {step === 'details' && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Your details</h2>
-            <p className="text-gray-400 text-sm mb-6">We\'ll send your confirmation to the email below</p>
+            <p className="text-gray-400 text-sm mb-6">We&apos;ll send your confirmation to the email below</p>
             <div className="space-y-4">
-
-              {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Full name <span className="text-red-400">*</span>
@@ -277,16 +274,12 @@ export default function BookingPage() {
                   placeholder="e.g. Anna Bērziņa"
                 />
                 {touched.name && errors.name && (
-                  <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
-                    <span>&#9888;</span> {errors.name}
-                  </p>
+                  <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">⚠ {errors.name}</p>
                 )}
                 {touched.name && !errors.name && (
                   <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>
                 )}
               </div>
-
-              {/* Email */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Email address <span className="text-red-400">*</span>
@@ -300,16 +293,12 @@ export default function BookingPage() {
                   placeholder="anna@example.com"
                 />
                 {touched.email && errors.email && (
-                  <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
-                    <span>&#9888;</span> {errors.email}
-                  </p>
+                  <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">⚠ {errors.email}</p>
                 )}
                 {touched.email && !errors.email && (
                   <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>
                 )}
               </div>
-
-              {/* Phone */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Phone number <span className="text-red-400">*</span>
@@ -323,16 +312,12 @@ export default function BookingPage() {
                   placeholder="+371 2612 3456"
                 />
                 {touched.phone && errors.phone && (
-                  <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
-                    <span>&#9888;</span> {errors.phone}
-                  </p>
+                  <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">⚠ {errors.phone}</p>
                 )}
                 {touched.phone && !errors.phone && (
                   <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>
                 )}
               </div>
-
-              {/* Notes */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Notes <span className="text-gray-400 font-normal">(optional)</span>
@@ -346,10 +331,9 @@ export default function BookingPage() {
                 />
               </div>
             </div>
-
             <button
               onClick={handleNext}
-              className="mt-6 w-full bg-indigo-600 text-white py-4 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="mt-6 w-full bg-indigo-600 text-white py-4 rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
             >
               Review booking →
             </button>
@@ -402,7 +386,7 @@ export default function BookingPage() {
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">You\'re booked!</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">You&apos;re booked!</h2>
             <p className="text-gray-400 mb-1">Confirmation sent to <span className="font-medium text-gray-700">{form.email}</span></p>
             <p className="text-sm text-gray-400 mb-8">Booking ref: <span className="font-mono font-bold text-indigo-600">{bookingRef}</span></p>
             <div className="bg-white border-2 border-gray-100 rounded-2xl overflow-hidden text-left mb-6">
