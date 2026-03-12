@@ -1,12 +1,13 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Calendar, Scissors, LayoutDashboard, Settings } from 'lucide-react'
+import { Calendar, Scissors, LayoutDashboard, Settings, Users } from 'lucide-react'
 
 const nav = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard, exact: true },
   { href: '/admin/bookings', label: 'Bookings', icon: Calendar },
   { href: '/admin/services', label: 'Services', icon: Scissors },
+  { href: '/admin/staff', label: 'Staff', icon: Users },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -14,12 +15,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar */}
       <aside className="w-60 bg-white border-r border-gray-100 flex flex-col shrink-0">
         <div className="px-5 py-5 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center">
-              <Calendar className="w-4.5 h-4.5 text-white w-5 h-5" />
+              <Calendar className="w-5 h-5 text-white" />
             </div>
             <div>
               <p className="font-bold text-gray-900 text-sm">Glow Beauty Studio</p>
