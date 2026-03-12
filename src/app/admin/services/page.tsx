@@ -1,31 +1,37 @@
 'use client'
 import { useState } from 'react'
 import { services as initialServices } from '@/data/mock'
-import { Clock, Euro } from 'lucide-react'
+import { Clock } from 'lucide-react'
 
 type Service = typeof initialServices[0]
+
+const toForm = (s?: Service) => ({
+  name: s?.name ?? '',
+  description: s?.description ?? '',
+  duration: s ? String(s.duration) : '60',
+  price: s ? String(s.price) : '0',
+})
 
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>(initialServices)
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Service | null>(null)
-  const [form, setForm] = useState({ name: '', description: '', duration: 60, price: 0 })
+  const [form, setForm] = useState(toForm())
 
-  const openCreate = () => {
-    setForm({ name: '', description: '', duration: 60, price: 0 })
-    setEditing(null); setShowModal(true)
-  }
-
-  const openEdit = (s: Service) => {
-    setForm({ name: s.name, description: s.description, duration: s.duration, price: s.price })
-    setEditing(s); setShowModal(true)
-  }
+  const openCreate = () => { setForm(toForm()); setEditing(null); setShowModal(true) }
+  const openEdit = (s: Service) => { setForm(toForm(s)); setEditing(s); setShowModal(true) }
 
   const handleSave = () => {
+    const parsed = {
+      name: form.name,
+      description: form.description,
+      duration: Math.max(5, parseInt(form.duration) || 60),
+      price: Math.max(0, parseFloat(form.price) || 0),
+    }
     if (editing) {
-      setServices(prev => prev.map(s => s.id === editing.id ? { ...s, ...form } : s))
+      setServices(prev => prev.map(s => s.id === editing.id ? { ...s, ...parsed } : s))
     } else {
-      setServices(prev => [...prev, { ...form, id: `s${Date.now()}`, currency: 'EUR' }])
+      setServices(prev => [...prev, { ...parsed, id: `s${Date.now()}`, currency: 'EUR' }])
     }
     setShowModal(false)
   }
@@ -68,15 +74,25 @@ export default function ServicesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Duration (minutes)</label>
-                  <input type="number" value={form.duration} onChange={e => setForm(p => ({ ...p, duration: Number(e.target.value) }))}
+                  <input
+                    type="number"
+                    value={form.duration}
+                    onChange={e => setForm(p => ({ ...p, duration: e.target.value }))}
+                    onFocus={e => e.target.select()}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
-                    min={5} step={5} />
+                    min={5} step={5}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Price (€)</label>
-                  <input type="number" value={form.price} onChange={e => setForm(p => ({ ...p, price: Number(e.target.value) }))}
+                  <input
+                    type="number"
+                    value={form.price}
+                    onChange={e => setForm(p => ({ ...p, price: e.target.value }))}
+                    onFocus={e => e.target.select()}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
-                    min={0} step={0.5} />
+                    min={0} step={0.5}
+                  />
                 </div>
               </div>
             </div>
