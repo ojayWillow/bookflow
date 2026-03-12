@@ -3,12 +3,32 @@ import { useState } from 'react'
 import { businessSettings, services, staff } from '@/data/mock'
 import { getSlotsForDate, getAvailableDates } from '@/lib/slots'
 import { format, parseISO } from 'date-fns'
-import { Calendar, Clock, CheckCircle, MapPin, Phone, Mail, ChevronLeft, User, Users } from 'lucide-react'
+import { Clock, CheckCircle, MapPin, Phone, Mail, ChevronLeft, Users } from 'lucide-react'
 
 type Step = 'service' | 'staff' | 'datetime' | 'details' | 'confirm' | 'success'
 
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const STEP_LABELS = ['Service', 'Who', 'Date & Time', 'Details', 'Confirm']
+
+// ---- Validators ----
+const validateName = (v: string) => {
+  const parts = v.trim().split(/\s+/)
+  if (parts.length < 2) return 'Please enter your first and last name'
+  if (parts.some(p => p.length < 2)) return 'Each name must be at least 2 characters'
+  return ''
+}
+const validateEmail = (v: string) => {
+  if (!v.trim()) return 'Email is required'
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim())) return 'Please enter a valid email address'
+  return ''
+}
+const validatePhone = (v: string) => {
+  if (!v.trim()) return 'Phone number is required'
+  const digits = v.replace(/[^0-9]/g, '')
+  if (digits.length < 7) return 'Please enter a valid phone number (min 7 digits)'
+  if (!/^[\d\s\+\-\(\)]{7,20}$/.test(v.trim())) return 'Only digits, spaces, +, - and () allowed'
+  return ''
+}
 
 export default function BookingPage() {
   const [step, setStep] = useState<Step>('service')
@@ -17,7 +37,32 @@ export default function BookingPage() {
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState('')
   const [form, setForm] = useState({ name: '', email: '', phone: '', notes: '' })
+  const [touched, setTouched] = useState({ name: false, email: false, phone: false })
   const [bookingRef] = useState(() => 'BF-' + Math.random().toString(36).substring(2, 8).toUpperCase())
+
+  const errors = {
+    name: validateName(form.name),
+    email: validateEmail(form.email),
+    phone: validatePhone(form.phone),
+  }
+  const formValid = !errors.name && !errors.email && !errors.phone
+
+  const handleNext = () => {
+    setTouched({ name: true, email: true, phone: true })
+    if (formValid) setStep('confirm')
+  }
+
+  const touch = (field: keyof typeof touched) =>
+    setTouched(p => ({ ...p, [field]: true }))
+
+  const fieldClass = (field: keyof typeof errors) =>
+    `w-full border-2 rounded-xl px-4 py-3 focus:outline-none transition-colors ${
+      touched[field] && errors[field]
+        ? 'border-red-300 focus:border-red-400 bg-red-50'
+        : touched[field] && !errors[field]
+        ? 'border-green-300 focus:border-green-400'
+        : 'border-gray-100 focus:border-indigo-400'
+    }`
 
   const b = businessSettings
   const availableDates = getAvailableDates()
@@ -26,25 +71,19 @@ export default function BookingPage() {
     ? getSlotsForDate(selectedDate, selectedService.duration, bookedSlots)
     : []
 
-  // Staff available for selected service
   const availableStaff = selectedService
     ? staff.filter(m => m.active && m.serviceIds.includes(selectedService.id))
     : []
-
   const selectedStaffMember = selectedStaffId !== 'any'
     ? staff.find(m => m.id === selectedStaffId)
     : null
 
   const stepKeys: Step[] = ['service', 'staff', 'datetime', 'details', 'confirm']
   const stepIndex = stepKeys.indexOf(step)
-
-  const goBack = () => {
-    if (stepIndex > 0) setStep(stepKeys[stepIndex - 1])
-  }
+  const goBack = () => { if (stepIndex > 0) setStep(stepKeys[stepIndex - 1]) }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b">
         <div className="max-w-2xl mx-auto px-6 py-5 flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
@@ -60,7 +99,6 @@ export default function BookingPage() {
       <main className="max-w-2xl mx-auto px-6 py-8">
         {step !== 'success' && (
           <>
-            {/* Progress */}
             <div className="flex items-center mb-8">
               {STEP_LABELS.map((label, i) => (
                 <div key={label} className="flex items-center flex-1 last:flex-none">
@@ -94,7 +132,7 @@ export default function BookingPage() {
         {step === 'service' && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Choose a service</h2>
-            <p className="text-gray-400 text-sm mb-6">Select what you'd like to book</p>
+            <p className="text-gray-400 text-sm mb-6">Select what you\'d like to book</p>
             <div className="space-y-3">
               {services.map(s => (
                 <button key={s.id} onClick={() => { setSelectedService(s); setSelectedStaffId('any'); setStep('staff') }}
@@ -118,11 +156,9 @@ export default function BookingPage() {
         {/* STEP 2 — Staff */}
         {step === 'staff' && selectedService && (
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Choose who you'd like</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Choose who you\'d like</h2>
             <p className="text-gray-400 text-sm mb-6">{selectedService.name} · {selectedService.duration} min · €{selectedService.price}</p>
             <div className="space-y-3">
-
-              {/* Anyone option */}
               <button onClick={() => { setSelectedStaffId('any'); setStep('datetime') }}
                 className={`w-full text-left bg-white border-2 rounded-2xl p-5 hover:border-indigo-400 transition-all ${
                   selectedStaffId === 'any' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'
@@ -137,8 +173,6 @@ export default function BookingPage() {
                   </div>
                 </div>
               </button>
-
-              {/* Individual staff */}
               {availableStaff.map(m => (
                 <button key={m.id} onClick={() => { setSelectedStaffId(m.id); setStep('datetime') }}
                   className={`w-full text-left bg-white border-2 rounded-2xl p-5 hover:border-indigo-400 transition-all ${
@@ -157,7 +191,6 @@ export default function BookingPage() {
                   </div>
                 </button>
               ))}
-
               {availableStaff.length === 0 && (
                 <p className="text-center text-gray-400 text-sm py-6">No staff assigned to this service yet.</p>
               )}
@@ -184,8 +217,6 @@ export default function BookingPage() {
                 <span className="text-sm text-gray-400">Anyone available</span>
               )}
             </div>
-
-            {/* Dates */}
             <p className="text-sm font-medium text-gray-700 mb-3">Select a date</p>
             <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-6">
               {availableDates.slice(0, 14).map(date => {
@@ -203,8 +234,6 @@ export default function BookingPage() {
                 )
               })}
             </div>
-
-            {/* Time slots */}
             {selectedDate && (
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-3">Select a time</p>
@@ -232,36 +261,96 @@ export default function BookingPage() {
         {step === 'details' && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Your details</h2>
-            <p className="text-gray-400 text-sm mb-6">We'll send your confirmation to the email below</p>
+            <p className="text-gray-400 text-sm mb-6">We\'ll send your confirmation to the email below</p>
             <div className="space-y-4">
+
+              {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Full name <span className="text-red-400">*</span></label>
-                <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                  className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-400 transition-colors"
-                  placeholder="e.g. Anna Bērziņa" />
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Full name <span className="text-red-400">*</span>
+                </label>
+                <input
+                  value={form.name}
+                  onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                  onBlur={() => touch('name')}
+                  className={fieldClass('name')}
+                  placeholder="e.g. Anna Bērziņa"
+                />
+                {touched.name && errors.name && (
+                  <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                    <span>&#9888;</span> {errors.name}
+                  </p>
+                )}
+                {touched.name && !errors.name && (
+                  <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>
+                )}
               </div>
+
+              {/* Email */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address <span className="text-red-400">*</span></label>
-                <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                  className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-400 transition-colors"
-                  placeholder="anna@example.com" />
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Email address <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                  onBlur={() => touch('email')}
+                  className={fieldClass('email')}
+                  placeholder="anna@example.com"
+                />
+                {touched.email && errors.email && (
+                  <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                    <span>&#9888;</span> {errors.email}
+                  </p>
+                )}
+                {touched.email && !errors.email && (
+                  <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>
+                )}
               </div>
+
+              {/* Phone */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone number <span className="text-red-400">*</span></label>
-                <input type="tel" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
-                  className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-400 transition-colors"
-                  placeholder="+371 2612 3456" />
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Phone number <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+                  onBlur={() => touch('phone')}
+                  className={fieldClass('phone')}
+                  placeholder="+371 2612 3456"
+                />
+                {touched.phone && errors.phone && (
+                  <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                    <span>&#9888;</span> {errors.phone}
+                  </p>
+                )}
+                {touched.phone && !errors.phone && (
+                  <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>
+                )}
               </div>
+
+              {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes <span className="text-gray-400 font-normal">(optional)</span></label>
-                <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Notes <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <textarea
+                  value={form.notes}
+                  onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
                   className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-400 transition-colors resize-none"
-                  rows={3} placeholder="Any special requests?" />
+                  rows={3}
+                  placeholder="Any special requests or things we should know?"
+                />
               </div>
             </div>
-            <button onClick={() => setStep('confirm')}
-              disabled={!form.name || !form.email || !form.phone}
-              className="mt-6 w-full bg-indigo-600 text-white py-4 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+
+            <button
+              onClick={handleNext}
+              className="mt-6 w-full bg-indigo-600 text-white py-4 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               Review booking →
             </button>
           </div>
@@ -313,7 +402,7 @@ export default function BookingPage() {
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">You're booked!</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">You\'re booked!</h2>
             <p className="text-gray-400 mb-1">Confirmation sent to <span className="font-medium text-gray-700">{form.email}</span></p>
             <p className="text-sm text-gray-400 mb-8">Booking ref: <span className="font-mono font-bold text-indigo-600">{bookingRef}</span></p>
             <div className="bg-white border-2 border-gray-100 rounded-2xl overflow-hidden text-left mb-6">
