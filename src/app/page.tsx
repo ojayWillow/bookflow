@@ -1,8 +1,8 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { Calendar, Clock, Settings, Star, CheckCircle, Zap, Globe, Bell } from 'lucide-react'
+import Link from 'next/link'
 
 const features = [
   { icon: Calendar, title: 'Smart scheduling', desc: 'Set your open days, hours, and slot intervals. The system handles the rest.' },
@@ -25,7 +25,7 @@ const plans = [
   { name: 'Agency',  price: 99, features: ['Multiple locations', 'White-label resale', 'API access', 'Dedicated support', 'Custom integrations'],                  highlight: false },
 ]
 
-// ─── Inline Hero Signup Form ────────────────────────────────────────────────
+// ─── Inline Hero Signup Form ─────────────────────────────────────────────────
 function HeroSignupForm() {
   const router = useRouter()
   const [form, setForm]       = useState({ businessName: '', slug: '', email: '', password: '' })
@@ -70,15 +70,13 @@ function HeroSignupForm() {
       <p className="text-sm font-semibold text-gray-700 mb-4 text-center">Create your free account</p>
 
       <div className="space-y-3">
-        <div>
-          <input
-            value={form.businessName}
-            onChange={handleNameChange}
-            required
-            className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
-            placeholder="Business name (e.g. Glow Beauty Studio)"
-          />
-        </div>
+        <input
+          value={form.businessName}
+          onChange={handleNameChange}
+          required
+          className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+          placeholder="Business name (e.g. Glow Beauty Studio)"
+        />
 
         <div className="flex items-center border-2 border-gray-100 rounded-xl overflow-hidden focus-within:border-indigo-400 transition-colors">
           <span className="bg-gray-50 px-3 py-2.5 text-xs text-gray-400 border-r border-gray-100 whitespace-nowrap">/book/</span>
@@ -145,7 +143,6 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8 text-sm text-gray-500">
             <a href="#features" className="hover:text-gray-900 transition-colors">Features</a>
             <a href="#pricing"  className="hover:text-gray-900 transition-colors">Pricing</a>
-            <Link href="/book/demo" className="hover:text-gray-900 transition-colors">Live demo</Link>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/admin/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Sign in</Link>
@@ -170,12 +167,9 @@ export default function LandingPage() {
                 Online booking that<br />
                 <span className="text-indigo-600">just works</span>
               </h1>
-              <p className="text-xl text-gray-500 mb-6 leading-relaxed">
+              <p className="text-xl text-gray-500 leading-relaxed">
                 Give your business a professional booking page in minutes. Customers book, you get notified, everyone knows what&apos;s happening.
               </p>
-              <Link href="/book/demo" className="inline-flex items-center gap-2 text-indigo-600 font-medium text-sm hover:underline">
-                See a live demo →
-              </Link>
             </div>
             {/* Right — signup form */}
             <div>
@@ -303,7 +297,6 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                {/* Scroll back to hero form instead of dead-end link */}
                 <a href="#hero-signup" className={`block text-center py-3 rounded-xl font-semibold text-sm transition-colors ${
                   plan.highlight
                     ? 'bg-white text-indigo-600 hover:bg-indigo-50'
