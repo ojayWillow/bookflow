@@ -1,9 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { loadStaff } from '@/lib/staffStore'
-import { loadSettings } from '@/lib/settingsStore'
-import { loadBookings, type Booking } from '@/lib/bookingsStore'
-import type { StaffMember } from '@/data/mock'
+import { getBookings, getStaff, getSettings } from '@/lib/supabase/queries'
 import { format, addDays, parseISO, startOfWeek } from 'date-fns'
 import Link from 'next/link'
 
@@ -37,45 +34,81 @@ const STATUS_TEXT: Record<string, string> = {
   pending: 'text-amber-700',
 }
 
+type Booking = {
+  id: string; ref: string
+  service_name: string; service_duration: number; service_price: number
+  staff_id: string; staff_name: string
+  date: string; time: string
+  customer_name: string; customer_email: string
+  customer_phone: string; customer_notes: string
+  status: string
+}
+
+type StaffMember = {
+  id: string; name: string; role: string
+  work_days: number[]; work_start: string; work_end: string
+  active: boolean; color: string
+}
+
+type Settings = {
+  open_time: string; close_time: string
+}
+
 export default function AdminOverview() {
   const [view, setView] = useState<'day' | 'week'>('day')
   const [currentDate, setCurrentDate] = useState(TODAY)
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [bookings, setBookings] = useState<Booking[]>([])
   const [staff, setStaff] = useState<StaffMember[]>([])
-  const [settings, setSettings] = useState(loadSettings())
+  const [settings, setSettings] = useState<Settings>({ open_time: '09:00', close_time: '18:00' })
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setBookings(loadBookings())
-    setStaff(loadStaff())
-    setSettings(loadSettings())
+    Promise.all([getBookings(), getStaff(), getSettings()])
+      .then(([bData, sData, stData]) => {
+        setBookings((bData ?? []) as Booking[])
+        setStaff(((sData ?? []) as StaffMember[]).filter(m => m.active))
+        setSettings(stData as Settings)
+      })
+      .finally(() => setLoading(false))
   }, [])
 
-  const openHour = parseInt(settings.openTime.split(':')[0])
-  const closeHour = parseInt(settings.closeTime.split(':')[0])
+  const openHour  = parseInt(settings.open_time.split(':')[0])
+  const closeHour = parseInt(settings.close_time.split(':')[0])
   const hours = Array.from({ length: closeHour - openHour }, (_, i) => openHour + i)
-  const activeStaff = staff.filter(m => m.active)
 
   const dayBookings = (staffId: string) =>
-    bookings.filter(b => b.date === currentDate && b.staffId === staffId && b.status !== 'cancelled')
+    bookings.filter(b =>
+      b.date === currentDate && b.staff_id === staffId && b.status !== 'cancelled'
+    )
 
   const weekStart = startOfWeek(parseISO(currentDate), { weekStartsOn: 1 })
   const weekDays = Array.from({ length: 6 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'))
   const weekBookingsForDay = (date: string) =>
     bookings.filter(b => b.date === date && b.status !== 'cancelled')
 
-  const todayAll = bookings.filter(b => b.date === TODAY && b.status !== 'cancelled')
+  const todayAll    = bookings.filter(b => b.date === TODAY && b.status !== 'cancelled')
   const pendingCount = bookings.filter(b => b.status === 'pending').length
   const totalRevenue = bookings
     .filter(b => b.status === 'confirmed' || b.status === 'completed')
-    .reduce((sum, b) => sum + b.servicePrice, 0)
+    .reduce((sum, b) => sum + b.service_price, 0)
 
   const stats = [
-    { label: "Today's appointments", value: todayAll.length, color: 'text-indigo-600 bg-indigo-50' },
-    { label: 'Pending confirmation', value: pendingCount, color: 'text-amber-600 bg-amber-50' },
-    { label: 'Total revenue', value: `€${totalRevenue}`, color: 'text-green-600 bg-green-50' },
-    { label: 'Active staff', value: activeStaff.length, color: 'text-purple-600 bg-purple-50' },
+    { label: "Today's appointments", value: todayAll.length,   color: 'text-indigo-600 bg-indigo-50' },
+    { label: 'Pending confirmation',  value: pendingCount,      color: 'text-amber-600 bg-amber-50' },
+    { label: 'Total revenue',         value: `€${totalRevenue}`, color: 'text-green-600 bg-green-50' },
+    { label: 'Active staff',          value: staff.length,      color: 'text-purple-600 bg-purple-50' },
   ]
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-full text-gray-400">
+      <svg className="w-6 h-6 animate-spin mr-2" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+      </svg>
+      Loading…
+    </div>
+  )
 
   return (
     <div className="flex flex-col h-full">
@@ -98,6 +131,7 @@ export default function AdminOverview() {
         </div>
       </div>
 
+      {/* Stats */}
       <div className="px-8 pb-5 grid grid-cols-4 gap-4">
         {stats.map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-soft">
@@ -107,12 +141,15 @@ export default function AdminOverview() {
         ))}
       </div>
 
+      {/* Date nav */}
       <div className="px-8 pb-4 flex items-center gap-3">
-        <button onClick={() => setCurrentDate(format(addDays(parseISO(currentDate), view === 'day' ? -1 : -7), 'yyyy-MM-dd'))}
+        <button
+          onClick={() => setCurrentDate(format(addDays(parseISO(currentDate), view === 'day' ? -1 : -7), 'yyyy-MM-dd'))}
           className="w-8 h-8 flex items-center justify-center rounded-xl border-2 border-gray-100 hover:border-indigo-300 transition-colors text-gray-400 hover:text-indigo-600">←</button>
         <button onClick={() => setCurrentDate(TODAY)}
           className="px-3 py-1.5 text-xs font-medium rounded-xl border-2 border-gray-100 hover:border-indigo-300 transition-colors text-gray-500">Today</button>
-        <button onClick={() => setCurrentDate(format(addDays(parseISO(currentDate), view === 'day' ? 1 : 7), 'yyyy-MM-dd'))}
+        <button
+          onClick={() => setCurrentDate(format(addDays(parseISO(currentDate), view === 'day' ? 1 : 7), 'yyyy-MM-dd'))}
           className="w-8 h-8 flex items-center justify-center rounded-xl border-2 border-gray-100 hover:border-indigo-300 transition-colors text-gray-400 hover:text-indigo-600">→</button>
         <span className="text-sm font-medium text-gray-700 ml-1">
           {view === 'week'
@@ -134,7 +171,7 @@ export default function AdminOverview() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
               <div className="flex border-b border-gray-100">
                 <div className="w-16 flex-shrink-0 border-r border-gray-100" />
-                {activeStaff.map(m => (
+                {staff.map(m => (
                   <div key={m.id} className="flex-1 px-3 py-3 border-r border-gray-50 last:border-0">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
@@ -157,7 +194,7 @@ export default function AdminOverview() {
                     </div>
                   ))}
                 </div>
-                {activeStaff.map(m => {
+                {staff.map(m => {
                   const colBookings = dayBookings(m.id)
                   return (
                     <div key={m.id} className="flex-1 relative border-r border-gray-50 last:border-0">
@@ -167,7 +204,7 @@ export default function AdminOverview() {
                       {colBookings.map(b => {
                         const startMins = timeToMinutes(b.time) - openHour * 60
                         const top = minutesToPx(startMins)
-                        const height = Math.max(minutesToPx(b.serviceDuration), 32)
+                        const height = Math.max(minutesToPx(b.service_duration), 32)
                         return (
                           <button key={b.id}
                             onClick={() => setSelectedBooking(selectedBooking?.id === b.id ? null : b)}
@@ -177,9 +214,13 @@ export default function AdminOverview() {
                             } ${selectedBooking?.id === b.id ? 'z-10 shadow-lg ring-2 ring-indigo-400' : ''}`}>
                             <div className={`w-1 h-full absolute left-0 top-0 rounded-l-xl ${STATUS_COLOR[b.status]}`} />
                             <div className="pl-2">
-                              <p className={`text-xs font-bold leading-tight truncate ${STATUS_TEXT[b.status]}`}>{b.customerName.split(' ')[0]}</p>
-                              <p className="text-xs text-gray-500 truncate leading-tight">{b.serviceName}</p>
-                              {height > 45 && <p className="text-xs text-gray-400 leading-tight">{b.time} · {b.serviceDuration}m</p>}
+                              <p className={`text-xs font-bold leading-tight truncate ${STATUS_TEXT[b.status]}`}>
+                                {b.customer_name.split(' ')[0]}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate leading-tight">{b.service_name}</p>
+                              {height > 45 && (
+                                <p className="text-xs text-gray-400 leading-tight">{b.time} · {b.service_duration}m</p>
+                              )}
                             </div>
                           </button>
                         )
@@ -202,9 +243,9 @@ export default function AdminOverview() {
                 const isToday = date === TODAY
                 const count = weekBookingsForDay(date).length
                 return (
-                  <div key={date} className={`px-3 py-3 border-r border-gray-50 last:border-0 text-center ${ isToday ? 'bg-indigo-50' : ''}`}>
-                    <p className={`text-xs font-medium ${ isToday ? 'text-indigo-600' : 'text-gray-400'}`}>{format(parseISO(date), 'EEE')}</p>
-                    <p className={`text-lg font-bold ${ isToday ? 'text-indigo-600' : 'text-gray-900'}`}>{format(parseISO(date), 'd')}</p>
+                  <div key={date} className={`px-3 py-3 border-r border-gray-50 last:border-0 text-center ${isToday ? 'bg-indigo-50' : ''}`}>
+                    <p className={`text-xs font-medium ${isToday ? 'text-indigo-600' : 'text-gray-400'}`}>{format(parseISO(date), 'EEE')}</p>
+                    <p className={`text-lg font-bold ${isToday ? 'text-indigo-600' : 'text-gray-900'}`}>{format(parseISO(date), 'd')}</p>
                     {count > 0 && (
                       <span className="inline-flex w-5 h-5 rounded-full bg-indigo-600 text-white text-xs font-bold items-center justify-center mx-auto mt-0.5">{count}</span>
                     )}
@@ -218,15 +259,17 @@ export default function AdminOverview() {
                 return (
                   <div key={date} className="p-2 space-y-1.5">
                     {dayBkgs.map(b => {
-                      const member = staff.find(m => m.id === b.staffId)
+                      const member = staff.find(m => m.id === b.staff_id)
                       return (
                         <button key={b.id}
                           onClick={() => setSelectedBooking(selectedBooking?.id === b.id ? null : b)}
                           className={`w-full text-left rounded-xl border-2 px-2.5 py-2 transition-all ${
                             STATUS_LIGHT[b.status]
                           } ${selectedBooking?.id === b.id ? 'ring-2 ring-indigo-400' : 'hover:shadow-sm'}`}>
-                          <p className={`text-xs font-bold truncate ${STATUS_TEXT[b.status]}`}>{b.time} {b.customerName.split(' ')[0]}</p>
-                          <p className="text-xs text-gray-400 truncate">{b.serviceName}</p>
+                          <p className={`text-xs font-bold truncate ${STATUS_TEXT[b.status]}`}>
+                            {b.time} {b.customer_name.split(' ')[0]}
+                          </p>
+                          <p className="text-xs text-gray-400 truncate">{b.service_name}</p>
                           {member && (
                             <div className="flex items-center gap-1 mt-1">
                               <div className="w-3.5 h-3.5 rounded-full flex-shrink-0" style={{ backgroundColor: member.color }} />
@@ -248,7 +291,7 @@ export default function AdminOverview() {
       {/* Detail popover */}
       {selectedBooking && (() => {
         const bk = selectedBooking
-        const member = staff.find(m => m.id === bk.staffId)
+        const member = staff.find(m => m.id === bk.staff_id)
         return (
           <div className="fixed bottom-6 right-6 z-50 bg-white rounded-2xl shadow-2xl border border-gray-100 w-72 p-5">
             <div className="flex items-center justify-between mb-3">
@@ -260,19 +303,21 @@ export default function AdminOverview() {
               }`}>{bk.status}</span>
               <button onClick={() => setSelectedBooking(null)} className="text-gray-300 hover:text-gray-600 text-lg leading-none">×</button>
             </div>
-            <p className="font-bold text-gray-900">{bk.customerName}</p>
+            <p className="font-bold text-gray-900">{bk.customer_name}</p>
             <p className="text-xs text-gray-400 font-mono mb-1">{bk.ref}</p>
-            <p className="text-sm text-indigo-600 font-medium">{bk.serviceName}</p>
+            <p className="text-sm text-indigo-600 font-medium">{bk.service_name}</p>
             <div className="mt-3 space-y-1.5 text-sm text-gray-500">
               <p>📅 {format(parseISO(bk.date), 'EEE d MMM')} at {bk.time}</p>
-              <p>⏱ {bk.serviceDuration} min · €{bk.servicePrice}</p>
+              <p>⏱ {bk.service_duration} min · €{bk.service_price}</p>
               {member && <p>👤 {member.name}</p>}
-              <p>📧 {bk.customerEmail}</p>
-              <p>📞 {bk.customerPhone}</p>
-              {bk.customerNotes && <p>📝 {bk.customerNotes}</p>}
+              <p>📧 {bk.customer_email}</p>
+              <p>📞 {bk.customer_phone}</p>
+              {bk.customer_notes && <p>📝 {bk.customer_notes}</p>}
             </div>
             <Link href="/admin/bookings"
-              className="mt-4 block text-center text-xs font-medium text-indigo-600 hover:underline">Manage booking →</Link>
+              className="mt-4 block text-center text-xs font-medium text-indigo-600 hover:underline">
+              Manage booking →
+            </Link>
           </div>
         )
       })()}
