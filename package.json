@@ -16,7 +16,7 @@
     "lucide-react": "^0.363.0",
     "clsx": "^2.1.0",
     "@supabase/supabase-js": "^2.43.0",
-    "@supabase/ssr": "^0.3.0"
+    "@supabase/ssr": "^0.5.2"
   },
   "devDependencies": {
     "@types/node": "^20",
