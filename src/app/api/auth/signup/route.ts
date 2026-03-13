@@ -2,6 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse, type NextRequest } from 'next/server'
 
+type CookieToSet = { name: string; value: string; options: Record<string, unknown> }
+
 export async function POST(request: NextRequest) {
   const { email, password, businessName, slug } = await request.json()
 
@@ -11,7 +13,7 @@ export async function POST(request: NextRequest) {
 
   if (!/^[a-z0-9-]{3,40}$/.test(slug)) {
     return NextResponse.json(
-      { error: 'Slug must be 3–40 lowercase letters, numbers or hyphens' },
+      { error: 'Slug must be 3-40 lowercase letters, numbers or hyphens' },
       { status: 400 }
     )
   }
@@ -23,16 +25,18 @@ export async function POST(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       cookies: {
-        getAll()             { return cookieStore.getAll() },
-        setAll(cookiesToSet) {
-          try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) }
-          catch { /* ignored */ }
+        getAll() { return cookieStore.getAll() },
+        setAll(cookiesToSet: CookieToSet[]) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2])
+            )
+          } catch { /* ignored */ }
         },
       },
     }
   )
 
-  // 1. Check slug uniqueness
   const { data: existing } = await supabaseAdmin
     .from('business_settings')
     .select('id')
@@ -40,10 +44,9 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (existing) {
-    return NextResponse.json({ error: 'That slug is already taken — try a different one' }, { status: 409 })
+    return NextResponse.json({ error: 'That slug is already taken - try a different one' }, { status: 409 })
   }
 
-  // 2. Create auth user — email_confirm: false so Supabase sends a verification email
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
@@ -56,7 +59,6 @@ export async function POST(request: NextRequest) {
 
   const userId = authData.user.id
 
-  // 3. Seed business_settings row
   const { error: bizError } = await supabaseAdmin.from('business_settings').insert({
     user_id:             userId,
     name:                businessName,
@@ -76,11 +78,9 @@ export async function POST(request: NextRequest) {
   })
 
   if (bizError) {
-    // Roll back the auth user if settings seeding fails
     await supabaseAdmin.auth.admin.deleteUser(userId)
     return NextResponse.json({ error: bizError.message }, { status: 500 })
   }
 
-  // 4. Return success — user must verify their email before they can log in
   return NextResponse.json({ ok: true })
 }

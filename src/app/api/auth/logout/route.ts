@@ -2,6 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse, type NextRequest } from 'next/server'
 
+type CookieToSet = { name: string; value: string; options: Record<string, unknown> }
+
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies()
 
@@ -13,10 +15,10 @@ export async function POST(request: NextRequest) {
         getAll() {
           return cookieStore.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: CookieToSet[]) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2])
             )
           } catch {
             // ignored in Server Component context
@@ -28,7 +30,6 @@ export async function POST(request: NextRequest) {
 
   await supabase.auth.signOut()
 
-  // Redirect to our own app origin, NOT the Supabase URL
   const origin = request.nextUrl.origin
   return NextResponse.redirect(new URL('/admin/login', origin))
 }
