@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Calendar, Clock, Settings, Star, CheckCircle, Zap, Globe, Bell } from 'lucide-react'
 import Link from 'next/link'
 
@@ -20,17 +19,17 @@ const testimonials = [
 ]
 
 const plans = [
-  { name: 'Starter', price: 19, features: ['1 location', 'Up to 5 services', 'Email confirmations', 'Basic branding'],                                             highlight: false },
-  { name: 'Pro',     price: 49, features: ['Unlimited services', 'Custom domain', 'SMS reminders', 'Analytics dashboard', 'Priority support'],                     highlight: true  },
-  { name: 'Agency',  price: 99, features: ['Multiple locations', 'White-label resale', 'API access', 'Dedicated support', 'Custom integrations'],                  highlight: false },
+  { name: 'Starter', price: 19, features: ['1 location', 'Up to 5 services', 'Email confirmations', 'Basic branding'],                                          highlight: false },
+  { name: 'Pro',     price: 49, features: ['Unlimited services', 'Custom domain', 'SMS reminders', 'Analytics dashboard', 'Priority support'],                  highlight: true  },
+  { name: 'Agency',  price: 99, features: ['Multiple locations', 'White-label resale', 'API access', 'Dedicated support', 'Custom integrations'],               highlight: false },
 ]
 
 // ─── Inline Hero Signup Form ─────────────────────────────────────────────────
 function HeroSignupForm() {
-  const router = useRouter()
   const [form, setForm]       = useState({ businessName: '', slug: '', email: '', password: '' })
   const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
+  const [done, setDone]       = useState(false)
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(p => ({ ...p, [k]: e.target.value }))
@@ -59,7 +58,24 @@ function HeroSignupForm() {
       return
     }
 
-    router.push('/admin')
+    setDone(true)
+  }
+
+  if (done) {
+    return (
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 w-full max-w-md mx-auto text-center">
+        <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span className="text-2xl">✉️</span>
+        </div>
+        <h3 className="text-lg font-bold text-gray-900 mb-2">Check your inbox!</h3>
+        <p className="text-sm text-gray-500 leading-relaxed">
+          We sent a verification link to{' '}
+          <span className="font-medium text-gray-800">{form.email}</span>.<br />
+          Click it to activate your account and get started.
+        </p>
+        <p className="text-xs text-gray-400 mt-4">Didn’t get it? Check your spam folder.</p>
+      </div>
+    )
   }
 
   return (
@@ -157,7 +173,6 @@ export default function LandingPage() {
       <section id="hero-signup" className="pt-32 pb-20 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Left — copy */}
             <div>
               <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 text-sm font-medium px-4 py-2 rounded-full mb-6">
                 <Zap className="w-3.5 h-3.5" />
@@ -171,7 +186,6 @@ export default function LandingPage() {
                 Give your business a professional booking page in minutes. Customers book, you get notified, everyone knows what&apos;s happening.
               </p>
             </div>
-            {/* Right — signup form */}
             <div>
               <HeroSignupForm />
             </div>
