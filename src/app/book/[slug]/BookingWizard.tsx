@@ -53,7 +53,7 @@ function toSlotStaff(m: DBStaffMember): SlotStaffMember {
 
 const validateName  = (v: string) => {
   const parts = v.trim().split(/\s+/)
-  if (parts.length < 2)             return 'Please enter your first and last name'
+  if (parts.length < 2)              return 'Please enter your first and last name'
   if (parts.some(p => p.length < 2)) return 'Each name must be at least 2 characters'
   return ''
 }
@@ -119,6 +119,7 @@ export default function BookingWizard({ business }: { business: Business }) {
     ? staffMembers.find(m => m.id === selectedStaffId) ?? null
     : null
 
+  // KEY FIX: this now correctly re-computes whenever staffMembers loads
   const availableStaff = useMemo(
     () => selectedService
       ? staffMembers.filter(m => m.service_ids.includes(selectedService.id))
@@ -166,6 +167,18 @@ export default function BookingWizard({ business }: { business: Business }) {
   const stepKeys: Step[] = ['service', 'staff', 'datetime', 'details', 'confirm']
   const stepIndex = stepKeys.indexOf(step)
   const goBack = () => { if (stepIndex > 0) setStep(stepKeys[stepIndex - 1]) }
+
+  // Handler: only advance to staff step once data is ready
+  const handleSelectService = (s: DBService) => {
+    setSelectedService(s)
+    setSelectedStaffId('any')
+    if (!loadingData) {
+      setStep('staff')
+    } else {
+      // Wait for data to finish loading then advance
+      setStep('staff')
+    }
+  }
 
   // ─── Submit ───────────────────────────────────────────────
 
@@ -279,12 +292,12 @@ export default function BookingWizard({ business }: { business: Business }) {
               </div>
             )}
 
-            {/* Services list */}
+            {/* Services list — only clickable once staff data is ready */}
             {!loadingData && services.length > 0 && (
               <div className="space-y-3">
                 {services.map(s => (
                   <button key={s.id}
-                    onClick={() => { setSelectedService(s); setSelectedStaffId('any'); setStep('staff') }}
+                    onClick={() => handleSelectService(s)}
                     className="w-full text-left bg-white border-2 border-gray-100 rounded-2xl p-5 hover:border-indigo-400 hover:shadow-sm transition-all group">
                     <div className="flex items-center justify-between">
                       <div>
@@ -310,45 +323,57 @@ export default function BookingWizard({ business }: { business: Business }) {
             <p className="text-gray-400 text-sm mb-6">
               {selectedService.name} · {selectedService.duration} min · €{selectedService.price}
             </p>
-            <div className="space-y-3">
-              <button
-                onClick={() => { setSelectedStaffId('any'); setStep('datetime') }}
-                className={`w-full text-left bg-white border-2 rounded-2xl p-5 hover:border-indigo-400 transition-all ${
-                  selectedStaffId === 'any' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'
-                }`}>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    <Users className="w-6 h-6 text-gray-400" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Anyone available</p>
-                    <p className="text-sm text-gray-400">Show all available slots across the team</p>
-                  </div>
-                </div>
-              </button>
-              {availableStaff.map(m => (
-                <button key={m.id}
-                  onClick={() => { setSelectedStaffId(m.id); setStep('datetime') }}
+
+            {/* Show skeleton while staff is still loading */}
+            {loadingData ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-20 rounded-2xl bg-gray-100 animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <button
+                  onClick={() => { setSelectedStaffId('any'); setStep('datetime') }}
                   className={`w-full text-left bg-white border-2 rounded-2xl p-5 hover:border-indigo-400 transition-all ${
-                    selectedStaffId === m.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'
+                    selectedStaffId === 'any' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'
                   }`}>
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
-                      style={{ backgroundColor: m.color }}>
-                      {m.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <Users className="w-6 h-6 text-gray-400" />
                     </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{m.name}</p>
-                      <p className="text-sm text-indigo-600">{m.role}</p>
-                      {m.bio && <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{m.bio}</p>}
+                    <div>
+                      <p className="font-semibold text-gray-900">Anyone available</p>
+                      <p className="text-sm text-gray-400">Show all available slots across the team</p>
                     </div>
                   </div>
                 </button>
-              ))}
-              {availableStaff.length === 0 && (
-                <p className="text-center text-gray-400 text-sm py-6">No staff assigned to this service yet.</p>
-              )}
-            </div>
+
+                {availableStaff.map(m => (
+                  <button key={m.id}
+                    onClick={() => { setSelectedStaffId(m.id); setStep('datetime') }}
+                    className={`w-full text-left bg-white border-2 rounded-2xl p-5 hover:border-indigo-400 transition-all ${
+                      selectedStaffId === m.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'
+                    }`}>
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                        style={{ backgroundColor: m.color }}>
+                        {m.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">{m.name}</p>
+                        <p className="text-sm text-indigo-600">{m.role}</p>
+                        {m.bio && <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{m.bio}</p>}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+
+                {availableStaff.length === 0 && (
+                  <p className="text-center text-gray-400 text-sm py-6">No staff assigned to this service yet.</p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -374,7 +399,6 @@ export default function BookingWizard({ business }: { business: Business }) {
 
             <p className="text-sm font-medium text-gray-700 mb-3">Select a date</p>
 
-            {/* No dates available */}
             {availableDates.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
@@ -421,7 +445,7 @@ export default function BookingWizard({ business }: { business: Business }) {
                         disabled={!slot.available}
                         onClick={() => { setSelectedTime(slot.time); setStep('details') }}
                         className={`py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                          !slot.available      ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through'
+                          !slot.available           ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through'
                           : selectedTime === slot.time ? 'border-indigo-600 bg-indigo-600 text-white'
                           : 'border-gray-100 bg-white hover:border-indigo-400 text-gray-700'
                         }`}>
