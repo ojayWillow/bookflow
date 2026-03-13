@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { Loader2, Copy, Check, QrCode, Globe, MessageCircle, MapPin, ExternalLink, Code2, Palette, Instagram, Facebook, Upload, X } from 'lucide-react'
 
 const DAYS      = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -51,28 +52,59 @@ function isValidHex(v: string) {
   return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(v)
 }
 
-// ── Image upload widget ─────────────────────────────────────────────────
+// ── Image upload widget ─────────────────────────────────────────────────────
+// Uploads DIRECTLY from browser → Supabase Storage (bypasses Vercel entirely)
 function ImageUpload({
-  label, hint, field, currentUrl, onUploaded,
+  label, hint, field, userId, currentUrl, onUploaded,
 }: {
-  label: string; hint: string; field: 'logo_url' | 'cover_url'
-  currentUrl: string; onUploaded: (url: string) => void
+  label: string
+  hint: string
+  field: 'logo_url' | 'cover_url'
+  userId: string
+  currentUrl: string
+  onUploaded: (url: string) => void
 }) {
-  const [uploading, setUploading] = useState(false)
+  const [uploading, setUploading]     = useState(false)
   const [uploadError, setUploadError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFile = async (file: File) => {
+    const MAX = 5 * 1024 * 1024
+    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    if (!ALLOWED.includes(file.type)) { setUploadError('Only JPEG, PNG, WebP or GIF allowed'); return }
+    if (file.size > MAX)              { setUploadError('File must be under 5 MB'); return }
+
     setUploading(true)
     setUploadError('')
-    const fd = new FormData()
-    fd.append('file', file)
-    fd.append('field', field)
+
     try {
-      const res  = await fetch('/api/upload-asset', { method: 'POST', body: fd })
+      const supabase  = createClient()
+      const ext       = file.name.split('.').pop() ?? 'jpg'
+      const path      = `${userId}/${field.replace('_url', '')}.${ext}`
+
+      // Upload directly browser → Supabase Storage (no Vercel in the middle)
+      const { error: uploadErr } = await supabase.storage
+        .from('business-assets')
+        .upload(path, file, { contentType: file.type, upsert: true })
+
+      if (uploadErr) throw new Error(uploadErr.message)
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('business-assets')
+        .getPublicUrl(path)
+
+      const urlWithBust = `${publicUrl}?t=${Date.now()}`
+
+      // Save the URL via the existing settings PATCH endpoint
+      const res  = await fetch('/api/settings', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ [field]: urlWithBust }),
+      })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Upload failed')
-      onUploaded(json.url)
+      if (!res.ok) throw new Error(json.error || 'Failed to save URL')
+
+      onUploaded(urlWithBust)
     } catch (e: unknown) {
       setUploadError(e instanceof Error ? e.message : 'Upload failed')
     } finally {
@@ -94,18 +126,20 @@ function ImageUpload({
       {currentUrl ? (
         <div className="relative inline-block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={currentUrl}
-            alt={label}
+          <img src={currentUrl} alt={label}
             className={`object-cover rounded-xl border-2 border-gray-100 ${
               field === 'logo_url' ? 'w-20 h-20' : 'w-full h-28'
             }`}
-            style={field === 'cover_url' ? { width: '100%' } : {}}
           />
-          <button
-            onClick={() => onUploaded('')}
-            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm"
-          >
+          <button onClick={() => {
+            onUploaded('')
+            fetch('/api/settings', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ [field]: '' }),
+            })
+          }}
+            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm">
             <X className="w-3 h-3" />
           </button>
         </div>
@@ -116,23 +150,19 @@ function ImageUpload({
           onClick={() => inputRef.current?.click()}
           className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors"
         >
-          {uploading ? (
-            <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
-          ) : (
-            <>
-              <Upload className="w-6 h-6 text-gray-300" />
-              <p className="text-xs text-gray-400 text-center">Click or drag &amp; drop<br /><span className="text-gray-300">JPEG, PNG, WebP · max 5 MB</span></p>
-            </>
-          )}
+          {uploading
+            ? <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+            : <>
+                <Upload className="w-6 h-6 text-gray-300" />
+                <p className="text-xs text-gray-400 text-center">Click or drag &amp; drop<br /><span className="text-gray-300">JPEG, PNG, WebP &middot; max 5 MB</span></p>
+              </>
+          }
         </div>
       )}
 
       {uploadError && <p className="text-xs text-red-500 mt-1.5">⚠ {uploadError}</p>}
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
         className="hidden"
         onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
       />
@@ -140,21 +170,26 @@ function ImageUpload({
   )
 }
 
-// ── Main page ────────────────────────────────────────────────────────────
+// ── Main settings page ──────────────────────────────────────────────────────
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<Settings | null>(null)
-  const [loading, setLoading]   = useState(true)
-  const [saving, setSaving]     = useState(false)
-  const [saved, setSaved]       = useState(false)
-  const [error, setError]       = useState('')
-  const [hexInput, setHexInput] = useState('')
-
-  // Slug checker
-  const [slugStatus, setSlugStatus]   = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
+  const [settings, setSettings]   = useState<Settings | null>(null)
+  const [userId, setUserId]       = useState('')
+  const [loading, setLoading]     = useState(true)
+  const [saving, setSaving]       = useState(false)
+  const [saved, setSaved]         = useState(false)
+  const [error, setError]         = useState('')
+  const [hexInput, setHexInput]   = useState('')
+  const [slugStatus, setSlugStatus]     = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
   const [originalSlug, setOriginalSlug] = useState('')
   const slugTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
+    // Get current user ID for storage path
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setUserId(data.user.id)
+    })
+
     fetch('/api/settings')
       .then(async res => { const j = await res.json(); if (!res.ok) throw new Error(j.error); return j })
       .then(data => {
@@ -234,7 +269,7 @@ export default function SettingsPage() {
 
       <div className="space-y-6">
 
-        {/* ── BRANDING ──────────────────────────────────────────── */}
+        {/* ── BRANDING ──────────────────────────────────────────────────── */}
         <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
           <div className="flex items-center gap-2 mb-1">
             <Palette className="w-4 h-4 text-indigo-500" />
@@ -243,20 +278,15 @@ export default function SettingsPage() {
           <p className="text-sm text-gray-400 mb-5">Customise how your booking page looks to customers</p>
 
           <div className="space-y-6">
-
-            {/* Logo + Cover side by side */}
+            {/* Logo + Cover */}
             <div className="grid grid-cols-2 gap-4">
-              <ImageUpload
-                label="Logo"
-                hint="Square image, shown in the header"
-                field="logo_url"
+              <ImageUpload label="Logo" hint="Square image, shown in the header"
+                field="logo_url" userId={userId}
                 currentUrl={settings.logo_url}
                 onUploaded={url => setSettings(p => p ? ({ ...p, logo_url: url }) : p)}
               />
-              <ImageUpload
-                label="Cover image"
-                hint="Wide banner behind your header"
-                field="cover_url"
+              <ImageUpload label="Cover image" hint="Wide banner behind your header"
+                field="cover_url" userId={userId}
                 currentUrl={settings.cover_url}
                 onUploaded={url => setSettings(p => p ? ({ ...p, cover_url: url }) : p)}
               />
@@ -342,43 +372,39 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* ── SOCIAL LINKS ─────────────────────────────────────── */}
+        {/* ── SOCIAL LINKS ─────────────────────────────────────────────── */}
         <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
           <h2 className="font-semibold text-gray-900 mb-1">🔗 Online presence</h2>
           <p className="text-sm text-gray-400 mb-5">These appear as icons on your booking page and confirmation screen</p>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <Globe className="w-5 h-5 text-gray-400 flex-shrink-0" />
-              <input value={settings.website_url}
-                onChange={e => setSettings(p => p ? ({ ...p, website_url: e.target.value }) : p)}
+              <input value={settings.website_url} onChange={e => setSettings(p => p ? ({ ...p, website_url: e.target.value }) : p)}
                 placeholder="https://yourwebsite.com"
                 className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors" />
             </div>
             <div className="flex items-center gap-3">
               <Instagram className="w-5 h-5 text-pink-400 flex-shrink-0" />
-              <input value={settings.instagram_url}
-                onChange={e => setSettings(p => p ? ({ ...p, instagram_url: e.target.value }) : p)}
+              <input value={settings.instagram_url} onChange={e => setSettings(p => p ? ({ ...p, instagram_url: e.target.value }) : p)}
                 placeholder="https://instagram.com/yourbusiness"
                 className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors" />
             </div>
             <div className="flex items-center gap-3">
               <Facebook className="w-5 h-5 text-blue-500 flex-shrink-0" />
-              <input value={settings.facebook_url}
-                onChange={e => setSettings(p => p ? ({ ...p, facebook_url: e.target.value }) : p)}
+              <input value={settings.facebook_url} onChange={e => setSettings(p => p ? ({ ...p, facebook_url: e.target.value }) : p)}
                 placeholder="https://facebook.com/yourbusiness"
                 className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors" />
             </div>
             <div className="flex items-center gap-3">
               <TikTokIcon className="w-5 h-5 text-gray-500 flex-shrink-0" />
-              <input value={settings.tiktok_url}
-                onChange={e => setSettings(p => p ? ({ ...p, tiktok_url: e.target.value }) : p)}
+              <input value={settings.tiktok_url} onChange={e => setSettings(p => p ? ({ ...p, tiktok_url: e.target.value }) : p)}
                 placeholder="https://tiktok.com/@yourbusiness"
                 className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors" />
             </div>
           </div>
         </section>
 
-        {/* ── SHARE & DISTRIBUTE ────────────────────────────────── */}
+        {/* ── SHARE & DISTRIBUTE ───────────────────────────────────────── */}
         <section className="bg-white rounded-2xl border-2 border-indigo-100 p-6 shadow-soft">
           <h2 className="font-semibold text-gray-900 mb-1">🔗 Share &amp; distribute</h2>
           <p className="text-sm text-gray-400 mb-5">Get your booking page in front of customers</p>
@@ -449,7 +475,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* ── BUSINESS INFO ─────────────────────────────────────── */}
+        {/* ── BUSINESS INFO ────────────────────────────────────────────── */}
         <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
           <h2 className="font-semibold text-gray-900 mb-4">🏢 Business information</h2>
           <div className="space-y-4">
@@ -466,25 +492,19 @@ export default function SettingsPage() {
                     slugStatus === 'taken' ? 'border-red-300' : slugStatus === 'available' ? 'border-green-300' : 'border-gray-100'
                   }`}>
                     <span className="bg-gray-50 px-3 py-2.5 text-xs text-gray-400 border-r border-gray-100 whitespace-nowrap">/book/</span>
-                    <input
-                      value={settings.slug}
+                    <input value={settings.slug}
                       onChange={e => {
                         const v = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')
                         setSettings(p => p ? ({ ...p, slug: v }) : p)
                         checkSlug(v)
                       }}
-                      className="flex-1 px-3 py-2.5 text-sm focus:outline-none bg-transparent"
-                    />
+                      className="flex-1 px-3 py-2.5 text-sm focus:outline-none bg-transparent" />
                     {slugStatus === 'checking'  && <Loader2 className="w-4 h-4 animate-spin text-gray-400 mr-3" />}
                     {slugStatus === 'available' && <Check className="w-4 h-4 text-green-500 mr-3" />}
                     {slugStatus === 'taken'     && <X className="w-4 h-4 text-red-500 mr-3" />}
                   </div>
-                  {slugStatus === 'taken' && (
-                    <p className="text-xs text-red-500 mt-1">⚠ This slug is already taken</p>
-                  )}
-                  {slugStatus === 'available' && (
-                    <p className="text-xs text-green-600 mt-1">✓ Available</p>
-                  )}
+                  {slugStatus === 'taken'     && <p className="text-xs text-red-500 mt-1">⚠ This slug is already taken</p>}
+                  {slugStatus === 'available' && <p className="text-xs text-green-600 mt-1">✓ Available</p>}
                   {settings.slug !== originalSlug && slugStatus !== 'taken' && (
                     <p className="text-xs text-amber-600 mt-1">⚠ Changing your slug will break existing links and QR codes</p>
                   )}
@@ -516,7 +536,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* ── SCHEDULE ──────────────────────────────────────────── */}
+        {/* ── SCHEDULE ─────────────────────────────────────────────────── */}
         <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
           <h2 className="font-semibold text-gray-900 mb-4">📅 Schedule</h2>
           <div className="space-y-5">
@@ -557,7 +577,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* ── BOOKING RULES ─────────────────────────────────────── */}
+        {/* ── BOOKING RULES ────────────────────────────────────────────── */}
         <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
           <h2 className="font-semibold text-gray-900 mb-4">⚙️ Booking rules</h2>
           <div className="grid grid-cols-2 gap-4">
