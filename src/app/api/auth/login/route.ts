@@ -1,12 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
-import { cookies, headers } from 'next/headers'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 // ─── In-process rate limiter ────────────────────────────────────────────────
-// Keyed by IP. Resets after WINDOW_MS. Works on a single server instance.
-// For multi-instance / serverless scale, swap this Map for a Redis store.
 const MAX_ATTEMPTS = 5
-const WINDOW_MS    = 15 * 60 * 1000  // 15 minutes
+const WINDOW_MS    = 15 * 60 * 1000
 
 type Bucket = { count: number; resetAt: number }
 const buckets = new Map<string, Bucket>()
@@ -61,7 +59,7 @@ export async function POST(request: Request) {
     {
       cookies: {
         getAll() { return cookieStore.getAll() },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options: Record<string, unknown> }[]) {
           cookiesToSet.forEach(({ name, value, options }) => {
             cookiesToForward.push({ name, value, options })
           })
@@ -79,7 +77,6 @@ export async function POST(request: Request) {
     )
   }
 
-  // Successful login — clear the rate-limit bucket for this IP
   clearBucket(ip)
 
   const response = NextResponse.json({ success: true })
