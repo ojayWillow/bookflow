@@ -1,3 +1,6 @@
+'use client'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Calendar, Clock, Settings, Star, CheckCircle, Zap, Globe, Bell } from 'lucide-react'
 
@@ -17,10 +20,114 @@ const testimonials = [
 ]
 
 const plans = [
-  { name: 'Starter', price: 19, features: ['1 location', 'Up to 5 services', 'Email confirmations', 'Basic branding'],                                              highlight: false },
-  { name: 'Pro',     price: 49, features: ['Unlimited services', 'Custom domain', 'SMS reminders', 'Analytics dashboard', 'Priority support'],                      highlight: true  },
-  { name: 'Agency',  price: 99, features: ['Multiple locations', 'White-label resale', 'API access', 'Dedicated support', 'Custom integrations'],                   highlight: false },
+  { name: 'Starter', price: 19, features: ['1 location', 'Up to 5 services', 'Email confirmations', 'Basic branding'],                                             highlight: false },
+  { name: 'Pro',     price: 49, features: ['Unlimited services', 'Custom domain', 'SMS reminders', 'Analytics dashboard', 'Priority support'],                     highlight: true  },
+  { name: 'Agency',  price: 99, features: ['Multiple locations', 'White-label resale', 'API access', 'Dedicated support', 'Custom integrations'],                  highlight: false },
 ]
+
+// ─── Inline Hero Signup Form ────────────────────────────────────────────────
+function HeroSignupForm() {
+  const router = useRouter()
+  const [form, setForm]       = useState({ businessName: '', slug: '', email: '', password: '' })
+  const [error, setError]     = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm(p => ({ ...p, [k]: e.target.value }))
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name     = e.target.value
+    const autoSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    setForm(p => ({ ...p, businessName: name, slug: autoSlug }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    const res  = await fetch('/api/auth/signup', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(form),
+    })
+    const data = await res.json()
+
+    if (!res.ok) {
+      setError(data.error || 'Something went wrong')
+      setLoading(false)
+      return
+    }
+
+    router.push('/admin')
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 w-full max-w-md mx-auto text-left"
+    >
+      <p className="text-sm font-semibold text-gray-700 mb-4 text-center">Create your free account</p>
+
+      <div className="space-y-3">
+        <div>
+          <input
+            value={form.businessName}
+            onChange={handleNameChange}
+            required
+            className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+            placeholder="Business name (e.g. Glow Beauty Studio)"
+          />
+        </div>
+
+        <div className="flex items-center border-2 border-gray-100 rounded-xl overflow-hidden focus-within:border-indigo-400 transition-colors">
+          <span className="bg-gray-50 px-3 py-2.5 text-xs text-gray-400 border-r border-gray-100 whitespace-nowrap">/book/</span>
+          <input
+            value={form.slug}
+            onChange={e => setForm(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
+            required
+            className="flex-1 px-3 py-2.5 text-sm focus:outline-none bg-transparent"
+            placeholder="your-booking-url"
+          />
+        </div>
+
+        <input
+          type="email"
+          value={form.email}
+          onChange={set('email')}
+          required
+          className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+          placeholder="Email address"
+        />
+
+        <input
+          type="password"
+          value={form.password}
+          onChange={set('password')}
+          required
+          minLength={8}
+          className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+          placeholder="Password (min. 8 characters)"
+        />
+
+        {error && (
+          <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">⚠ {error}</p>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm"
+        >
+          {loading ? 'Creating account…' : 'Create your booking page →'}
+        </button>
+      </div>
+
+      <p className="text-xs text-gray-400 mt-3 text-center">No credit card · Takes 2 minutes</p>
+    </form>
+  )
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
   return (
@@ -41,37 +148,40 @@ export default function LandingPage() {
             <Link href="/book/demo" className="hover:text-gray-900 transition-colors">Live demo</Link>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/admin/login"  className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Sign in</Link>
-            <Link href="/admin/signup" className="bg-indigo-600 text-white text-sm px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors font-medium">
+            <Link href="/admin/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Sign in</Link>
+            <a href="#hero-signup" className="bg-indigo-600 text-white text-sm px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors font-medium">
               Get started →
-            </Link>
+            </a>
           </div>
         </div>
       </nav>
 
       {/* Hero */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 text-sm font-medium px-4 py-2 rounded-full mb-6">
-            <Zap className="w-3.5 h-3.5" />
-            Built for every type of business
+      <section id="hero-signup" className="pt-32 pb-20 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left — copy */}
+            <div>
+              <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 text-sm font-medium px-4 py-2 rounded-full mb-6">
+                <Zap className="w-3.5 h-3.5" />
+                Built for every type of business
+              </div>
+              <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-6">
+                Online booking that<br />
+                <span className="text-indigo-600">just works</span>
+              </h1>
+              <p className="text-xl text-gray-500 mb-6 leading-relaxed">
+                Give your business a professional booking page in minutes. Customers book, you get notified, everyone knows what&apos;s happening.
+              </p>
+              <Link href="/book/demo" className="inline-flex items-center gap-2 text-indigo-600 font-medium text-sm hover:underline">
+                See a live demo →
+              </Link>
+            </div>
+            {/* Right — signup form */}
+            <div>
+              <HeroSignupForm />
+            </div>
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-6">
-            Online booking that<br />
-            <span className="text-indigo-600">just works</span>
-          </h1>
-          <p className="text-xl text-gray-500 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Give your business a professional booking page in minutes. Customers book, you get notified, everyone knows what&apos;s happening.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/admin/signup" className="bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-indigo-700 transition-colors">
-              Create your booking page →
-            </Link>
-            <Link href="/book/demo" className="border-2 border-gray-200 text-gray-700 px-8 py-4 rounded-xl text-lg font-semibold hover:border-indigo-300 transition-colors">
-              See a live demo
-            </Link>
-          </div>
-          <p className="text-sm text-gray-400 mt-4">No credit card · Takes 2 minutes</p>
         </div>
       </section>
 
@@ -101,9 +211,9 @@ export default function LandingPage() {
               <div className="bg-white rounded-2xl shadow-soft p-6">
                 <p className="font-bold text-gray-900 mb-4">Today&apos;s bookings</p>
                 <div className="space-y-3">
-                  {[['10:00', 'Anna B.',  'Gel Manicure',    'confirmed'],
-                    ['11:00', 'Laura K.', 'Lash Lift',       'confirmed'],
-                    ['14:00', 'Marta O.', 'Classic Facial',  'pending']].map(([time, name, service, status]) => (
+                  {[['10:00', 'Anna B.',  'Gel Manicure',   'confirmed'],
+                    ['11:00', 'Laura K.', 'Lash Lift',      'confirmed'],
+                    ['14:00', 'Marta O.', 'Classic Facial', 'pending']].map(([time, name, service, status]) => (
                     <div key={time} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-mono font-medium text-indigo-600 w-12">{time}</span>
@@ -193,13 +303,14 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/admin/signup" className={`block text-center py-3 rounded-xl font-semibold text-sm transition-colors ${
+                {/* Scroll back to hero form instead of dead-end link */}
+                <a href="#hero-signup" className={`block text-center py-3 rounded-xl font-semibold text-sm transition-colors ${
                   plan.highlight
                     ? 'bg-white text-indigo-600 hover:bg-indigo-50'
                     : 'bg-indigo-600 text-white hover:bg-indigo-700'
                 }`}>
                   Get started
-                </Link>
+                </a>
               </div>
             ))}
           </div>
@@ -211,10 +322,10 @@ export default function LandingPage() {
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-white mb-4">Ready to take bookings online?</h2>
           <p className="text-indigo-200 text-lg mb-8">Join businesses already using BookFlow. Your booking page is 2 minutes away.</p>
-          <Link href="/admin/signup"
+          <a href="#hero-signup"
             className="inline-block bg-white text-indigo-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-indigo-50 transition-colors">
             Create your free account →
-          </Link>
+          </a>
         </div>
       </section>
 

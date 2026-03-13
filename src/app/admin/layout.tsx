@@ -11,10 +11,13 @@ const NAV = [
   { href: '/admin/settings',  label: 'Settings',  icon: Settings },
 ]
 
+// Pages inside /admin that render without the sidebar
+const BARE_PATHS = ['/admin/login']
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
-  if (pathname === '/admin/login') {
+  if (BARE_PATHS.includes(pathname)) {
     return <>{children}</>
   }
 
