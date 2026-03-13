@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Loader2, Copy, Check, QrCode, Globe, MessageCircle, MapPin, ExternalLink, Code2, Palette, Instagram, Facebook, Upload, X } from 'lucide-react'
+import { Loader2, Copy, Check, QrCode, Globe, MessageCircle, MapPin, ExternalLink, Code2, Palette, Instagram, Facebook, X } from 'lucide-react'
+import ImageUpload from './ImageUpload'
 
 const DAYS      = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const INTERVALS = [15, 30, 45, 60, 90, 120]
@@ -52,126 +52,6 @@ function isValidHex(v: string) {
   return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(v)
 }
 
-// ── Image upload widget ─────────────────────────────────────────────────────
-function ImageUpload({
-  label, hint, field, currentUrl, onUploaded,
-}: {
-  label: string
-  hint: string
-  field: 'logo_url' | 'cover_url'
-  currentUrl: string
-  onUploaded: (url: string) => void
-}) {
-  const [uploading, setUploading]     = useState(false)
-  const [uploadError, setUploadError] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  const handleFile = async (file: File) => {
-    const MAX     = 5 * 1024 * 1024
-    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-    if (!ALLOWED.includes(file.type)) { setUploadError('Only JPEG, PNG, WebP or GIF allowed'); return }
-    if (file.size > MAX)              { setUploadError('File must be under 5 MB'); return }
-
-    setUploading(true)
-    setUploadError('')
-
-    try {
-      const supabase = createClient()
-
-      // Always fetch userId fresh — never rely on a prop that may not be set yet
-      const { data: { user }, error: userErr } = await supabase.auth.getUser()
-      if (userErr || !user) throw new Error('Not authenticated')
-
-      const ext  = file.name.split('.').pop() ?? 'jpg'
-      const path = `${user.id}/${field.replace('_url', '')}.${ext}`
-
-      const { error: uploadErr } = await supabase.storage
-        .from('business-assets')
-        .upload(path, file, { contentType: file.type, upsert: true })
-
-      if (uploadErr) throw new Error(uploadErr.message)
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('business-assets')
-        .getPublicUrl(path)
-
-      const urlWithBust = `${publicUrl}?t=${Date.now()}`
-
-      const res  = await fetch('/api/settings', {
-        method:  'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ [field]: urlWithBust }),
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Failed to save URL')
-
-      onUploaded(urlWithBust)
-    } catch (e: unknown) {
-      setUploadError(e instanceof Error ? e.message : 'Upload failed')
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    const file = e.dataTransfer.files[0]
-    if (file) handleFile(file)
-  }
-
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <p className="text-xs text-gray-400 mb-2">{hint}</p>
-
-      {currentUrl ? (
-        <div className="relative inline-block">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={currentUrl} alt={label}
-            className={`object-cover rounded-xl border-2 border-gray-100 ${
-              field === 'logo_url' ? 'w-20 h-20' : 'w-full h-28'
-            }`}
-          />
-          <button onClick={() => {
-            onUploaded('')
-            fetch('/api/settings', {
-              method:  'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body:    JSON.stringify({ [field]: '' }),
-            })
-          }}
-            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm">
-            <X className="w-3 h-3" />
-          </button>
-        </div>
-      ) : (
-        <div
-          onDrop={handleDrop}
-          onDragOver={e => e.preventDefault()}
-          onClick={() => inputRef.current?.click()}
-          className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors"
-        >
-          {uploading
-            ? <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
-            : <>
-                <Upload className="w-6 h-6 text-gray-300" />
-                <p className="text-xs text-gray-400 text-center">Click or drag &amp; drop<br /><span className="text-gray-300">JPEG, PNG, WebP &middot; max 5 MB</span></p>
-              </>
-          }
-        </div>
-      )}
-
-      {uploadError && <p className="text-xs text-red-500 mt-1.5">⚠ {uploadError}</p>}
-
-      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
-        className="hidden"
-        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
-      />
-    </div>
-  )
-}
-
-// ── Main settings page ──────────────────────────────────────────────────────
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading]   = useState(true)
@@ -272,7 +152,6 @@ export default function SettingsPage() {
           <p className="text-sm text-gray-400 mb-5">Customise how your booking page looks to customers</p>
 
           <div className="space-y-6">
-            {/* Logo + Cover — no userId prop needed, fetched inside handleFile */}
             <div className="grid grid-cols-2 gap-4">
               <ImageUpload label="Logo" hint="Square image, shown in the header"
                 field="logo_url"
@@ -458,7 +337,7 @@ export default function SettingsPage() {
                   <li><span className="font-semibold text-gray-700">1.</span> Go to <a href="https://business.google.com" target="_blank" className="text-indigo-600 underline">business.google.com</a> and sign in</li>
                   <li><span className="font-semibold text-gray-700">2.</span> Select your business → <span className="font-mono bg-white px-1.5 py-0.5 rounded text-gray-700">Edit profile → Contact</span></li>
                   <li><span className="font-semibold text-gray-700">3.</span> Under <span className="font-mono bg-white px-1.5 py-0.5 rounded text-gray-700">Booking</span>, paste your booking link</li>
-                  <li><span className="font-semibold text-gray-700">4.</span> A “Book online” button appears on Maps within 24h</li>
+                  <li><span className="font-semibold text-gray-700">4.</span> A "Book online" button appears on Maps within 24h</li>
                 </ol>
                 <div className="flex items-center gap-2 pt-1">
                   <div className="flex-1 bg-white border border-red-200 rounded-lg px-3 py-2 text-xs font-mono text-red-700 truncate">{bookingUrl}</div>
