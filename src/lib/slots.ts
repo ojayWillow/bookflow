@@ -1,19 +1,62 @@
-import type { BusinessSettings } from '@/data/mock'
 import type { StaffMember } from '@/data/mock'
 import { addDays, format, isBefore } from 'date-fns'
 
-/**
- * Build available dates for the date picker.
- * Respects business open_days and max_advance_days.
- */
-export function getAvailableDates(settings: {
+// ─── Shared types ────────────────────────────────────────────
+
+export type BookedSlotRaw = {
+  time: string
+  service_duration: number
+  staff_id: string
+}
+
+type Settings = {
   open_days?: number[]
   openDays?: number[]
+  open_time?: string
+  openTime?: string
+  close_time?: string
+  closeTime?: string
+  slot_interval?: number
+  slotInterval?: number
+  lead_time_hours?: number
+  leadTimeHours?: number
   max_advance_days?: number
   maxAdvanceDays?: number
-}): string[] {
-  const openDays: number[] = settings.open_days ?? settings.openDays ?? [1,2,3,4,5]
-  const maxDays: number = settings.max_advance_days ?? settings.maxAdvanceDays ?? 30
+}
+
+// ─── Helpers ────────────────────────────────────────────────
+
+function toMins(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number)
+  return h * 60 + m
+}
+
+function toHHMM(mins: number): string {
+  return `${Math.floor(mins / 60).toString().padStart(2, '0')}:${(mins % 60).toString().padStart(2, '0')}`
+}
+
+/** True if a new slot [slotStart, slotStart+duration) overlaps any booked window */
+function isBlocked(
+  slotStart: number,
+  durationMins: number,
+  booked: BookedSlotRaw[]
+): boolean {
+  return booked.some(b => {
+    const bStart = toMins(b.time)
+    const bEnd = bStart + b.service_duration
+    return slotStart < bEnd && slotStart + durationMins > bStart
+  })
+}
+
+// ─── Public API ─────────────────────────────────────────────
+
+/**
+ * Build the list of open dates for the date picker.
+ * Accepts both snake_case (Supabase) and camelCase (legacy) settings.
+ */
+export function getAvailableDates(settings: Settings): string[] {
+  const openDays = settings.open_days ?? settings.openDays ?? [1, 2, 3, 4, 5]
+  const maxDays = settings.max_advance_days ?? settings.maxAdvanceDays ?? 30
 
   const dates: string[] = []
   const today = new Date()
@@ -28,60 +71,37 @@ export function getAvailableDates(settings: {
   return dates
 }
 
-type BookedSlotRaw = { time: string; service_duration: number; staff_id: string }
-
 /**
- * Generate time slots for a given date.
+ * Generate slots for a specific staff member on a given date.
  *
- * - Respects staff-specific workStart/workEnd/workDays when a staff member is provided.
- * - Marks a slot unavailable if:
- *   (a) an existing booking's time + service_duration overlaps with the new slot start, OR
- *   (b) the slot falls within leadTimeHours of now.
+ * A slot is unavailable when:
+ *  (a) it falls within leadTimeHours of now, OR
+ *  (b) an existing booking overlaps the window [slotStart, slotStart + duration)
  */
 export function getSlotsForDate(
   date: string,
   durationMins: number,
   bookedSlots: string[] | BookedSlotRaw[],
   staffMember?: StaffMember | null,
-  settings?: {
-    open_time?: string
-    close_time?: string
-    openTime?: string
-    closeTime?: string
-    slot_interval?: number
-    slotInterval?: number
-    lead_time_hours?: number
-    leadTimeHours?: number
-  } | null
+  settings?: Settings | null
 ): { time: string; available: boolean }[] {
-  const startTime = staffMember?.workStart
-    ?? settings?.open_time
-    ?? settings?.openTime
-    ?? '09:00'
-  const endTime = staffMember?.workEnd
-    ?? settings?.close_time
-    ?? settings?.closeTime
-    ?? '18:00'
-  const interval: number = settings?.slot_interval ?? settings?.slotInterval ?? 30
-  const leadTimeHours: number = settings?.lead_time_hours ?? settings?.leadTimeHours ?? 2
+  const startTime = staffMember?.workStart ?? settings?.open_time ?? settings?.openTime ?? '09:00'
+  const endTime   = staffMember?.workEnd   ?? settings?.close_time ?? settings?.closeTime ?? '18:00'
+  const interval  = settings?.slot_interval ?? settings?.slotInterval ?? 30
+  const leadHours = settings?.lead_time_hours ?? settings?.leadTimeHours ?? 2
 
   // Staff day-off check
   if (staffMember) {
-    const dayOfWeek = new Date(date + 'T12:00:00').getDay()
-    if (!staffMember.workDays.includes(dayOfWeek)) return []
+    const dow = new Date(date + 'T12:00:00').getDay()
+    if (!staffMember.workDays.includes(dow)) return []
   }
 
-  const [openH, openM] = startTime.split(':').map(Number)
-  const [closeH, closeM] = endTime.split(':').map(Number)
-  const openMins = openH * 60 + openM
-  const closeMins = closeH * 60 + closeM
+  const openMins  = toMins(startTime)
+  const closeMins = toMins(endTime)
+  const leadCutoffMs = Date.now() + leadHours * 3600_000
 
-  // Lead time: block slots within X hours of now
-  const now = new Date()
-  const leadCutoffMs = now.getTime() + leadTimeHours * 60 * 60 * 1000
-
-  // Normalise bookedSlots — handle both string[] and BookedSlotRaw[]
-  const bookedRaw: BookedSlotRaw[] = (bookedSlots as Array<string | BookedSlotRaw>).map(b =>
+  // Normalise to BookedSlotRaw[]
+  const booked: BookedSlotRaw[] = (bookedSlots as Array<string | BookedSlotRaw>).map(b =>
     typeof b === 'string'
       ? { time: b, service_duration: durationMins, staff_id: '' }
       : b
@@ -90,27 +110,74 @@ export function getSlotsForDate(
   const slots: { time: string; available: boolean }[] = []
 
   for (let m = openMins; m + durationMins <= closeMins; m += interval) {
-    const h = Math.floor(m / 60).toString().padStart(2, '0')
-    const min = (m % 60).toString().padStart(2, '0')
-    const time = `${h}:${min}`
+    const time = toHHMM(m)
+    const slotMs = new Date(`${date}T${time}:00`).getTime()
 
-    // Lead-time check
-    const slotDate = new Date(`${date}T${time}:00`)
-    if (slotDate.getTime() < leadCutoffMs) {
+    if (slotMs < leadCutoffMs) {
       slots.push({ time, available: false })
       continue
     }
 
-    // Overlap check: is any existing booking occupying this slot?
-    const blocked = bookedRaw.some(b => {
-      const [bh, bm] = b.time.split(':').map(Number)
-      const bookedStart = bh * 60 + bm
-      const bookedEnd = bookedStart + b.service_duration
-      // New slot [m, m+durationMins) overlaps booked [bookedStart, bookedEnd)
-      return m < bookedEnd && m + durationMins > bookedStart
+    slots.push({ time, available: !isBlocked(m, durationMins, booked) })
+  }
+
+  return slots
+}
+
+/**
+ * "Anyone available" union logic.
+ *
+ * For each slot in the business window, checks every qualifying staff member.
+ * A slot is available if AT LEAST ONE staff member:
+ *  - works on this day of the week
+ *  - has this slot within their personal work hours
+ *  - has no overlapping confirmed booking
+ *  - the slot is beyond the lead-time cutoff
+ *
+ * Returns the same { time, available } shape as getSlotsForDate().
+ */
+export function getUnionSlotsForDate(
+  date: string,
+  durationMins: number,
+  allBooked: BookedSlotRaw[],   // ALL bookings for this date (across all staff)
+  staffList: StaffMember[],      // only staff who offer the selected service
+  settings: Settings
+): { time: string; available: boolean }[] {
+  const interval  = settings.slot_interval ?? settings.slotInterval ?? 30
+  const leadHours = settings.lead_time_hours ?? settings.leadTimeHours ?? 2
+  const openMins  = toMins(settings.open_time ?? settings.openTime ?? '09:00')
+  const closeMins = toMins(settings.close_time ?? settings.closeTime ?? '18:00')
+  const leadCutoffMs = Date.now() + leadHours * 3600_000
+  const dow = new Date(date + 'T12:00:00').getDay()
+
+  const slots: { time: string; available: boolean }[] = []
+
+  for (let m = openMins; m + durationMins <= closeMins; m += interval) {
+    const time = toHHMM(m)
+    const slotMs = new Date(`${date}T${time}:00`).getTime()
+
+    // Lead-time: no staff can take it
+    if (slotMs < leadCutoffMs) {
+      slots.push({ time, available: false })
+      continue
+    }
+
+    // Check each staff member individually
+    const anyFree = staffList.some(staff => {
+      // Staff must work this day
+      if (!staff.workDays.includes(dow)) return false
+
+      // Slot must fall within staff's personal hours
+      const staffStart = toMins(staff.workStart)
+      const staffEnd   = toMins(staff.workEnd)
+      if (m < staffStart || m + durationMins > staffEnd) return false
+
+      // Bookings for THIS staff member only
+      const staffBooked = allBooked.filter(b => b.staff_id === staff.id)
+      return !isBlocked(m, durationMins, staffBooked)
     })
 
-    slots.push({ time, available: !blocked })
+    slots.push({ time, available: anyFree })
   }
 
   return slots

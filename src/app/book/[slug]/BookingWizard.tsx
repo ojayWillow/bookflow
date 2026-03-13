@@ -1,7 +1,8 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { getServices, getStaff, createBooking, getBookedSlotsForDate } from '@/lib/supabase/queries'
-import { getSlotsForDate, getAvailableDates } from '@/lib/slots'
+import { getSlotsForDate, getUnionSlotsForDate, getAvailableDates } from '@/lib/slots'
+import type { BookedSlotRaw } from '@/lib/slots'
 import { format, parseISO } from 'date-fns'
 import { Clock, CheckCircle, MapPin, Phone, Mail, ChevronLeft, Users } from 'lucide-react'
 
@@ -29,22 +30,6 @@ type DBStaffMember = {
   color: string
 }
 
-// Map DB staff shape to the format slots.ts expects
-function toSlotStaff(m: DBStaffMember) {
-  return {
-    id: m.id,
-    name: m.name,
-    role: m.role,
-    bio: m.bio,
-    serviceIds: m.service_ids,
-    workDays: m.work_days,
-    workStart: m.work_start,
-    workEnd: m.work_end,
-    active: m.active,
-    color: m.color,
-  }
-}
-
 type Business = {
   id: string
   name: string
@@ -67,6 +52,23 @@ type Step = 'service' | 'staff' | 'datetime' | 'details' | 'confirm' | 'success'
 
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const STEP_LABELS = ['Service', 'Who', 'Date & Time', 'Details', 'Confirm']
+
+// ─── Map DB staff → slots.ts StaffMember shape ──────────────
+
+function toSlotStaff(m: DBStaffMember) {
+  return {
+    id: m.id,
+    name: m.name,
+    role: m.role,
+    bio: m.bio,
+    serviceIds: m.service_ids,
+    workDays: m.work_days,
+    workStart: m.work_start,
+    workEnd: m.work_end,
+    active: m.active,
+    color: m.color,
+  }
+}
 
 // ─── Validation ─────────────────────────────────────────────
 
@@ -103,12 +105,12 @@ export default function BookingWizard({ business }: { business: Business }) {
 
   const [services, setServices] = useState<DBService[]>([])
   const [staffMembers, setStaffMembers] = useState<DBStaffMember[]>([])
-  const [bookedRaw, setBookedRaw] = useState<{ time: string; service_duration: number; staff_id: string }[]>([])
+  const [bookedRaw, setBookedRaw] = useState<BookedSlotRaw[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
 
-  // Load services + staff from Supabase on mount
+  // Load services + active staff from Supabase on mount
   useEffect(() => {
     getServices().then(data => setServices((data ?? []) as DBService[]))
     getStaff().then(data =>
@@ -116,18 +118,63 @@ export default function BookingWizard({ business }: { business: Business }) {
     )
   }, [])
 
-  // Reload booked slots whenever date or staff selection changes
+  // Fetch booked slots whenever date or staff changes.
+  // When 'any' is selected we fetch ALL bookings for that date (no staff filter)
+  // so getUnionSlotsForDate() can filter per-staff itself.
   useEffect(() => {
     if (!selectedDate) return
     setLoadingSlots(true)
     getBookedSlotsForDate(selectedDate, selectedStaffId)
-      .then(data => setBookedRaw(data))
+      .then(data => setBookedRaw(data as BookedSlotRaw[]))
       .catch(() => setBookedRaw([]))
       .finally(() => setLoadingSlots(false))
   }, [selectedDate, selectedStaffId])
 
+  // ─── Derived state ────────────────────────────────────────
+
+  const availableDates = useMemo(() => getAvailableDates(business), [business])
+
+  const selectedStaffMember = selectedStaffId !== 'any'
+    ? staffMembers.find(m => m.id === selectedStaffId) ?? null
+    : null
+
+  // Staff who can perform the selected service
+  const availableStaff = useMemo(
+    () => selectedService
+      ? staffMembers.filter(m => m.service_ids.includes(selectedService.id))
+      : [],
+    [selectedService, staffMembers]
+  )
+
+  // Slot generation — union mode vs single-staff mode
+  const slots = useMemo(() => {
+    if (!selectedService || !selectedDate) return []
+
+    if (selectedStaffId === 'any') {
+      // Union: a slot is available if ANY qualifying staff member is free
+      return getUnionSlotsForDate(
+        selectedDate,
+        selectedService.duration,
+        bookedRaw,
+        availableStaff.map(toSlotStaff),
+        business
+      )
+    }
+
+    // Single staff member
+    return getSlotsForDate(
+      selectedDate,
+      selectedService.duration,
+      bookedRaw,
+      selectedStaffMember ? toSlotStaff(selectedStaffMember) : null,
+      business
+    )
+  }, [selectedService, selectedDate, selectedStaffId, bookedRaw, availableStaff, selectedStaffMember, business])
+
+  // ─── Form helpers ─────────────────────────────────────────
+
   const errors = {
-    name: validateName(form.name),
+    name:  validateName(form.name),
     email: validateEmail(form.email),
     phone: validatePhone(form.phone),
   }
@@ -150,29 +197,13 @@ export default function BookingWizard({ business }: { business: Business }) {
         : 'border-gray-100 focus:border-indigo-400'
     }`
 
-  const availableDates = getAvailableDates(business)
-
-  const selectedStaffMember = selectedStaffId !== 'any'
-    ? staffMembers.find(m => m.id === selectedStaffId) ?? null
-    : null
-
-  const slots = selectedService && selectedDate
-    ? getSlotsForDate(
-        selectedDate,
-        selectedService.duration,
-        bookedRaw,
-        selectedStaffMember ? toSlotStaff(selectedStaffMember) : null,
-        business
-      )
-    : []
-
-  const availableStaff = selectedService
-    ? staffMembers.filter(m => m.service_ids.includes(selectedService.id))
-    : []
+  // ─── Navigation ───────────────────────────────────────────
 
   const stepKeys: Step[] = ['service', 'staff', 'datetime', 'details', 'confirm']
   const stepIndex = stepKeys.indexOf(step)
   const goBack = () => { if (stepIndex > 0) setStep(stepKeys[stepIndex - 1]) }
+
+  // ─── Submit ───────────────────────────────────────────────
 
   const handleConfirm = async () => {
     if (!selectedService || submitting) return
@@ -204,6 +235,8 @@ export default function BookingWizard({ business }: { business: Business }) {
     }
   }
 
+  // ─── Render ───────────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b">
@@ -222,6 +255,8 @@ export default function BookingWizard({ business }: { business: Business }) {
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-8">
+
+        {/* Progress bar */}
         {step !== 'success' && (
           <>
             <div className="flex items-center mb-8">
@@ -240,9 +275,7 @@ export default function BookingWizard({ business }: { business: Business }) {
                     }`}>{label}</span>
                   </div>
                   {i < STEP_LABELS.length - 1 && (
-                    <div className={`flex-1 h-0.5 mx-2 ${
-                      stepIndex > i ? 'bg-indigo-600' : 'bg-gray-200'
-                    }`} />
+                    <div className={`flex-1 h-0.5 mx-2 ${stepIndex > i ? 'bg-indigo-600' : 'bg-gray-200'}`} />
                   )}
                 </div>
               ))}
@@ -258,13 +291,17 @@ export default function BookingWizard({ business }: { business: Business }) {
           </>
         )}
 
-        {/* STEP 1 — Service */}
+        {/* ── STEP 1: Service ── */}
         {step === 'service' && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Choose a service</h2>
             <p className="text-gray-400 text-sm mb-6">Select what you&apos;d like to book</p>
             {services.length === 0 && (
-              <p className="text-gray-400 text-sm text-center py-8">Loading services…</p>
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-24 rounded-2xl bg-gray-100 animate-pulse" />
+                ))}
+              </div>
             )}
             <div className="space-y-3">
               {services.map(s => (
@@ -289,7 +326,7 @@ export default function BookingWizard({ business }: { business: Business }) {
           </div>
         )}
 
-        {/* STEP 2 — Staff */}
+        {/* ── STEP 2: Staff ── */}
         {step === 'staff' && selectedService && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Choose who you&apos;d like</h2>
@@ -297,6 +334,7 @@ export default function BookingWizard({ business }: { business: Business }) {
               {selectedService.name} · {selectedService.duration} min · €{selectedService.price}
             </p>
             <div className="space-y-3">
+              {/* Anyone available — shows union slots */}
               <button
                 onClick={() => { setSelectedStaffId('any'); setStep('datetime') }}
                 className={`w-full text-left bg-white border-2 rounded-2xl p-5 hover:border-indigo-400 transition-all ${
@@ -309,10 +347,11 @@ export default function BookingWizard({ business }: { business: Business }) {
                   </div>
                   <div>
                     <p className="font-semibold text-gray-900">Anyone available</p>
-                    <p className="text-sm text-gray-400">Show me the first available slot</p>
+                    <p className="text-sm text-gray-400">Show all available slots across the team</p>
                   </div>
                 </div>
               </button>
+
               {availableStaff.map(m => (
                 <button
                   key={m.id}
@@ -336,6 +375,7 @@ export default function BookingWizard({ business }: { business: Business }) {
                   </div>
                 </button>
               ))}
+
               {availableStaff.length === 0 && (
                 <p className="text-center text-gray-400 text-sm py-6">No staff assigned to this service yet.</p>
               )}
@@ -343,7 +383,7 @@ export default function BookingWizard({ business }: { business: Business }) {
           </div>
         )}
 
-        {/* STEP 3 — Date & Time */}
+        {/* ── STEP 3: Date & Time ── */}
         {step === 'datetime' && selectedService && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Pick a date &amp; time</h2>
@@ -433,7 +473,7 @@ export default function BookingWizard({ business }: { business: Business }) {
           </div>
         )}
 
-        {/* STEP 4 — Details */}
+        {/* ── STEP 4: Details ── */}
         {step === 'details' && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Your details</h2>
@@ -505,7 +545,7 @@ export default function BookingWizard({ business }: { business: Business }) {
           </div>
         )}
 
-        {/* STEP 5 — Confirm */}
+        {/* ── STEP 5: Confirm ── */}
         {step === 'confirm' && selectedService && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Review your booking</h2>
@@ -517,15 +557,15 @@ export default function BookingWizard({ business }: { business: Business }) {
               </div>
               <div className="divide-y divide-gray-50">
                 {([
-                  ['Service', selectedService.name],
+                  ['Service',  selectedService.name],
                   ['Duration', `${selectedService.duration} minutes`],
-                  ['Price', `€${selectedService.price}`],
-                  ['Staff', selectedStaffMember ? selectedStaffMember.name : 'Anyone available'],
-                  ['Date', format(parseISO(selectedDate), 'EEEE, d MMMM yyyy')],
-                  ['Time', selectedTime],
-                  ['Name', form.name],
-                  ['Email', form.email],
-                  ['Phone', form.phone],
+                  ['Price',    `€${selectedService.price}`],
+                  ['Staff',    selectedStaffMember ? selectedStaffMember.name : 'Anyone available'],
+                  ['Date',     format(parseISO(selectedDate), 'EEEE, d MMMM yyyy')],
+                  ['Time',     selectedTime],
+                  ['Name',     form.name],
+                  ['Email',    form.email],
+                  ['Phone',    form.phone],
                   ...(form.notes ? [['Notes', form.notes]] : []),
                 ] as [string, string][]).map(([label, value]) => (
                   <div key={label} className="flex justify-between px-6 py-3.5">
@@ -553,7 +593,7 @@ export default function BookingWizard({ business }: { business: Business }) {
           </div>
         )}
 
-        {/* SUCCESS */}
+        {/* ── SUCCESS ── */}
         {step === 'success' && selectedService && (
           <div className="text-center py-8">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
@@ -602,6 +642,7 @@ export default function BookingWizard({ business }: { business: Business }) {
             <p className="text-xs text-gray-400">{business.cancellation_policy}</p>
           </div>
         )}
+
       </main>
     </div>
   )
