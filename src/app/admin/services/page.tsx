@@ -1,9 +1,8 @@
 'use client'
-import { useState } from 'react'
-import { services as initialServices } from '@/data/mock'
+import { useState, useEffect } from 'react'
+import type { Service } from '@/data/mock'
+import { loadServices, saveServices } from '@/lib/servicesStore'
 import { Clock } from 'lucide-react'
-
-type Service = typeof initialServices[0]
 
 const toForm = (s?: Service) => ({
   name: s?.name ?? '',
@@ -13,10 +12,17 @@ const toForm = (s?: Service) => ({
 })
 
 export default function ServicesPage() {
-  const [services, setServices] = useState<Service[]>(initialServices)
+  const [services, setServices] = useState<Service[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Service | null>(null)
   const [form, setForm] = useState(toForm())
+
+  useEffect(() => { setServices(loadServices()) }, [])
+
+  const persist = (updated: Service[]) => {
+    setServices(updated)
+    saveServices(updated)
+  }
 
   const openCreate = () => { setForm(toForm()); setEditing(null); setShowModal(true) }
   const openEdit = (s: Service) => { setForm(toForm(s)); setEditing(s); setShowModal(true) }
@@ -29,15 +35,15 @@ export default function ServicesPage() {
       price: Math.max(0, parseFloat(form.price) || 0),
     }
     if (editing) {
-      setServices(prev => prev.map(s => s.id === editing.id ? { ...s, ...parsed } : s))
+      persist(services.map(s => s.id === editing.id ? { ...s, ...parsed } : s))
     } else {
-      setServices(prev => [...prev, { ...parsed, id: `s${Date.now()}`, currency: 'EUR' }])
+      persist([...services, { ...parsed, id: `s${Date.now()}`, currency: 'EUR' }])
     }
     setShowModal(false)
   }
 
   const handleDelete = (id: string) => {
-    if (confirm('Delete this service?')) setServices(prev => prev.filter(s => s.id !== id))
+    if (confirm('Delete this service?')) persist(services.filter(s => s.id !== id))
   }
 
   return (
@@ -53,7 +59,6 @@ export default function ServicesPage() {
         </button>
       </div>
 
-      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
@@ -74,25 +79,19 @@ export default function ServicesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Duration (minutes)</label>
-                  <input
-                    type="number"
-                    value={form.duration}
+                  <input type="number" value={form.duration}
                     onChange={e => setForm(p => ({ ...p, duration: e.target.value }))}
                     onFocus={e => e.target.select()}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
-                    min={5} step={5}
-                  />
+                    min={5} step={5} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Price (€)</label>
-                  <input
-                    type="number"
-                    value={form.price}
+                  <input type="number" value={form.price}
                     onChange={e => setForm(p => ({ ...p, price: e.target.value }))}
                     onFocus={e => e.target.select()}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
-                    min={0} step={0.5}
-                  />
+                    min={0} step={0.5} />
                 </div>
               </div>
             </div>

@@ -1,8 +1,11 @@
 'use client'
-import { useState } from 'react'
-import { businessSettings, services, staff } from '@/data/mock'
+import { useState, useEffect } from 'react'
+import { services as mockServices } from '@/data/mock'
+import { loadStaff } from '@/lib/staffStore'
+import { loadSettings } from '@/lib/settingsStore'
 import { getSlotsForDate, getAvailableDates } from '@/lib/slots'
-import { saveBooking } from '@/lib/bookingsStore'
+import { saveBooking, loadBookings } from '@/lib/bookingsStore'
+import type { StaffMember, Service } from '@/data/mock'
 import { format, parseISO } from 'date-fns'
 import { Clock, CheckCircle, MapPin, Phone, Mail, ChevronLeft, Users } from 'lucide-react'
 
@@ -32,13 +35,22 @@ const validatePhone = (v: string) => {
 
 export default function BookingPage() {
   const [step, setStep] = useState<Step>('service')
-  const [selectedService, setSelectedService] = useState<typeof services[0] | null>(null)
+  const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [selectedStaffId, setSelectedStaffId] = useState<string>('any')
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState('')
   const [form, setForm] = useState({ name: '', email: '', phone: '', notes: '' })
   const [touched, setTouched] = useState({ name: false, email: false, phone: false })
   const [bookingRef] = useState(() => 'BF-' + Math.random().toString(36).substring(2, 8).toUpperCase())
+
+  const [services, setServices] = useState<Service[]>(mockServices)
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([])
+  const [b, setB] = useState(loadSettings())
+
+  useEffect(() => {
+    setStaffMembers(loadStaff())
+    setB(loadSettings())
+  }, [])
 
   const errors = {
     name: validateName(form.name),
@@ -64,19 +76,30 @@ export default function BookingPage() {
         : 'border-gray-100 focus:border-indigo-400'
     }`
 
-  const b = businessSettings
   const availableDates = getAvailableDates()
-  const bookedSlots = ['10:00', '11:00', '14:00']
+
+  // Real booked slots from the store for selected date + staff
+  const bookedSlots = selectedService && selectedDate
+    ? loadBookings()
+        .filter(bk =>
+          bk.date === selectedDate &&
+          bk.status !== 'cancelled' &&
+          (selectedStaffId === 'any' || bk.staffId === selectedStaffId)
+        )
+        .map(bk => bk.time)
+    : []
+
+  const selectedStaffMember = selectedStaffId !== 'any'
+    ? staffMembers.find(m => m.id === selectedStaffId) ?? null
+    : null
+
   const slots = selectedService && selectedDate
-    ? getSlotsForDate(selectedDate, selectedService.duration, bookedSlots)
+    ? getSlotsForDate(selectedDate, selectedService.duration, bookedSlots, selectedStaffMember)
     : []
 
   const availableStaff = selectedService
-    ? staff.filter(m => m.active && m.serviceIds.includes(selectedService.id))
+    ? staffMembers.filter(m => m.active && m.serviceIds.includes(selectedService.id))
     : []
-  const selectedStaffMember = selectedStaffId !== 'any'
-    ? staff.find(m => m.id === selectedStaffId)
-    : null
 
   const stepKeys: Step[] = ['service', 'staff', 'datetime', 'details', 'confirm']
   const stepIndex = stepKeys.indexOf(step)
@@ -274,6 +297,9 @@ export default function BookingPage() {
                       {slot.time}
                     </button>
                   ))}
+                  {slots.length === 0 && selectedDate && (
+                    <p className="col-span-full text-sm text-gray-400 text-center py-4">No available slots for this date.</p>
+                  )}
                 </div>
               </div>
             )}
@@ -290,75 +316,40 @@ export default function BookingPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Full name <span className="text-red-400">*</span>
                 </label>
-                <input
-                  value={form.name}
-                  onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                  onBlur={() => touch('name')}
-                  className={fieldClass('name')}
-                  placeholder="e.g. Anna Bērziņa"
-                />
-                {touched.name && errors.name && (
-                  <p className="text-xs text-red-500 mt-1.5">⚠ {errors.name}</p>
-                )}
-                {touched.name && !errors.name && (
-                  <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>
-                )}
+                <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                  onBlur={() => touch('name')} className={fieldClass('name')} placeholder="e.g. Anna Bērziņa" />
+                {touched.name && errors.name && <p className="text-xs text-red-500 mt-1.5">⚠ {errors.name}</p>}
+                {touched.name && !errors.name && <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Email address <span className="text-red-400">*</span>
                 </label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                  onBlur={() => touch('email')}
-                  className={fieldClass('email')}
-                  placeholder="anna@example.com"
-                />
-                {touched.email && errors.email && (
-                  <p className="text-xs text-red-500 mt-1.5">⚠ {errors.email}</p>
-                )}
-                {touched.email && !errors.email && (
-                  <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>
-                )}
+                <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                  onBlur={() => touch('email')} className={fieldClass('email')} placeholder="anna@example.com" />
+                {touched.email && errors.email && <p className="text-xs text-red-500 mt-1.5">⚠ {errors.email}</p>}
+                {touched.email && !errors.email && <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Phone number <span className="text-red-400">*</span>
                 </label>
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
-                  onBlur={() => touch('phone')}
-                  className={fieldClass('phone')}
-                  placeholder="+371 2612 3456"
-                />
-                {touched.phone && errors.phone && (
-                  <p className="text-xs text-red-500 mt-1.5">⚠ {errors.phone}</p>
-                )}
-                {touched.phone && !errors.phone && (
-                  <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>
-                )}
+                <input type="tel" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+                  onBlur={() => touch('phone')} className={fieldClass('phone')} placeholder="+371 2612 3456" />
+                {touched.phone && errors.phone && <p className="text-xs text-red-500 mt-1.5">⚠ {errors.phone}</p>}
+                {touched.phone && !errors.phone && <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Notes <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
-                <textarea
-                  value={form.notes}
-                  onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
                   className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-400 transition-colors resize-none"
-                  rows={3}
-                  placeholder="Any special requests or things we should know?"
-                />
+                  rows={3} placeholder="Any special requests or things we should know?" />
               </div>
             </div>
-            <button
-              onClick={handleNext}
-              className="mt-6 w-full bg-indigo-600 text-white py-4 rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
-            >
+            <button onClick={handleNext}
+              className="mt-6 w-full bg-indigo-600 text-white py-4 rounded-xl font-semibold hover:bg-indigo-700 transition-colors">
               Review booking →
             </button>
           </div>
@@ -397,8 +388,7 @@ export default function BookingPage() {
             <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-5">
               <p className="text-xs text-amber-700"><span className="font-semibold">Cancellation policy:</span> {b.cancellationPolicy}</p>
             </div>
-            <button
-              onClick={handleConfirm}
+            <button onClick={handleConfirm}
               className="w-full bg-indigo-600 text-white py-4 rounded-xl font-semibold hover:bg-indigo-700 transition-colors">
               Confirm booking ✓
             </button>

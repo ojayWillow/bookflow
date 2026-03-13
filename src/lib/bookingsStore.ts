@@ -1,4 +1,6 @@
-export type BookingStatus = 'confirmed' | 'cancelled' | 'completed'
+import { bookings as mockBookings } from '@/data/mock'
+
+export type BookingStatus = 'confirmed' | 'cancelled' | 'completed' | 'pending'
 
 export interface Booking {
   id: string
@@ -30,8 +32,36 @@ export interface Booking {
 
 const KEY = 'bf_bookings'
 
+function seedIfEmpty(): void {
+  if (typeof window === 'undefined') return
+  const raw = localStorage.getItem(KEY)
+  if (!raw) {
+    // Map mock bookings to the canonical Booking interface
+    const seeded: Booking[] = mockBookings.map(b => ({
+      id: b.id,
+      ref: `BF-${b.id.toUpperCase()}`,
+      createdAt: b.createdAt,
+      serviceId: b.serviceId,
+      serviceName: b.service,
+      serviceDuration: 60,
+      servicePrice: 0,
+      staffId: b.staffId,
+      staffName: b.staffName,
+      date: b.date,
+      time: b.time,
+      customerName: b.customerName,
+      customerEmail: b.customerEmail,
+      customerPhone: b.customerPhone,
+      customerNotes: b.notes,
+      status: b.status as BookingStatus,
+    }))
+    localStorage.setItem(KEY, JSON.stringify(seeded))
+  }
+}
+
 export function loadBookings(): Booking[] {
   if (typeof window === 'undefined') return []
+  seedIfEmpty()
   try {
     const raw = localStorage.getItem(KEY)
     return raw ? (JSON.parse(raw) as Booking[]) : []
@@ -42,7 +72,6 @@ export function loadBookings(): Booking[] {
 
 export function saveBooking(booking: Booking): void {
   const all = loadBookings()
-  // Replace if ref already exists, otherwise append
   const idx = all.findIndex(b => b.ref === booking.ref)
   if (idx >= 0) {
     all[idx] = booking

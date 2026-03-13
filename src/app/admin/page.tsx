@@ -1,7 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { services, staff, businessSettings } from '@/data/mock'
+import { loadStaff } from '@/lib/staffStore'
+import { loadSettings } from '@/lib/settingsStore'
 import { loadBookings, type Booking } from '@/lib/bookingsStore'
+import type { StaffMember } from '@/data/mock'
 import { format, addDays, parseISO, startOfWeek } from 'date-fns'
 import Link from 'next/link'
 
@@ -20,16 +22,19 @@ const STATUS_COLOR: Record<string, string> = {
   confirmed: 'bg-indigo-500',
   cancelled: 'bg-red-400',
   completed: 'bg-gray-400',
+  pending: 'bg-amber-400',
 }
 const STATUS_LIGHT: Record<string, string> = {
   confirmed: 'bg-indigo-50 border-indigo-200',
   cancelled: 'bg-red-50 border-red-200',
   completed: 'bg-gray-50 border-gray-200',
+  pending: 'bg-amber-50 border-amber-200',
 }
 const STATUS_TEXT: Record<string, string> = {
   confirmed: 'text-indigo-700',
   cancelled: 'text-red-600',
   completed: 'text-gray-500',
+  pending: 'text-amber-700',
 }
 
 export default function AdminOverview() {
@@ -37,11 +42,17 @@ export default function AdminOverview() {
   const [currentDate, setCurrentDate] = useState(TODAY)
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [staff, setStaff] = useState<StaffMember[]>([])
+  const [settings, setSettings] = useState(loadSettings())
 
-  useEffect(() => { setBookings(loadBookings()) }, [])
+  useEffect(() => {
+    setBookings(loadBookings())
+    setStaff(loadStaff())
+    setSettings(loadSettings())
+  }, [])
 
-  const openHour = parseInt(businessSettings.openTime.split(':')[0])
-  const closeHour = parseInt(businessSettings.closeTime.split(':')[0])
+  const openHour = parseInt(settings.openTime.split(':')[0])
+  const closeHour = parseInt(settings.closeTime.split(':')[0])
   const hours = Array.from({ length: closeHour - openHour }, (_, i) => openHour + i)
   const activeStaff = staff.filter(m => m.active)
 
@@ -54,13 +65,14 @@ export default function AdminOverview() {
     bookings.filter(b => b.date === date && b.status !== 'cancelled')
 
   const todayAll = bookings.filter(b => b.date === TODAY && b.status !== 'cancelled')
+  const pendingCount = bookings.filter(b => b.status === 'pending').length
   const totalRevenue = bookings
     .filter(b => b.status === 'confirmed' || b.status === 'completed')
     .reduce((sum, b) => sum + b.servicePrice, 0)
 
   const stats = [
     { label: "Today's appointments", value: todayAll.length, color: 'text-indigo-600 bg-indigo-50' },
-    { label: 'Pending confirmation', value: 0, color: 'text-amber-600 bg-amber-50' },
+    { label: 'Pending confirmation', value: pendingCount, color: 'text-amber-600 bg-amber-50' },
     { label: 'Total revenue', value: `€${totalRevenue}`, color: 'text-green-600 bg-green-50' },
     { label: 'Active staff', value: activeStaff.length, color: 'text-purple-600 bg-purple-50' },
   ]
@@ -235,28 +247,29 @@ export default function AdminOverview() {
 
       {/* Detail popover */}
       {selectedBooking && (() => {
-        const b = selectedBooking
-        const member = staff.find(m => m.id === b.staffId)
+        const bk = selectedBooking
+        const member = staff.find(m => m.id === bk.staffId)
         return (
           <div className="fixed bottom-6 right-6 z-50 bg-white rounded-2xl shadow-2xl border border-gray-100 w-72 p-5">
             <div className="flex items-center justify-between mb-3">
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                b.status === 'confirmed' ? 'bg-green-100 text-green-700'
-                : b.status === 'completed' ? 'bg-gray-100 text-gray-500'
+                bk.status === 'confirmed' ? 'bg-green-100 text-green-700'
+                : bk.status === 'completed' ? 'bg-gray-100 text-gray-500'
+                : bk.status === 'pending' ? 'bg-amber-100 text-amber-700'
                 : 'bg-red-100 text-red-600'
-              }`}>{b.status}</span>
+              }`}>{bk.status}</span>
               <button onClick={() => setSelectedBooking(null)} className="text-gray-300 hover:text-gray-600 text-lg leading-none">×</button>
             </div>
-            <p className="font-bold text-gray-900">{b.customerName}</p>
-            <p className="text-xs text-gray-400 font-mono mb-1">{b.ref}</p>
-            <p className="text-sm text-indigo-600 font-medium">{b.serviceName}</p>
+            <p className="font-bold text-gray-900">{bk.customerName}</p>
+            <p className="text-xs text-gray-400 font-mono mb-1">{bk.ref}</p>
+            <p className="text-sm text-indigo-600 font-medium">{bk.serviceName}</p>
             <div className="mt-3 space-y-1.5 text-sm text-gray-500">
-              <p>📅 {format(parseISO(b.date), 'EEE d MMM')} at {b.time}</p>
-              <p>⏱ {b.serviceDuration} min · €{b.servicePrice}</p>
+              <p>📅 {format(parseISO(bk.date), 'EEE d MMM')} at {bk.time}</p>
+              <p>⏱ {bk.serviceDuration} min · €{bk.servicePrice}</p>
               {member && <p>👤 {member.name}</p>}
-              <p>📧 {b.customerEmail}</p>
-              <p>📞 {b.customerPhone}</p>
-              {b.customerNotes && <p>📝 {b.customerNotes}</p>}
+              <p>📧 {bk.customerEmail}</p>
+              <p>📞 {bk.customerPhone}</p>
+              {bk.customerNotes && <p>📝 {bk.customerNotes}</p>}
             </div>
             <Link href="/admin/bookings"
               className="mt-4 block text-center text-xs font-medium text-indigo-600 hover:underline">Manage booking →</Link>

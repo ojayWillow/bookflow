@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { businessSettings } from '@/data/mock'
+import { useState, useEffect } from 'react'
+import { loadSettings, saveSettings } from '@/lib/settingsStore'
 import { Copy, Check, QrCode, Globe, MessageCircle, MapPin, ExternalLink, Code2 } from 'lucide-react'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -25,8 +25,10 @@ function CopyButton({ text }: { text: string }) {
 }
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState({ ...businessSettings })
+  const [settings, setSettings] = useState(loadSettings())
   const [saved, setSaved] = useState(false)
+
+  useEffect(() => { setSettings(loadSettings()) }, [])
 
   const bookingUrl = `https://bookflow.app/book/demo`
   const iframeCode = `<iframe src="${bookingUrl}" width="100%" height="700" frameborder="0" style="border-radius:16px"></iframe>`
@@ -44,6 +46,7 @@ export default function SettingsPage() {
   }
 
   const handleSave = () => {
+    saveSettings(settings)
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
   }
@@ -56,24 +59,17 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-6">
-
-        {/* ── SHARE & DISTRIBUTE ── */}
         <section className="bg-white rounded-2xl border-2 border-indigo-100 p-6 shadow-soft">
           <h2 className="font-semibold text-gray-900 mb-1">🔗 Share & distribute</h2>
           <p className="text-sm text-gray-400 mb-5">Get your booking page in front of customers — wherever they are</p>
-
           <div className="space-y-5">
-
-            {/* Direct link */}
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Globe className="w-4 h-4 text-indigo-500" />
                 <span className="text-sm font-medium text-gray-700">Your booking link</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex-1 bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm font-mono text-indigo-600 truncate">
-                  {bookingUrl}
-                </div>
+                <div className="flex-1 bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm font-mono text-indigo-600 truncate">{bookingUrl}</div>
                 <CopyButton text={bookingUrl} />
                 <a href={bookingUrl} target="_blank"
                   className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
@@ -81,8 +77,6 @@ export default function SettingsPage() {
                 </a>
               </div>
             </div>
-
-            {/* QR Code */}
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <QrCode className="w-4 h-4 text-indigo-500" />
@@ -103,8 +97,6 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-
-            {/* Embed on website */}
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Code2 className="w-4 h-4 text-indigo-500" />
@@ -114,15 +106,11 @@ export default function SettingsPage() {
               <div className="bg-gray-50 border-2 border-gray-100 rounded-xl p-4">
                 <div className="flex items-start justify-between gap-3">
                   <code className="text-xs text-gray-600 leading-relaxed break-all flex-1 font-mono">{iframeCode}</code>
-                  <div className="flex-shrink-0">
-                    <CopyButton text={iframeCode} />
-                  </div>
+                  <div className="flex-shrink-0"><CopyButton text={iframeCode} /></div>
                 </div>
               </div>
               <p className="text-xs text-gray-400 mt-2">Paste this anywhere in your website HTML where you want the booking form to appear.</p>
             </div>
-
-            {/* WhatsApp */}
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <MessageCircle className="w-4 h-4 text-green-500" />
@@ -138,17 +126,13 @@ export default function SettingsPage() {
                 <div className="border-t border-green-100 pt-3">
                   <p className="text-xs font-medium text-gray-600 mb-2">Option B — Click-to-chat link (share anywhere)</p>
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-white border border-green-200 rounded-lg px-3 py-2 text-xs font-mono text-green-700 truncate">
-                      {whatsappLink}
-                    </div>
+                    <div className="flex-1 bg-white border border-green-200 rounded-lg px-3 py-2 text-xs font-mono text-green-700 truncate">{whatsappLink}</div>
                     <CopyButton text={whatsappLink} />
                   </div>
                   <p className="text-xs text-gray-400 mt-1.5">When tapped, opens WhatsApp with a pre-filled message ready to send to you.</p>
                 </div>
               </div>
             </div>
-
-            {/* Google Maps */}
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <MapPin className="w-4 h-4 text-red-400" />
@@ -165,18 +149,14 @@ export default function SettingsPage() {
                   </ol>
                 </div>
                 <div className="flex items-center gap-2 pt-1">
-                  <div className="flex-1 bg-white border border-red-200 rounded-lg px-3 py-2 text-xs font-mono text-red-700 truncate">
-                    {bookingUrl}
-                  </div>
+                  <div className="flex-1 bg-white border border-red-200 rounded-lg px-3 py-2 text-xs font-mono text-red-700 truncate">{bookingUrl}</div>
                   <CopyButton text={bookingUrl} />
                 </div>
               </div>
             </div>
-
           </div>
         </section>
 
-        {/* Business Info */}
         <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
           <h2 className="font-semibold text-gray-900 mb-4">🏢 Business information</h2>
           <div className="space-y-4">
@@ -210,7 +190,6 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Schedule */}
         <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
           <h2 className="font-semibold text-gray-900 mb-4">📅 Schedule</h2>
           <div className="space-y-5">
@@ -259,7 +238,6 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Booking Rules */}
         <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
           <h2 className="font-semibold text-gray-900 mb-4">⚙️ Booking rules</h2>
           <div className="grid grid-cols-2 gap-4">
