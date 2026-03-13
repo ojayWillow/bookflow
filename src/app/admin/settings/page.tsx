@@ -53,14 +53,12 @@ function isValidHex(v: string) {
 }
 
 // ── Image upload widget ─────────────────────────────────────────────────────
-// Uploads DIRECTLY from browser → Supabase Storage (bypasses Vercel entirely)
 function ImageUpload({
-  label, hint, field, userId, currentUrl, onUploaded,
+  label, hint, field, currentUrl, onUploaded,
 }: {
   label: string
   hint: string
   field: 'logo_url' | 'cover_url'
-  userId: string
   currentUrl: string
   onUploaded: (url: string) => void
 }) {
@@ -69,7 +67,7 @@ function ImageUpload({
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFile = async (file: File) => {
-    const MAX = 5 * 1024 * 1024
+    const MAX     = 5 * 1024 * 1024
     const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
     if (!ALLOWED.includes(file.type)) { setUploadError('Only JPEG, PNG, WebP or GIF allowed'); return }
     if (file.size > MAX)              { setUploadError('File must be under 5 MB'); return }
@@ -78,11 +76,15 @@ function ImageUpload({
     setUploadError('')
 
     try {
-      const supabase  = createClient()
-      const ext       = file.name.split('.').pop() ?? 'jpg'
-      const path      = `${userId}/${field.replace('_url', '')}.${ext}`
+      const supabase = createClient()
 
-      // Upload directly browser → Supabase Storage (no Vercel in the middle)
+      // Always fetch userId fresh — never rely on a prop that may not be set yet
+      const { data: { user }, error: userErr } = await supabase.auth.getUser()
+      if (userErr || !user) throw new Error('Not authenticated')
+
+      const ext  = file.name.split('.').pop() ?? 'jpg'
+      const path = `${user.id}/${field.replace('_url', '')}.${ext}`
+
       const { error: uploadErr } = await supabase.storage
         .from('business-assets')
         .upload(path, file, { contentType: file.type, upsert: true })
@@ -95,7 +97,6 @@ function ImageUpload({
 
       const urlWithBust = `${publicUrl}?t=${Date.now()}`
 
-      // Save the URL via the existing settings PATCH endpoint
       const res  = await fetch('/api/settings', {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -134,9 +135,9 @@ function ImageUpload({
           <button onClick={() => {
             onUploaded('')
             fetch('/api/settings', {
-              method: 'PATCH',
+              method:  'PATCH',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ [field]: '' }),
+              body:    JSON.stringify({ [field]: '' }),
             })
           }}
             className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm">
@@ -172,24 +173,17 @@ function ImageUpload({
 
 // ── Main settings page ──────────────────────────────────────────────────────
 export default function SettingsPage() {
-  const [settings, setSettings]   = useState<Settings | null>(null)
-  const [userId, setUserId]       = useState('')
-  const [loading, setLoading]     = useState(true)
-  const [saving, setSaving]       = useState(false)
-  const [saved, setSaved]         = useState(false)
-  const [error, setError]         = useState('')
-  const [hexInput, setHexInput]   = useState('')
+  const [settings, setSettings] = useState<Settings | null>(null)
+  const [loading, setLoading]   = useState(true)
+  const [saving, setSaving]     = useState(false)
+  const [saved, setSaved]       = useState(false)
+  const [error, setError]       = useState('')
+  const [hexInput, setHexInput] = useState('')
   const [slugStatus, setSlugStatus]     = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
   const [originalSlug, setOriginalSlug] = useState('')
   const slugTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    // Get current user ID for storage path
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setUserId(data.user.id)
-    })
-
     fetch('/api/settings')
       .then(async res => { const j = await res.json(); if (!res.ok) throw new Error(j.error); return j })
       .then(data => {
@@ -278,15 +272,15 @@ export default function SettingsPage() {
           <p className="text-sm text-gray-400 mb-5">Customise how your booking page looks to customers</p>
 
           <div className="space-y-6">
-            {/* Logo + Cover */}
+            {/* Logo + Cover — no userId prop needed, fetched inside handleFile */}
             <div className="grid grid-cols-2 gap-4">
               <ImageUpload label="Logo" hint="Square image, shown in the header"
-                field="logo_url" userId={userId}
+                field="logo_url"
                 currentUrl={settings.logo_url}
                 onUploaded={url => setSettings(p => p ? ({ ...p, logo_url: url }) : p)}
               />
               <ImageUpload label="Cover image" hint="Wide banner behind your header"
-                field="cover_url" userId={userId}
+                field="cover_url"
                 currentUrl={settings.cover_url}
                 onUploaded={url => setSettings(p => p ? ({ ...p, cover_url: url }) : p)}
               />
