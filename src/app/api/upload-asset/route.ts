@@ -1,11 +1,66 @@
-// This route is no longer used for binary uploads.
-// Images are now uploaded directly from the browser to Supabase Storage
-// using a signed upload URL. This route remains as a no-op to avoid 404s
-// from any cached references, but all upload logic lives in the ImageUpload
-// component via the Supabase JS client.
-export async function POST() {
-  return new Response(JSON.stringify({ error: 'Use direct Supabase Storage upload instead' }), {
-    status: 410,
-    headers: { 'Content-Type': 'application/json' },
-  })
+import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
+
+export async function POST(req: NextRequest) {
+  // 1. Verify the user is logged in via their session cookie
+  const supabaseAuth = await createServerClient()
+  const { data: { user }, error: authErr } = await supabaseAuth.auth.getUser()
+  if (authErr || !user) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  }
+
+  // 2. Parse the multipart form data
+  const formData = await req.formData()
+  const file  = formData.get('file') as File | null
+  const field = formData.get('field') as string | null // 'logo_url' or 'cover_url'
+  if (!file || !field) {
+    return NextResponse.json({ error: 'Missing file or field' }, { status: 400 })
+  }
+
+  // 3. Validate
+  const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  if (!ALLOWED.includes(file.type)) {
+    return NextResponse.json({ error: 'Only JPEG, PNG, WebP or GIF allowed' }, { status: 400 })
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    return NextResponse.json({ error: 'File must be under 5 MB' }, { status: 400 })
+  }
+
+  // 4. Upload using SERVICE ROLE KEY — bypasses all RLS
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+
+  const ext  = file.name.split('.').pop() ?? 'jpg'
+  const path = `${user.id}/${field.replace('_url', '')}.${ext}`
+  const buffer = Buffer.from(await file.arrayBuffer())
+
+  const { error: uploadErr } = await supabaseAdmin.storage
+    .from('business-assets')
+    .upload(path, buffer, { contentType: file.type, upsert: true })
+
+  if (uploadErr) {
+    return NextResponse.json({ error: uploadErr.message }, { status: 500 })
+  }
+
+  // 5. Get the public URL
+  const { data: { publicUrl } } = supabaseAdmin.storage
+    .from('business-assets')
+    .getPublicUrl(path)
+
+  const url = `${publicUrl}?t=${Date.now()}`
+
+  // 6. Save URL to business_settings
+  const { error: updateErr } = await supabaseAuth
+    .from('business_settings')
+    .update({ [field]: url })
+    .eq('user_id', user.id)
+
+  if (updateErr) {
+    return NextResponse.json({ error: updateErr.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ url })
 }
