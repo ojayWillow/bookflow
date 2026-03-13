@@ -1,10 +1,11 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [email, setEmail]     = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -26,7 +27,6 @@ export default function LoginPage() {
       return
     }
 
-    // Hard redirect so middleware picks up the server-set cookie
     window.location.href = '/admin'
   }
 
@@ -34,9 +34,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 w-full max-w-sm p-8">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-lg">
-            B
-          </div>
+          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-lg">B</div>
           <div>
             <h1 className="font-bold text-gray-900">BookFlow</h1>
             <p className="text-xs text-gray-400">Admin login</p>
@@ -68,19 +66,21 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">
-              ⚠ {error}
-            </p>
+            <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">⚠ {error}</p>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors mt-2"
-          >
+            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors mt-2">
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
+
+        <p className="text-center text-sm text-gray-400 mt-6">
+          Don&apos;t have an account?{' '}
+          <Link href="/admin/signup" className="text-indigo-600 hover:underline font-medium">Create one</Link>
+        </p>
       </div>
     </div>
   )

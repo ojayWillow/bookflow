@@ -1,15 +1,18 @@
 /**
  * Centralised Supabase query helpers.
- * Used by admin pages and the booking flow.
+ *
+ * Admin queries (getSettings, getServices, getStaff, getBookings, …)
+ * rely on Supabase Row Level Security scoped to auth.uid().
+ * No hardcoded business identifiers needed — RLS handles isolation.
+ *
+ * Public booking queries (getServicesForBusiness, getStaffForBusiness,
+ * getBookedSlotsForDate) run without a user session and scope by
+ * business_id explicitly.
  */
 import { createClient } from './client'
 
-// ─── Business ───────────────────────────────────────────────
+// ─── Business (public) ──────────────────────────────────────
 
-/**
- * Fetch a single business by its public slug.
- * Returns null if no matching business is found.
- */
 export async function getBusinessBySlug(slug: string) {
   const supabase = createClient()
   const { data, error } = await supabase
@@ -21,7 +24,30 @@ export async function getBusinessBySlug(slug: string) {
   return data
 }
 
-// ─── Services ───────────────────────────────────────────────
+// ─── Settings (admin — RLS scoped) ──────────────────────────
+
+export async function getSettings() {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('business_settings')
+    .select('*')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function saveSettings(settings: Record<string, unknown>) {
+  const supabase = createClient()
+  // RLS ensures we only update the row owned by auth.uid()
+  const { error } = await supabase
+    .from('business_settings')
+    .update(settings)
+    .eq('id', (settings as { id: string }).id)
+  if (error) throw error
+}
+
+// ─── Services (admin — RLS scoped) ──────────────────────────
+
 export async function getServices() {
   const supabase = createClient()
   const { data, error } = await supabase
@@ -32,26 +58,12 @@ export async function getServices() {
   return data
 }
 
-/**
- * Fetch services for a specific business (by business_id FK).
- * Falls back to getServices() for the single-tenant demo.
- */
-export async function getServicesForBusiness(businessId: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('services')
-    .select('*')
-    .eq('business_id', businessId)
-    .order('created_at', { ascending: true })
-  // If business_id column doesn't exist yet (pre-migration) fall back
-  if (error) return getServices()
-  return data
-}
-
 export async function upsertService(service: {
   id?: string; name: string; description: string; duration: number; price: number
 }) {
   const supabase = createClient()
+  // business_id is set via a Supabase DB trigger or default;
+  // RLS prevents writing to another business's rows
   const { data, error } = await supabase
     .from('services')
     .upsert({ ...service, currency: 'EUR' })
@@ -67,7 +79,21 @@ export async function deleteService(id: string) {
   if (error) throw error
 }
 
-// ─── Staff ──────────────────────────────────────────────────
+// ─── Services (public — scoped by business_id) ──────────────
+
+export async function getServicesForBusiness(businessId: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('services')
+    .select('*')
+    .eq('business_id', businessId)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return data ?? []
+}
+
+// ─── Staff (admin — RLS scoped) ─────────────────────────────
+
 export async function getStaff() {
   const supabase = createClient()
   const { data, error } = await supabase
@@ -75,22 +101,6 @@ export async function getStaff() {
     .select('*')
     .order('created_at', { ascending: true })
   if (error) throw error
-  return data
-}
-
-/**
- * Fetch active staff for a specific business (by business_id FK).
- * Falls back to getStaff() for the single-tenant demo.
- */
-export async function getStaffForBusiness(businessId: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('staff')
-    .select('*')
-    .eq('business_id', businessId)
-    .eq('active', true)
-    .order('created_at', { ascending: true })
-  if (error) return getStaff()
   return data
 }
 
@@ -116,28 +126,22 @@ export async function deleteStaffMember(id: string) {
   if (error) throw error
 }
 
-// ─── Business Settings ──────────────────────────────────────
-export async function getSettings() {
+// ─── Staff (public — scoped by business_id) ─────────────────
+
+export async function getStaffForBusiness(businessId: string) {
   const supabase = createClient()
   const { data, error } = await supabase
-    .from('business_settings')
+    .from('staff')
     .select('*')
-    .eq('slug', 'demo')
-    .single()
+    .eq('business_id', businessId)
+    .eq('active', true)
+    .order('created_at', { ascending: true })
   if (error) throw error
-  return data
+  return data ?? []
 }
 
-export async function saveSettings(settings: Record<string, unknown>) {
-  const supabase = createClient()
-  const { error } = await supabase
-    .from('business_settings')
-    .update(settings)
-    .eq('slug', 'demo')
-  if (error) throw error
-}
+// ─── Bookings (admin — RLS scoped) ──────────────────────────
 
-// ─── Bookings ───────────────────────────────────────────────
 export async function getBookings() {
   const supabase = createClient()
   const { data, error } = await supabase
@@ -149,7 +153,22 @@ export async function getBookings() {
   return data
 }
 
+export async function updateBookingStatus(
+  id: string,
+  status: 'confirmed' | 'pending' | 'cancelled' | 'completed'
+) {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('bookings')
+    .update({ status })
+    .eq('id', id)
+  if (error) throw error
+}
+
+// ─── Bookings (public — scoped by business_id) ──────────────
+
 export async function createBooking(booking: {
+  business_id: string
   ref: string
   service_id: string | null
   service_name: string
@@ -175,27 +194,17 @@ export async function createBooking(booking: {
   return data
 }
 
-export async function updateBookingStatus(
-  id: string,
-  status: 'confirmed' | 'pending' | 'cancelled' | 'completed'
-) {
-  const supabase = createClient()
-  const { error } = await supabase
-    .from('bookings')
-    .update({ status })
-    .eq('id', id)
-  if (error) throw error
-}
-
 export async function getBookedSlotsForDate(
   date: string,
-  staffId: string | 'any'
+  staffId: string | 'any',
+  businessId: string
 ) {
   const supabase = createClient()
   let query = supabase
     .from('bookings')
     .select('time, service_duration, staff_id')
     .eq('date', date)
+    .eq('business_id', businessId)
     .neq('status', 'cancelled')
 
   if (staffId !== 'any') {
