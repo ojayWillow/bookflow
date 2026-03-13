@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -13,16 +12,21 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
 
-    if (error) {
-      setError(error.message)
+    const data = await res.json()
+
+    if (!res.ok) {
+      setError(data.error || 'Invalid credentials')
       setLoading(false)
       return
     }
 
-    // Hard redirect so middleware picks up the new session cookie
+    // Hard redirect so middleware picks up the server-set cookie
     window.location.href = '/admin'
   }
 

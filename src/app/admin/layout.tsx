@@ -1,8 +1,7 @@
 'use client'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { Calendar, BookOpen, Settings, Users, LayoutDashboard, LogOut } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 const NAV = [
   { href: '/admin',           label: 'Overview',  icon: LayoutDashboard },
@@ -14,23 +13,18 @@ const NAV = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const router = useRouter()
 
-  // Don't render sidebar on login page
   if (pathname === '/admin/login') {
     return <>{children}</>
   }
 
   const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/admin/login')
-    router.refresh()
+    await fetch('/api/auth/logout', { method: 'POST' })
+    window.location.href = '/admin/login'
   }
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar */}
       <aside className="w-56 bg-white border-r border-gray-100 flex flex-col flex-shrink-0">
         <div className="px-5 py-5 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
@@ -69,7 +63,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* Main content */}
       <main className="flex-1 overflow-auto">
         {children}
       </main>
