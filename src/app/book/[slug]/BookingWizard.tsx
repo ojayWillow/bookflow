@@ -9,7 +9,7 @@ import {
 import { getSlotsForDate, getUnionSlotsForDate, getAvailableDates } from '@/lib/slots'
 import type { BookedSlotRaw, SlotStaffMember } from '@/lib/slots'
 import { format, parseISO } from 'date-fns'
-import { Clock, CheckCircle, MapPin, Phone, Mail, ChevronLeft, Users } from 'lucide-react'
+import { Clock, CheckCircle, MapPin, Phone, Mail, ChevronLeft, Users, CalendarX, PackageOpen } from 'lucide-react'
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -73,29 +73,36 @@ const validatePhone = (v: string) => {
 // ─── Component ──────────────────────────────────────────────
 
 export default function BookingWizard({ business }: { business: Business }) {
-  const [step, setStep]                     = useState<Step>('service')
+  const [step, setStep]                       = useState<Step>('service')
   const [selectedService, setSelectedService] = useState<DBService | null>(null)
   const [selectedStaffId, setSelectedStaffId] = useState<string>('any')
-  const [selectedDate, setSelectedDate]     = useState('')
-  const [selectedTime, setSelectedTime]     = useState('')
-  const [form, setForm]                     = useState({ name: '', email: '', phone: '', notes: '' })
-  const [touched, setTouched]               = useState({ name: false, email: false, phone: false })
-  const [bookingRef]                        = useState(() => 'BF-' + Math.random().toString(36).substring(2, 8).toUpperCase())
+  const [selectedDate, setSelectedDate]       = useState('')
+  const [selectedTime, setSelectedTime]       = useState('')
+  const [form, setForm]                       = useState({ name: '', email: '', phone: '', notes: '' })
+  const [touched, setTouched]                 = useState({ name: false, email: false, phone: false })
+  const [bookingRef]                          = useState(() => 'BF-' + Math.random().toString(36).substring(2, 8).toUpperCase())
 
   const [services, setServices]         = useState<DBService[]>([])
   const [staffMembers, setStaffMembers] = useState<DBStaffMember[]>([])
   const [bookedRaw, setBookedRaw]       = useState<BookedSlotRaw[]>([])
+  const [loadingData, setLoadingData]   = useState(true)
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [submitting, setSubmitting]     = useState(false)
   const [submitError, setSubmitError]   = useState('')
 
   // Load services + active staff scoped to this business
   useEffect(() => {
-    getServicesForBusiness(business.id).then(data => setServices(data as DBService[]))
-    getStaffForBusiness(business.id).then(data => setStaffMembers(data as DBStaffMember[]))
+    setLoadingData(true)
+    Promise.all([
+      getServicesForBusiness(business.id),
+      getStaffForBusiness(business.id),
+    ]).then(([svcData, staffData]) => {
+      setServices(svcData as DBService[])
+      setStaffMembers(staffData as DBStaffMember[])
+    }).finally(() => setLoadingData(false))
   }, [business.id])
 
-  // Fetch booked slots for this business whenever date/staff changes
+  // Fetch booked slots whenever date/staff changes
   useEffect(() => {
     if (!selectedDate) return
     setLoadingSlots(true)
@@ -107,7 +114,7 @@ export default function BookingWizard({ business }: { business: Business }) {
 
   // ─── Derived state ────────────────────────────────────────
 
-  const availableDates    = useMemo(() => getAvailableDates(business), [business])
+  const availableDates = useMemo(() => getAvailableDates(business), [business])
   const selectedStaffMember = selectedStaffId !== 'any'
     ? staffMembers.find(m => m.id === selectedStaffId) ?? null
     : null
@@ -151,7 +158,7 @@ export default function BookingWizard({ business }: { business: Business }) {
 
   const fieldClass = (field: keyof typeof errors) =>
     `w-full border-2 rounded-xl px-4 py-3 focus:outline-none transition-colors ${
-      touched[field] && errors[field]   ? 'border-red-300 focus:border-red-400 bg-red-50'
+      touched[field] && errors[field]    ? 'border-red-300 focus:border-red-400 bg-red-50'
       : touched[field] && !errors[field] ? 'border-green-300 focus:border-green-400'
       : 'border-gray-100 focus:border-indigo-400'
     }`
@@ -219,7 +226,7 @@ export default function BookingWizard({ business }: { business: Business }) {
                 <div key={label} className="flex items-center flex-1 last:flex-none">
                   <div className="flex items-center gap-1.5">
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                      stepIndex > i  ? 'bg-indigo-600 text-white'
+                      stepIndex > i   ? 'bg-indigo-600 text-white'
                       : stepIndex === i ? 'bg-indigo-600 text-white ring-4 ring-indigo-100'
                       : 'bg-gray-200 text-gray-400'
                     }`}>
@@ -249,31 +256,50 @@ export default function BookingWizard({ business }: { business: Business }) {
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Choose a service</h2>
             <p className="text-gray-400 text-sm mb-6">Select what you&apos;d like to book</p>
-            {services.length === 0 && (
+
+            {/* Loading skeletons */}
+            {loadingData && (
               <div className="space-y-3">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="h-24 rounded-2xl bg-gray-100 animate-pulse" />
                 ))}
               </div>
             )}
-            <div className="space-y-3">
-              {services.map(s => (
-                <button key={s.id}
-                  onClick={() => { setSelectedService(s); setSelectedStaffId('any'); setStep('staff') }}
-                  className="w-full text-left bg-white border-2 border-gray-100 rounded-2xl p-5 hover:border-indigo-400 hover:shadow-sm transition-all group">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">{s.name}</p>
-                      <p className="text-sm text-gray-400 mt-0.5">{s.description}</p>
-                      <span className="flex items-center gap-1 text-xs text-gray-400 mt-2">
-                        <Clock className="w-3.5 h-3.5" /> {s.duration} min
-                      </span>
+
+            {/* Empty state */}
+            {!loadingData && services.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+                  <PackageOpen className="w-8 h-8 text-gray-300" />
+                </div>
+                <p className="font-semibold text-gray-700 mb-1">No services available yet</p>
+                <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
+                  This business hasn&apos;t added any services yet. Please check back soon or contact them directly.
+                </p>
+              </div>
+            )}
+
+            {/* Services list */}
+            {!loadingData && services.length > 0 && (
+              <div className="space-y-3">
+                {services.map(s => (
+                  <button key={s.id}
+                    onClick={() => { setSelectedService(s); setSelectedStaffId('any'); setStep('staff') }}
+                    className="w-full text-left bg-white border-2 border-gray-100 rounded-2xl p-5 hover:border-indigo-400 hover:shadow-sm transition-all group">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">{s.name}</p>
+                        <p className="text-sm text-gray-400 mt-0.5">{s.description}</p>
+                        <span className="flex items-center gap-1 text-xs text-gray-400 mt-2">
+                          <Clock className="w-3.5 h-3.5" /> {s.duration} min
+                        </span>
+                      </div>
+                      <p className="text-2xl font-bold text-indigo-600">€{s.price}</p>
                     </div>
-                    <p className="text-2xl font-bold text-indigo-600">€{s.price}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -345,24 +371,40 @@ export default function BookingWizard({ business }: { business: Business }) {
                 <span className="text-sm text-gray-400">Anyone available</span>
               )}
             </div>
+
             <p className="text-sm font-medium text-gray-700 mb-3">Select a date</p>
-            <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-6">
-              {availableDates.slice(0, 14).map(date => {
-                const d = parseISO(date)
-                const isSelected = date === selectedDate
-                return (
-                  <button key={date}
-                    onClick={() => { setSelectedDate(date); setSelectedTime('') }}
-                    className={`flex flex-col items-center py-3 rounded-xl border-2 transition-all ${
-                      isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-100 bg-white hover:border-indigo-300'
-                    }`}>
-                    <span className={`text-xs font-medium ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>{DAYS_SHORT[d.getDay()]}</span>
-                    <span className={`text-lg font-bold ${isSelected ? 'text-white' : 'text-gray-900'}`}>{format(d, 'd')}</span>
-                    <span className={`text-xs ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>{format(d, 'MMM')}</span>
-                  </button>
-                )
-              })}
-            </div>
+
+            {/* No dates available */}
+            {availableDates.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+                  <CalendarX className="w-8 h-8 text-gray-300" />
+                </div>
+                <p className="font-semibold text-gray-700 mb-1">No available dates</p>
+                <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
+                  There are no bookable dates at the moment. The business may not have set their opening days or schedule yet.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-6">
+                {availableDates.slice(0, 14).map(date => {
+                  const d = parseISO(date)
+                  const isSelected = date === selectedDate
+                  return (
+                    <button key={date}
+                      onClick={() => { setSelectedDate(date); setSelectedTime('') }}
+                      className={`flex flex-col items-center py-3 rounded-xl border-2 transition-all ${
+                        isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-100 bg-white hover:border-indigo-300'
+                      }`}>
+                      <span className={`text-xs font-medium ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>{DAYS_SHORT[d.getDay()]}</span>
+                      <span className={`text-lg font-bold ${isSelected ? 'text-white' : 'text-gray-900'}`}>{format(d, 'd')}</span>
+                      <span className={`text-xs ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>{format(d, 'MMM')}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
             {selectedDate && (
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-3">Select a time</p>
@@ -379,7 +421,7 @@ export default function BookingWizard({ business }: { business: Business }) {
                         disabled={!slot.available}
                         onClick={() => { setSelectedTime(slot.time); setStep('details') }}
                         className={`py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                          !slot.available ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through'
+                          !slot.available      ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through'
                           : selectedTime === slot.time ? 'border-indigo-600 bg-indigo-600 text-white'
                           : 'border-gray-100 bg-white hover:border-indigo-400 text-gray-700'
                         }`}>
@@ -406,8 +448,8 @@ export default function BookingWizard({ business }: { business: Business }) {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Full name <span className="text-red-400">*</span></label>
                 <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} onBlur={() => touch('name')}
                   className={fieldClass('name')} placeholder="e.g. Anna Bērziņa" />
-                {touched.name && errors.name  && <p className="text-xs text-red-500 mt-1.5">⚠ {errors.name}</p>}
-                {touched.name && !errors.name && <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>}
+                {touched.name && errors.name   && <p className="text-xs text-red-500 mt-1.5">⚠ {errors.name}</p>}
+                {touched.name && !errors.name  && <p className="text-xs text-green-600 mt-1.5">✓ Looks good</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address <span className="text-red-400">*</span></label>
