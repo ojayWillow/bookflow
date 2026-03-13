@@ -6,7 +6,6 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_BYTES = 5 * 1024 * 1024 // 5 MB
 
 // Service role client — bypasses RLS for the DB update only
-// Storage upload still uses the user's session (anon key)
 function getServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -48,7 +47,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid field' }, { status: 400 })
   }
 
-  // 3. Upload to Supabase Storage (uses user session — anon key)
+  // 3. Upload to Supabase Storage
   const ext    = file.name.split('.').pop() ?? 'jpg'
   const path   = `${user.id}/${field.replace('_url', '')}.${ext}`
   const buffer = Buffer.from(await file.arrayBuffer())
@@ -80,9 +79,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ url: urlWithBust })
-}
-
-// Tell Next.js not to parse the body — we handle multipart manually
-export const config = {
-  api: { bodyParser: false },
 }
