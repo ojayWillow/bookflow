@@ -8,7 +8,7 @@ import {
 } from '@/lib/supabase/queries'
 import { getSlotsForDate, getUnionSlotsForDate, getAvailableDates } from '@/lib/slots'
 import type { BookedSlotRaw, SlotStaffMember } from '@/lib/slots'
-import { ChevronLeft, CheckCircle } from 'lucide-react'
+import { ChevronLeft, CheckCircle, Instagram, Facebook, Globe } from 'lucide-react'
 import type { DBService, DBStaffMember, Business, Step, BookingForm } from './types'
 import StepService  from './_steps/StepService'
 import StepStaff    from './_steps/StepStaff'
@@ -49,6 +49,15 @@ const validatePhone = (v: string) => {
   return ''
 }
 
+// TikTok icon (not in lucide)
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/>
+    </svg>
+  )
+}
+
 export default function BookingWizard({ business }: { business: Business }) {
   const [step, setStep]                           = useState<Step>('service')
   const [selectedService, setSelectedService]     = useState<DBService | null>(null)
@@ -86,11 +95,11 @@ export default function BookingWizard({ business }: { business: Business }) {
       .finally(() => setLoadingSlots(false))
   }, [selectedDate, selectedStaffId, business.id])
 
-  const availableDates    = useMemo(() => getAvailableDates(business), [business])
+  const availableDates      = useMemo(() => getAvailableDates(business), [business])
   const selectedStaffMember = selectedStaffId !== 'any'
     ? staffMembers.find(m => m.id === selectedStaffId) ?? null
     : null
-  const availableStaff    = useMemo(
+  const availableStaff = useMemo(
     () => selectedService ? staffMembers.filter(m => m.service_ids.includes(selectedService.id)) : [],
     [selectedService, staffMembers]
   )
@@ -140,18 +149,97 @@ export default function BookingWizard({ business }: { business: Business }) {
     }
   }
 
+  const hasSocial = business.instagram_url || business.facebook_url || business.tiktok_url || business.website_url
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b">
-        <div className="max-w-2xl mx-auto px-6 py-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
-            style={{ backgroundColor: business.primary_color }}>
-            {business.name[0]}
+
+      {/* ── Header ── */}
+      <header className="relative bg-white border-b overflow-hidden">
+        {/* Cover image */}
+        {business.cover_url && (
+          <div className="absolute inset-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={business.cover_url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/40" />
           </div>
-          <div>
-            <h1 className="font-bold text-gray-900 text-lg">{business.name}</h1>
-            <p className="text-sm text-gray-400">{business.tagline}</p>
+        )}
+
+        <div className={`relative max-w-2xl mx-auto px-6 py-5 flex items-center justify-between gap-4 ${
+          business.cover_url ? 'py-8' : ''
+        }`}>
+          <div className="flex items-center gap-4">
+            {/* Logo or letter avatar */}
+            {business.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={business.logo_url}
+                alt={business.name}
+                className="w-12 h-12 rounded-2xl object-cover flex-shrink-0 shadow-sm"
+              />
+            ) : (
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                style={{ backgroundColor: business.primary_color }}
+              >
+                {business.name[0]}
+              </div>
+            )}
+            <div>
+              <h1 className={`font-bold text-lg ${
+                business.cover_url ? 'text-white' : 'text-gray-900'
+              }`}>{business.name}</h1>
+              <p className={`text-sm ${
+                business.cover_url ? 'text-white/80' : 'text-gray-400'
+              }`}>{business.tagline}</p>
+            </div>
           </div>
+
+          {/* Social icons */}
+          {hasSocial && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {business.website_url && (
+                <a href={business.website_url} target="_blank" rel="noopener noreferrer"
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                    business.cover_url
+                      ? 'bg-white/20 text-white hover:bg-white/30'
+                      : 'bg-gray-100 text-gray-500 hover:bg-indigo-50 hover:text-indigo-600'
+                  }`}>
+                  <Globe className="w-4 h-4" />
+                </a>
+              )}
+              {business.instagram_url && (
+                <a href={business.instagram_url} target="_blank" rel="noopener noreferrer"
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                    business.cover_url
+                      ? 'bg-white/20 text-white hover:bg-white/30'
+                      : 'bg-gray-100 text-gray-500 hover:bg-pink-50 hover:text-pink-600'
+                  }`}>
+                  <Instagram className="w-4 h-4" />
+                </a>
+              )}
+              {business.facebook_url && (
+                <a href={business.facebook_url} target="_blank" rel="noopener noreferrer"
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                    business.cover_url
+                      ? 'bg-white/20 text-white hover:bg-white/30'
+                      : 'bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-600'
+                  }`}>
+                  <Facebook className="w-4 h-4" />
+                </a>
+              )}
+              {business.tiktok_url && (
+                <a href={business.tiktok_url} target="_blank" rel="noopener noreferrer"
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                    business.cover_url
+                      ? 'bg-white/20 text-white hover:bg-white/30'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  }`}>
+                  <TikTokIcon className="w-4 h-4" />
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
@@ -188,69 +276,12 @@ export default function BookingWizard({ business }: { business: Business }) {
           </>
         )}
 
-        {step === 'service' && (
-          <StepService
-            services={services}
-            loading={loadingData}
-            onSelect={s => { setSelectedService(s); setSelectedStaffId('any'); setStep('staff') }}
-          />
-        )}
-        {step === 'staff' && selectedService && (
-          <StepStaff
-            service={selectedService}
-            availableStaff={availableStaff}
-            selectedStaffId={selectedStaffId}
-            loading={loadingData}
-            onSelect={id => { setSelectedStaffId(id); setStep('datetime') }}
-          />
-        )}
-        {step === 'datetime' && selectedService && (
-          <StepDateTime
-            service={selectedService}
-            selectedStaffMember={selectedStaffMember ?? null}
-            availableDates={availableDates}
-            selectedDate={selectedDate}
-            selectedTime={selectedTime}
-            slots={slots}
-            loadingSlots={loadingSlots}
-            onSelectDate={date => { setSelectedDate(date); setSelectedTime('') }}
-            onSelectTime={time => { setSelectedTime(time); setStep('details') }}
-          />
-        )}
-        {step === 'details' && (
-          <StepDetails
-            form={form}
-            errors={errors}
-            touched={touched}
-            onChange={(field, value) => setForm(p => ({ ...p, [field]: value }))}
-            onBlur={field => setTouched(p => ({ ...p, [field]: true }))}
-            onNext={() => { setTouched({ name: true, email: true, phone: true }); if (formValid) setStep('confirm') }}
-          />
-        )}
-        {step === 'confirm' && selectedService && (
-          <StepConfirm
-            business={business}
-            service={selectedService}
-            staffMember={selectedStaffMember ?? null}
-            date={selectedDate}
-            time={selectedTime}
-            form={form}
-            submitting={submitting}
-            submitError={submitError}
-            onConfirm={handleConfirm}
-          />
-        )}
-        {step === 'success' && selectedService && (
-          <StepSuccess
-            business={business}
-            service={selectedService}
-            staffMember={selectedStaffMember ?? null}
-            date={selectedDate}
-            time={selectedTime}
-            form={form}
-            bookingRef={bookingRef}
-          />
-        )}
+        {step === 'service'  && <StepService services={services} loading={loadingData} onSelect={s => { setSelectedService(s); setSelectedStaffId('any'); setStep('staff') }} />}
+        {step === 'staff'    && selectedService && <StepStaff service={selectedService} availableStaff={availableStaff} selectedStaffId={selectedStaffId} loading={loadingData} onSelect={id => { setSelectedStaffId(id); setStep('datetime') }} />}
+        {step === 'datetime' && selectedService && <StepDateTime service={selectedService} selectedStaffMember={selectedStaffMember ?? null} availableDates={availableDates} selectedDate={selectedDate} selectedTime={selectedTime} slots={slots} loadingSlots={loadingSlots} onSelectDate={date => { setSelectedDate(date); setSelectedTime('') }} onSelectTime={time => { setSelectedTime(time); setStep('details') }} />}
+        {step === 'details'  && <StepDetails form={form} errors={errors} touched={touched} onChange={(field, value) => setForm(p => ({ ...p, [field]: value }))} onBlur={field => setTouched(p => ({ ...p, [field]: true }))} onNext={() => { setTouched({ name: true, email: true, phone: true }); if (formValid) setStep('confirm') }} />}
+        {step === 'confirm'  && selectedService && <StepConfirm business={business} service={selectedService} staffMember={selectedStaffMember ?? null} date={selectedDate} time={selectedTime} form={form} submitting={submitting} submitError={submitError} onConfirm={handleConfirm} />}
+        {step === 'success'  && selectedService && <StepSuccess business={business} service={selectedService} staffMember={selectedStaffMember ?? null} date={selectedDate} time={selectedTime} form={form} bookingRef={bookingRef} />}
       </main>
     </div>
   )

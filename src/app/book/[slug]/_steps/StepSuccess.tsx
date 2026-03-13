@@ -1,6 +1,14 @@
 import { format, parseISO } from 'date-fns'
-import { CheckCircle, MapPin, Phone, Mail } from 'lucide-react'
+import { CheckCircle, MapPin, Phone, Mail, Globe, Instagram, Facebook } from 'lucide-react'
 import type { DBService, DBStaffMember, Business, BookingForm } from '../types'
+
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/>
+    </svg>
+  )
+}
 
 type Props = {
   business: Business
@@ -13,6 +21,8 @@ type Props = {
 }
 
 export default function StepSuccess({ business, service, staffMember, date, time, form, bookingRef }: Props) {
+  const hasSocial = business.instagram_url || business.facebook_url || business.tiktok_url || business.website_url
+
   return (
     <div className="text-center py-8">
       <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
@@ -55,6 +65,39 @@ export default function StepSuccess({ business, service, staffMember, date, time
           </div>
         </div>
       </div>
+
+      {/* Social links on success screen */}
+      {hasSocial && (
+        <div className="mb-6">
+          <p className="text-xs text-gray-400 mb-3">Follow us</p>
+          <div className="flex items-center justify-center gap-3">
+            {business.website_url && (
+              <a href={business.website_url} target="_blank" rel="noopener noreferrer"
+                className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                <Globe className="w-5 h-5" />
+              </a>
+            )}
+            {business.instagram_url && (
+              <a href={business.instagram_url} target="_blank" rel="noopener noreferrer"
+                className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-pink-50 hover:text-pink-600 transition-colors">
+                <Instagram className="w-5 h-5" />
+              </a>
+            )}
+            {business.facebook_url && (
+              <a href={business.facebook_url} target="_blank" rel="noopener noreferrer"
+                className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                <Facebook className="w-5 h-5" />
+              </a>
+            )}
+            {business.tiktok_url && (
+              <a href={business.tiktok_url} target="_blank" rel="noopener noreferrer"
+                className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+                <TikTokIcon className="w-5 h-5" />
+              </a>
+            )}
+          </div>
+        </div>
+      )}
 
       <p className="text-xs text-gray-400">{business.cancellation_policy}</p>
     </div>

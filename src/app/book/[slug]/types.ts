@@ -16,6 +16,14 @@ export type Business = {
   open_days: number[]; open_time: string; close_time: string
   slot_interval: number; lead_time_hours: number; max_advance_days: number
   cancellation_policy: string; primary_color: string
+  // Branding
+  logo_url:      string
+  cover_url:     string
+  // Social
+  instagram_url: string
+  facebook_url:  string
+  tiktok_url:    string
+  website_url:   string
 }
 
 export type Step = 'service' | 'staff' | 'datetime' | 'details' | 'confirm' | 'success'
