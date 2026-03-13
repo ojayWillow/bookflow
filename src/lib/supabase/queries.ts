@@ -4,6 +4,23 @@
  */
 import { createClient } from './client'
 
+// ─── Business ───────────────────────────────────────────────
+
+/**
+ * Fetch a single business by its public slug.
+ * Returns null if no matching business is found.
+ */
+export async function getBusinessBySlug(slug: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('business_settings')
+    .select('*')
+    .eq('slug', slug)
+    .single()
+  if (error) return null
+  return data
+}
+
 // ─── Services ───────────────────────────────────────────────
 export async function getServices() {
   const supabase = createClient()
@@ -12,6 +29,22 @@ export async function getServices() {
     .select('*')
     .order('created_at', { ascending: true })
   if (error) throw error
+  return data
+}
+
+/**
+ * Fetch services for a specific business (by business_id FK).
+ * Falls back to getServices() for the single-tenant demo.
+ */
+export async function getServicesForBusiness(businessId: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('services')
+    .select('*')
+    .eq('business_id', businessId)
+    .order('created_at', { ascending: true })
+  // If business_id column doesn't exist yet (pre-migration) fall back
+  if (error) return getServices()
   return data
 }
 
@@ -42,6 +75,22 @@ export async function getStaff() {
     .select('*')
     .order('created_at', { ascending: true })
   if (error) throw error
+  return data
+}
+
+/**
+ * Fetch active staff for a specific business (by business_id FK).
+ * Falls back to getStaff() for the single-tenant demo.
+ */
+export async function getStaffForBusiness(businessId: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('staff')
+    .select('*')
+    .eq('business_id', businessId)
+    .eq('active', true)
+    .order('created_at', { ascending: true })
+  if (error) return getStaff()
   return data
 }
 
@@ -145,7 +194,7 @@ export async function getBookedSlotsForDate(
   const supabase = createClient()
   let query = supabase
     .from('bookings')
-    .select('time, service_duration')
+    .select('time, service_duration, staff_id')
     .eq('date', date)
     .neq('status', 'cancelled')
 
@@ -155,5 +204,5 @@ export async function getBookedSlotsForDate(
 
   const { data, error } = await query
   if (error) throw error
-  return (data ?? []).map((b: { time: string }) => b.time)
+  return (data ?? []) as { time: string; service_duration: number; staff_id: string }[]
 }
