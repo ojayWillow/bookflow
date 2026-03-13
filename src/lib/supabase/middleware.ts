@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+type CookieToSet = { name: string; value: string; options?: Record<string, unknown> }
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -12,7 +14,7 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: CookieToSet[]) {
           // 1. Sync cookies onto the request so downstream code sees them
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
@@ -21,14 +23,13 @@ export async function updateSession(request: NextRequest) {
           supabaseResponse = NextResponse.next({ request })
           // 3. Set cookies on the response so the browser stores them
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2])
           )
         },
       },
     }
   )
 
-  // IMPORTANT: DO NOT add code between createServerClient and getUser()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (
@@ -47,10 +48,5 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // IMPORTANT: always return supabaseResponse as-is.
-  // If you need a custom response, copy cookies over:
-  //   const res = NextResponse.next({ request })
-  //   res.cookies.setAll(supabaseResponse.cookies.getAll())
-  //   return res
   return supabaseResponse
 }
