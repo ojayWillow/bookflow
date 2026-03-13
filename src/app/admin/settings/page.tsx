@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Loader2, Copy, Check, QrCode, Globe, MessageCircle, MapPin, ExternalLink, Code2 } from 'lucide-react'
-import { getSettings, saveSettings } from '@/lib/supabase/queries'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const INTERVALS = [15, 30, 45, 60]
@@ -34,13 +33,18 @@ function CopyButton({ text }: { text: string }) {
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [error, setError] = useState('')
+  const [loading, setLoading]   = useState(true)
+  const [saving, setSaving]     = useState(false)
+  const [saved, setSaved]       = useState(false)
+  const [error, setError]       = useState('')
 
   useEffect(() => {
-    getSettings()
+    fetch('/api/settings')
+      .then(async res => {
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error || 'Failed to load settings')
+        return json
+      })
       .then(data => setSettings(data as Settings))
       .catch(e => setError(e instanceof Error ? e.message : 'Failed to load settings'))
       .finally(() => setLoading(false))
@@ -51,7 +55,13 @@ export default function SettingsPage() {
     setSaving(true)
     setError('')
     try {
-      await saveSettings(settings)
+      const res  = await fetch('/api/settings', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(settings),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Failed to save settings')
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch (e: unknown) {
@@ -78,14 +88,19 @@ export default function SettingsPage() {
   )
 
   if (!settings) return (
-    <div className="p-8 text-red-500">⚠ Could not load settings. Check your Supabase connection.</div>
+    <div className="p-8">
+      <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-6 py-5">
+        <p className="font-semibold mb-1">⚠ Could not load settings</p>
+        <p className="text-sm">{error || 'Unknown error'}</p>
+      </div>
+    </div>
   )
 
-  const bookingUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow.app'}/book/${settings.slug}`
-  const iframeCode = `<iframe src="${bookingUrl}" width="100%" height="700" frameborder="0" style="border-radius:16px"></iframe>`
+  const bookingUrl  = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow.app'}/book/${settings.slug}`
+  const iframeCode  = `<iframe src="${bookingUrl}" width="100%" height="700" frameborder="0" style="border-radius:16px"></iframe>`
   const whatsappPhone = settings.phone.replace(/[^0-9]/g, '')
-  const whatsappLink = `https://wa.me/${whatsappPhone}?text=Hi%2C+I'd+like+to+make+a+booking+at+${encodeURIComponent(settings.name)}`
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(bookingUrl)}`
+  const whatsappLink  = `https://wa.me/${whatsappPhone}?text=Hi%2C+I'd+like+to+make+a+booking+at+${encodeURIComponent(settings.name)}`
+  const qrUrl         = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(bookingUrl)}`
 
   return (
     <div className="p-8 max-w-2xl">
