@@ -2,17 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { Resend } from 'resend'
 import { createClient } from '@/lib/supabase/server'
+import { generateCancelToken } from '@/lib/cancel-token'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-// ─── Validation schema ────────────────────────────────────────
-// UUID regex used for id fields
-const uuid = z.string().uuid()
-
-// HH:MM time string
+const uuid       = z.string().uuid()
 const timeString = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid time format (HH:MM expected)')
-
-// YYYY-MM-DD date string
 const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD expected)')
 
 const BookingSchema = z.object({
@@ -20,7 +15,7 @@ const BookingSchema = z.object({
   ref:              z.string().min(1).max(32),
   service_id:       uuid,
   service_name:     z.string().min(1).max(200),
-  service_duration: z.number().int().min(5).max(480),   // 5 min – 8 hrs
+  service_duration: z.number().int().min(5).max(480),
   service_price:    z.number().min(0).max(100_000),
   staff_id:         uuid.nullable().optional(),
   staff_name:       z.string().min(1).max(200),
@@ -50,6 +45,7 @@ function customerEmailHtml(p: {
   price: number
   ref: string
   cancellationPolicy: string
+  cancelUrl: string
 }) {
   return `
 <!DOCTYPE html>
@@ -109,8 +105,15 @@ function customerEmailHtml(p: {
           <p style="margin:0;color:#6b7280;font-size:13px">Booking reference</p>
           <p style="margin:4px 0 0;font-family:monospace;font-size:18px;font-weight:800;color:#4f46e5;letter-spacing:2px">${p.ref}</p>
         </td></tr>
-        <tr><td style="padding:0 32px 32px;text-align:center">
+        ${p.cancellationPolicy ? `
+        <tr><td style="padding:0 32px 16px;text-align:center">
           <p style="margin:0;color:#9ca3af;font-size:12px;line-height:1.6">${p.cancellationPolicy}</p>
+        </td></tr>` : ''}
+        <tr><td style="padding:0 32px 32px;text-align:center">
+          <a href="${p.cancelUrl}"
+            style="display:inline-block;border:1px solid #e5e7eb;color:#6b7280;font-size:12px;padding:8px 20px;border-radius:8px;text-decoration:none;">
+            Need to cancel? Click here
+          </a>
         </td></tr>
         <tr><td style="background:#f9fafb;padding:16px 32px;text-align:center">
           <p style="margin:0;color:#d1d5db;font-size:12px">Questions? Reply to this email or call ${p.businessPhone}</p>
@@ -201,7 +204,6 @@ export async function POST(req: NextRequest) {
   try {
     const raw = await req.json()
 
-    // --- Validate & sanitise input ---
     const parsed = BookingSchema.safeParse(raw)
     if (!parsed.success) {
       return NextResponse.json(
@@ -213,7 +215,6 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient()
 
-    // --- Verify business_id actually exists (prevents spoofed tenant IDs) ---
     const { data: bizExists, error: bizLookupError } = await supabase
       .from('business_settings')
       .select('id')
@@ -224,7 +225,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    // --- Insert booking ---
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .insert({
@@ -252,7 +252,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: bookingError.message }, { status: 500 })
     }
 
-    // --- Fetch business settings for email ---
     const { data: biz } = await supabase
       .from('business_settings')
       .select('name,address,phone,email,cancellation_policy')
@@ -265,9 +264,14 @@ export async function POST(req: NextRequest) {
     const businessEmail = biz?.email               ?? ''
     const cancelPolicy  = biz?.cancellation_policy ?? ''
 
-    const fromDomain = process.env.RESEND_FROM_DOMAIN ?? 'bookflow.app'
+    const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow.app'
+    const fromDomain = process.env.RESEND_FROM_DOMAIN  ?? 'bookflow.app'
     const fromEmail  = `bookings@${fromDomain}`
     const adminEmail = businessEmail
+
+    // Build signed cancellation URL — no DB token needed
+    const cancelToken = generateCancelToken(booking.id)
+    const cancelUrl   = `${appUrl}/api/cancel?id=${booking.id}&token=${cancelToken}`
 
     if (!adminEmail) {
       console.warn('No business email found for business_id:', body.business_id)
@@ -292,6 +296,7 @@ export async function POST(req: NextRequest) {
           price:              body.service_price,
           ref:                body.ref,
           cancellationPolicy: cancelPolicy,
+          cancelUrl,
         }),
       }),
       ...(adminEmail ? [resend.emails.send({
