@@ -18,15 +18,15 @@ function makeAnonClient() {
 }
 
 export async function POST(request: NextRequest) {
-  const { email, password, businessName, slug } = await request.json()
+  const { email, password, firstName, lastName, businessName, slug } = await request.json()
 
-  if (!email || !password || !businessName || !slug) {
+  if (!email || !password || !firstName || !lastName || !businessName || !slug) {
     return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
   }
 
   if (!/^[a-z0-9-]{3,40}$/.test(slug)) {
     return NextResponse.json(
-      { error: 'Slug must be 3-40 lowercase letters, numbers or hyphens' },
+      { error: 'Booking URL must be 3-40 lowercase letters, numbers or hyphens' },
       { status: 400 }
     )
   }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
   if (existing) {
     return NextResponse.json(
-      { error: 'That slug is already taken - try a different one' },
+      { error: 'That booking URL is already taken — try a different one' },
       { status: 409 }
     )
   }
@@ -52,6 +52,11 @@ export async function POST(request: NextRequest) {
     password,
     options: {
       emailRedirectTo: `${appUrl}/auth/callback?next=/admin`,
+      data: {
+        first_name:    firstName,
+        last_name:     lastName,
+        display_name:  `${firstName} ${lastName}`,
+      },
     },
   })
 
