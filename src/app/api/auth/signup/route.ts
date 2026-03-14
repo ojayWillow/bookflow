@@ -49,12 +49,14 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // ── 2. Register user via anon client — triggers confirmation email via Resend ─
+  // ── 2. Register via anon client — triggers confirmation email via Resend SMTP ─
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const { data: authData, error: authError } = await makeAnonClient().auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/admin`,
+      // /auth/callback exchanges the code for a session — works on any device
+      emailRedirectTo: `${appUrl}/auth/callback?next=/admin`,
     },
   })
 
