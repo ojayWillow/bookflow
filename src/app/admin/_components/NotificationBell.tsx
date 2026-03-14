@@ -4,6 +4,8 @@ import { Bell, X, Calendar, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { format, parseISO, isToday, isYesterday } from 'date-fns'
 
+const LS_KEY = 'bf_seen_bookings'
+
 type Booking = {
   id: string
   ref: string
@@ -21,11 +23,33 @@ function timeLabel(iso: string) {
   return format(d, 'd MMM, HH:mm')
 }
 
+function loadSeen(): Set<string> {
+  try {
+    const raw = localStorage.getItem(LS_KEY)
+    return raw ? new Set(JSON.parse(raw) as string[]) : new Set()
+  } catch {
+    return new Set()
+  }
+}
+
+function saveSeen(ids: Set<string>) {
+  try {
+    // Keep only the latest 200 IDs to avoid unbounded localStorage growth
+    const arr = Array.from(ids).slice(-200)
+    localStorage.setItem(LS_KEY, JSON.stringify(arr))
+  } catch { /* storage full — fail silently */ }
+}
+
 export default function NotificationBell() {
   const [open, setOpen]         = useState(false)
   const [bookings, setBookings] = useState<Booking[]>([])
   const [seen, setSeen]         = useState<Set<string>>(new Set())
   const ref                     = useRef<HTMLDivElement>(null)
+
+  // Load persisted seen IDs on mount
+  useEffect(() => {
+    setSeen(loadSeen())
+  }, [])
 
   const load = async () => {
     try {
@@ -36,7 +60,7 @@ export default function NotificationBell() {
 
   useEffect(() => {
     load()
-    const id = setInterval(load, 30_000) // poll every 30s
+    const id = setInterval(load, 30_000)
     return () => clearInterval(id)
   }, [])
 
@@ -53,8 +77,10 @@ export default function NotificationBell() {
 
   const handleOpen = () => {
     setOpen(o => !o)
-    // Mark all current as seen when opening
-    setSeen(new Set(bookings.map(b => b.id)))
+    // Mark all current bookings as seen and persist
+    const next = new Set([...seen, ...bookings.map(b => b.id)])
+    setSeen(next)
+    saveSeen(next)
   }
 
   return (
