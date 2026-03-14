@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 
@@ -166,12 +167,12 @@ export async function POST(req: NextRequest) {
       .eq('id', business_id)
       .single()
 
-    const businessName       = biz?.name               ?? 'The Business'
-    const businessEmail      = biz?.email              ?? 'info@kolab.lv'
-    const businessPhone      = biz?.phone              ?? ''
-    const businessAddress    = biz?.address            ?? ''
+    const businessName       = biz?.name                ?? 'The Business'
+    const businessEmail      = biz?.email               ?? 'info@kolab.lv'
+    const businessPhone      = biz?.phone               ?? ''
+    const businessAddress    = biz?.address             ?? ''
     const cancellationPolicy = biz?.cancellation_policy ?? ''
-    const primaryColor       = biz?.primary_color      ?? '#6366f1'
+    const primaryColor       = biz?.primary_color       ?? '#6366f1'
 
     const emailData = {
       ref, businessName, businessAddress, businessPhone, cancellationPolicy,

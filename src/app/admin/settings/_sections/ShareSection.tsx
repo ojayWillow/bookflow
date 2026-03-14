@@ -112,7 +112,7 @@ export default function ShareSection({ bookingUrl, iframeCode, whatsappLink, qrU
               <li><span className="font-semibold text-gray-700">1.</span> Go to <a href="https://business.google.com" target="_blank" className="text-indigo-600 underline">business.google.com</a> and sign in</li>
               <li><span className="font-semibold text-gray-700">2.</span> Select your business → <span className="font-mono bg-white px-1.5 py-0.5 rounded text-gray-700">Edit profile → Contact</span></li>
               <li><span className="font-semibold text-gray-700">3.</span> Under <span className="font-mono bg-white px-1.5 py-0.5 rounded text-gray-700">Booking</span>, paste your booking link</li>
-              <li><span className="font-semibold text-gray-700">4.</span> A "Book online" button appears on Maps within 24h</li>
+              <li><span className="font-semibold text-gray-700">4.</span> A &quot;Book online&quot; button appears on Maps within 24h</li>
             </ol>
             <div className="flex items-center gap-2 pt-1">
               <div className="flex-1 bg-white border border-red-200 rounded-lg px-3 py-2 text-xs font-mono text-red-700 truncate">{bookingUrl}</div>
