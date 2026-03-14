@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   // 1. Verify the user is logged in via their session cookie
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
   // 2. Parse the multipart form data
   const formData = await req.formData()
   const file  = formData.get('file') as File | null
-  const field = formData.get('field') as string | null // 'logo_url' or 'cover_url'
+  const field = formData.get('field') as string | null
   if (!file || !field) {
     return NextResponse.json({ error: 'Missing file or field' }, { status: 400 })
   }
