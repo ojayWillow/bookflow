@@ -4,6 +4,15 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 type CookieToSet = { name: string; value: string; options: Record<string, unknown> }
 
+function makeServiceClient() {
+  // Service-role client — bypasses RLS, used only for business_settings insert
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { cookies: { getAll: () => [], setAll: () => {} } }
+  )
+}
+
 export async function POST(request: NextRequest) {
   const { email, password, businessName, slug } = await request.json()
 
@@ -13,16 +22,33 @@ export async function POST(request: NextRequest) {
 
   if (!/^[a-z0-9-]{3,40}$/.test(slug)) {
     return NextResponse.json(
-      { error: 'Slug must be 3-40 lowercase letters, numbers or hyphens' },
+      { error: 'Slug must be 3–40 lowercase letters, numbers or hyphens' },
       { status: 400 }
     )
   }
 
   const cookieStore = await cookies()
 
-  const supabaseAdmin = createServerClient(
+  // ── 1. Check slug availability (service role, no RLS) ─────────────
+  const serviceClient = makeServiceClient()
+
+  const { data: existing } = await serviceClient
+    .from('business_settings')
+    .select('id')
+    .eq('slug', slug)
+    .single()
+
+  if (existing) {
+    return NextResponse.json(
+      { error: 'That slug is already taken — try a different one' },
+      { status: 409 }
+    )
+  }
+
+  // ── 2. Create auth user via signUp — triggers confirmation email ───
+  const anonClient = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() { return cookieStore.getAll() },
@@ -31,35 +57,32 @@ export async function POST(request: NextRequest) {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2])
             )
-          } catch { /* ignored */ }
+          } catch { /* server component — ignored */ }
         },
       },
     }
   )
 
-  const { data: existing } = await supabaseAdmin
-    .from('business_settings')
-    .select('id')
-    .eq('slug', slug)
-    .single()
-
-  if (existing) {
-    return NextResponse.json({ error: 'That slug is already taken - try a different one' }, { status: 409 })
-  }
-
-  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+  const { data: authData, error: authError } = await anonClient.auth.signUp({
     email,
     password,
-    email_confirm: false,
+    options: {
+      // Redirect user to /admin after clicking the confirmation link
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/admin`,
+    },
   })
 
   if (authError || !authData.user) {
-    return NextResponse.json({ error: authError?.message ?? 'Failed to create account' }, { status: 400 })
+    return NextResponse.json(
+      { error: authError?.message ?? 'Failed to create account' },
+      { status: 400 }
+    )
   }
 
   const userId = authData.user.id
 
-  const { error: bizError } = await supabaseAdmin.from('business_settings').insert({
+  // ── 3. Insert business_settings (service role bypasses RLS) ───────
+  const { error: bizError } = await serviceClient.from('business_settings').insert({
     user_id:             userId,
     name:                businessName,
     slug,
@@ -78,9 +101,11 @@ export async function POST(request: NextRequest) {
   })
 
   if (bizError) {
-    await supabaseAdmin.auth.admin.deleteUser(userId)
+    // Clean up orphaned auth user so they can try again
+    await serviceClient.auth.admin.deleteUser(userId)
     return NextResponse.json({ error: bizError.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true })
+  // Return a flag so the frontend can show "check your email" instead of redirecting
+  return NextResponse.json({ ok: true, confirm_email: true })
 }
