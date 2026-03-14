@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/admin'
+  const type = searchParams.get('type') // Supabase passes type=recovery for password resets
 
   if (code) {
     const cookieStore = await cookies()
@@ -32,6 +33,11 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
+      // Password recovery tokens must land on /reset-password so the
+      // browser client can call updateUser() with the active session.
+      if (type === 'recovery') {
+        return NextResponse.redirect(`${origin}/reset-password`)
+      }
       return NextResponse.redirect(`${origin}${next}`)
     }
   }
