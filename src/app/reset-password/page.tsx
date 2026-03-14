@@ -1,62 +1,22 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { Calendar, Loader2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
-function makeSupabase() {
-  return createBrowserClient(
+export default function ResetPasswordPage() {
+  const router  = useRouter()
+  const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
-}
 
-export default function ResetPasswordPage() {
-  const router      = useRouter()
-  const supabaseRef = useRef(makeSupabase())
-
-  const [password, setPassword]         = useState('')
-  const [confirm, setConfirm]           = useState('')
-  const [loading, setLoading]           = useState(false)
-  const [error, setError]               = useState('')
-  const [sessionReady, setSessionReady] = useState(false)
-  const [invalidLink, setInvalidLink]   = useState(false)
-  const [done, setDone]                 = useState(false)
-
-  useEffect(() => {
-    const supabase = supabaseRef.current
-
-    // After /auth/callback exchanges the PKCE code server-side,
-    // the session is in cookies. The browser client picks it up
-    // and fires SIGNED_IN. We use that as the ready signal.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') {
-        setSessionReady(true)
-      }
-    })
-
-    // Also check for an existing session immediately (page may have
-    // already loaded after the cookie was set by the callback redirect).
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setSessionReady(true)
-    })
-
-    // If nothing fires in 5 seconds the link is expired or invalid.
-    const timer = setTimeout(() => {
-      setInvalidLink(true)
-    }, 5000)
-
-    return () => {
-      subscription.unsubscribe()
-      clearTimeout(timer)
-    }
-  }, [])
-
-  // Cancel the invalid-link timeout once session is ready
-  useEffect(() => {
-    if (sessionReady) setInvalidLink(false)
-  }, [sessionReady])
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm]   = useState('')
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState('')
+  const [done, setDone]         = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,7 +31,7 @@ export default function ResetPasswordPage() {
     setLoading(true)
     setError('')
 
-    const { error: updateError } = await supabaseRef.current.auth.updateUser({ password })
+    const { error: updateError } = await supabase.auth.updateUser({ password })
 
     if (updateError) {
       setError(updateError.message)
@@ -83,7 +43,6 @@ export default function ResetPasswordPage() {
     setTimeout(() => router.push('/admin/login'), 2000)
   }
 
-  // ─── Success ───────────────────────────────────────────────
   if (done) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -98,42 +57,6 @@ export default function ResetPasswordPage() {
     )
   }
 
-  // ─── Expired / invalid link ───────────────────────────────────
-  if (invalidLink && !sessionReady) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 w-full max-w-sm p-8 text-center">
-          <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">⚠️</span>
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Link expired or invalid</h2>
-          <p className="text-sm text-gray-400 mb-6">
-            Reset links expire after 1 hour. Please request a new one.
-          </p>
-          <Link
-            href="/forgot-password"
-            className="inline-block w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors text-center"
-          >
-            Request new link
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  // ─── Loading ───────────────────────────────────────────────
-  if (!sessionReady) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="text-gray-400 flex items-center gap-2">
-          <Loader2 className="w-5 h-5 animate-spin" />
-          Verifying your reset link…
-        </div>
-      </div>
-    )
-  }
-
-  // ─── Reset form ───────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 w-full max-w-sm p-8">
