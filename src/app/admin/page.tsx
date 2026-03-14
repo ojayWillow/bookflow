@@ -30,13 +30,13 @@ type Settings = {
 }
 
 export default function AdminOverview() {
-  const [view, setView]                   = useState<'day' | 'week'>('day')
-  const [currentDate, setCurrentDate]     = useState(TODAY)
+  const [view, setView]                       = useState<'day' | 'week'>('day')
+  const [currentDate, setCurrentDate]         = useState(TODAY)
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
-  const [bookings, setBookings]           = useState<Booking[]>([])
-  const [staff, setStaff]                 = useState<StaffMember[]>([])
-  const [settings, setSettings]           = useState<Settings>({ open_time: '09:00', close_time: '18:00' })
-  const [loading, setLoading]             = useState(true)
+  const [bookings, setBookings]               = useState<Booking[]>([])
+  const [staff, setStaff]                     = useState<StaffMember[]>([])
+  const [settings, setSettings]               = useState<Settings>({ open_time: '09:00', close_time: '18:00' })
+  const [loading, setLoading]                 = useState(true)
 
   useEffect(() => {
     Promise.all([getBookings(), getStaff(), getSettings()])
@@ -48,9 +48,33 @@ export default function AdminOverview() {
       .finally(() => setLoading(false))
   }, [])
 
-  const openHour  = parseInt(settings.open_time.split(':')[0])
-  const closeHour = parseInt(settings.close_time.split(':')[0])
-  const hours     = Array.from({ length: closeHour - openHour }, (_, i) => openHour + i)
+  // Business open/close hours from settings
+  const settingsOpen  = parseInt(settings.open_time.split(':')[0])
+  const settingsClose = parseInt(settings.close_time.split(':')[0])
+
+  // Find earliest and latest booking hours for the current view
+  // so the grid always expands to show every booking
+  const visibleDates = (() => {
+    if (view === 'day') return [currentDate]
+    const weekStart = startOfWeek(parseISO(currentDate), { weekStartsOn: 1 })
+    return Array.from({ length: 6 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'))
+  })()
+
+  const visibleBookings = bookings.filter(
+    b => visibleDates.includes(b.date) && b.status !== 'cancelled'
+  )
+
+  const bookingHours = visibleBookings.map(b => parseInt(b.time.split(':')[0]))
+
+  const openHour  = bookingHours.length
+    ? Math.min(settingsOpen, ...bookingHours)
+    : settingsOpen
+
+  const closeHour = bookingHours.length
+    ? Math.max(settingsClose, ...bookingHours.map(h => h + 1))
+    : settingsClose
+
+  const hours = Array.from({ length: closeHour - openHour }, (_, i) => openHour + i)
 
   const weekStart = startOfWeek(parseISO(currentDate), { weekStartsOn: 1 })
   const weekDays  = Array.from({ length: 6 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'))
@@ -64,7 +88,7 @@ export default function AdminOverview() {
   const stats = [
     { label: "Today's appointments", value: todayAll.length,    color: 'text-indigo-600 bg-indigo-50' },
     { label: 'Pending confirmation',  value: pendingCount,       color: 'text-amber-600 bg-amber-50'  },
-    { label: 'Total revenue',         value: `€${totalRevenue}`, color: 'text-green-600 bg-green-50'  },
+    { label: 'Total revenue',         value: `\u20ac${totalRevenue}`, color: 'text-green-600 bg-green-50'  },
     { label: 'Active staff',          value: staff.length,       color: 'text-purple-600 bg-purple-50' },
   ]
 
@@ -74,7 +98,7 @@ export default function AdminOverview() {
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
       </svg>
-      Loading…
+      Loading\u2026
     </div>
   )
 
@@ -105,15 +129,15 @@ export default function AdminOverview() {
       <div className="px-8 pb-4 flex items-center gap-3">
         <button
           onClick={() => setCurrentDate(format(addDays(parseISO(currentDate), view === 'day' ? -1 : -7), 'yyyy-MM-dd'))}
-          className="w-8 h-8 flex items-center justify-center rounded-xl border-2 border-gray-100 hover:border-indigo-300 transition-colors text-gray-400 hover:text-indigo-600">←</button>
+          className="w-8 h-8 flex items-center justify-center rounded-xl border-2 border-gray-100 hover:border-indigo-300 transition-colors text-gray-400 hover:text-indigo-600">&#8592;</button>
         <button onClick={() => setCurrentDate(TODAY)}
           className="px-3 py-1.5 text-xs font-medium rounded-xl border-2 border-gray-100 hover:border-indigo-300 transition-colors text-gray-500">Today</button>
         <button
           onClick={() => setCurrentDate(format(addDays(parseISO(currentDate), view === 'day' ? 1 : 7), 'yyyy-MM-dd'))}
-          className="w-8 h-8 flex items-center justify-center rounded-xl border-2 border-gray-100 hover:border-indigo-300 transition-colors text-gray-400 hover:text-indigo-600">→</button>
+          className="w-8 h-8 flex items-center justify-center rounded-xl border-2 border-gray-100 hover:border-indigo-300 transition-colors text-gray-400 hover:text-indigo-600">&#8594;</button>
         <span className="text-sm font-medium text-gray-700 ml-1">
           {view === 'week'
-            ? `${format(weekStart, 'd MMM')} – ${format(addDays(weekStart, 5), 'd MMM yyyy')}`
+            ? `${format(weekStart, 'd MMM')} \u2013 ${format(addDays(weekStart, 5), 'd MMM yyyy')}`
             : format(parseISO(currentDate), 'EEEE, d MMM')}
         </span>
       </div>
