@@ -1,15 +1,21 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 
-type CookieToSet = { name: string; value: string; options: Record<string, unknown> }
-
+/** Bare service-role client — bypasses RLS, never exposed to the browser */
 function makeServiceClient() {
-  // Service-role client — bypasses RLS, used only for business_settings insert
-  return createServerClient(
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { cookies: { getAll: () => [], setAll: () => {} } }
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
+
+/** Bare anon client — used only for auth.signUp which triggers the confirmation email */
+function makeAnonClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
   )
 }
 
@@ -27,11 +33,9 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const cookieStore = await cookies()
-
-  // ── 1. Check slug availability (service role, no RLS) ─────────────
   const serviceClient = makeServiceClient()
 
+  // ── 1. Check slug availability ───────────────────────────────────────────────
   const { data: existing } = await serviceClient
     .from('business_settings')
     .select('id')
@@ -45,29 +49,11 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // ── 2. Create auth user via signUp — triggers confirmation email ───
-  const anonClient = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll() },
-        setAll(cookiesToSet: CookieToSet[]) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2])
-            )
-          } catch { /* server component — ignored */ }
-        },
-      },
-    }
-  )
-
-  const { data: authData, error: authError } = await anonClient.auth.signUp({
+  // ── 2. Register user via anon client — triggers confirmation email via Resend ─
+  const { data: authData, error: authError } = await makeAnonClient().auth.signUp({
     email,
     password,
     options: {
-      // Redirect user to /admin after clicking the confirmation link
       emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/admin`,
     },
   })
@@ -81,7 +67,7 @@ export async function POST(request: NextRequest) {
 
   const userId = authData.user.id
 
-  // ── 3. Insert business_settings (service role bypasses RLS) ───────
+  // ── 3. Insert business_settings with service role (bypasses RLS) ────────────
   const { error: bizError } = await serviceClient.from('business_settings').insert({
     user_id:             userId,
     name:                businessName,
@@ -101,11 +87,10 @@ export async function POST(request: NextRequest) {
   })
 
   if (bizError) {
-    // Clean up orphaned auth user so they can try again
+    // Roll back: remove the orphaned auth user so they can retry cleanly
     await serviceClient.auth.admin.deleteUser(userId)
     return NextResponse.json({ error: bizError.message }, { status: 500 })
   }
 
-  // Return a flag so the frontend can show "check your email" instead of redirecting
   return NextResponse.json({ ok: true, confirm_email: true })
 }
