@@ -10,11 +10,13 @@ export async function POST(request: NextRequest) {
 
   const supabase = await createClient()
 
-  const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL ?? request.nextUrl.origin}/reset-password`
+  // redirectTo must point to /auth/callback so the PKCE code can be
+  // exchanged server-side before the user lands on /reset-password.
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? request.nextUrl.origin
+  const redirectTo = `${baseUrl}/auth/callback?type=recovery`
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
 
-  // Always return 200 — don't leak whether the email exists in the system
   if (error) {
     console.error('[forgot-password]', error.message)
   }
