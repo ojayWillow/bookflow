@@ -195,6 +195,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: bookingError.message }, { status: 500 })
     }
 
+    // Fetch this business's own settings — email, name, address etc.
     const { data: biz } = await supabase
       .from('business_settings')
       .select('name,address,phone,email,cancellation_policy')
@@ -207,12 +208,18 @@ export async function POST(req: NextRequest) {
     const businessEmail = biz?.email   ?? ''
     const cancelPolicy  = biz?.cancellation_policy ?? ''
 
-    // From address uses your verified kolab.lv domain
-    // Admin alert always goes to info@kolab.lv, or override via ADMIN_EMAIL env var
-    const fromEmail  = 'info@kolab.lv'
-    const adminEmail = process.env.ADMIN_EMAIL ?? 'info@kolab.lv'
+    // Each business receives alerts at their own registered email.
+    // The from address uses the same domain — must be verified in Resend.
+    const fromDomain = process.env.RESEND_FROM_DOMAIN ?? 'bookflow.app'
+    const fromEmail  = `bookings@${fromDomain}`
+    const adminEmail = businessEmail  // always the business's own email — correct for multi-tenant SaaS
+
+    if (!adminEmail) {
+      console.warn('No business email found for business_id:', body.business_id)
+    }
 
     const emailResults = await Promise.allSettled([
+      // Customer confirmation
       resend.emails.send({
         from:    `${businessName} <${fromEmail}>`,
         to:      body.customer_email,
@@ -233,7 +240,8 @@ export async function POST(req: NextRequest) {
           cancellationPolicy: cancelPolicy,
         }),
       }),
-      resend.emails.send({
+      // Admin alert — goes to the business's own registered email
+      ...(adminEmail ? [resend.emails.send({
         from:    `BookFlow <${fromEmail}>`,
         to:      adminEmail,
         subject: `New booking: ${body.customer_name} \u2014 ${body.service_name} on ${body.date}`,
@@ -251,7 +259,7 @@ export async function POST(req: NextRequest) {
           price:         body.service_price,
           ref:           body.ref,
         }),
-      }),
+      })] : []),
     ])
 
     const emailsSent = emailResults.every(r => r.status === 'fulfilled')
