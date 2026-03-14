@@ -1,17 +1,16 @@
 /**
  * Centralised Supabase query helpers.
  *
- * Admin queries for services, staff, settings, bookings use either
- * the server-side API routes (for client components) or the server
- * Supabase client directly (for Server Components / Route Handlers).
+ * Admin mutations for services and staff are routed through Next.js
+ * API routes (/api/services, /api/staff) so that auth is resolved
+ * server-side from cookies via @supabase/ssr — avoiding the browser
+ * client 400 / stale-JWT problem.
  *
- * Public booking queries (getServicesForBusiness, getStaffForBusiness,
- * getBookedSlotsForDate, createBooking) run with the anon key and
- * scope by business_id explicitly.
+ * Public booking queries run with the anon key scoped by business_id.
  */
 import { createClient } from './client'
 
-// ─── Auth helper (browser client — use only in server-side contexts) ──────────
+// ─── Auth helper (browser client) ────────────────────────────────────────────
 
 async function getAuthUser() {
   const supabase = createClient()
@@ -20,7 +19,7 @@ async function getAuthUser() {
   return { supabase, user }
 }
 
-// ─── Business (public) ───────────────────────────────────────────
+// ─── Business (public) ────────────────────────────────────────────────────────
 
 export async function getBusinessBySlug(slug: string) {
   const supabase = createClient()
@@ -33,7 +32,7 @@ export async function getBusinessBySlug(slug: string) {
   return data
 }
 
-// ─── Settings (admin — RLS + explicit user_id guard) ──────────────
+// ─── Settings (admin — RLS + explicit user_id guard) ──────────────────────────
 
 export async function getSettings() {
   const { supabase, user } = await getAuthUser()
@@ -55,9 +54,7 @@ export async function saveSettings(settings: Record<string, unknown>) {
   if (error) throw error
 }
 
-// ─── Services (admin — routed through /api/services to use server auth) ───────
-// These functions call the Next.js API route so that auth is resolved
-// server-side from cookies, avoiding the browser-client 400 issue.
+// ─── Services (admin — via /api/services, server auth) ───────────────────────
 
 export async function getServices() {
   const res = await fetch('/api/services', { credentials: 'include' })
@@ -95,7 +92,7 @@ export async function deleteService(id: string) {
   }
 }
 
-// ─── Services (public — scoped by user_id resolved from business_settings) ────
+// ─── Services (public — scoped by user_id from business_settings) ────────────
 
 export async function getServicesForBusiness(businessId: string) {
   const supabase = createClient()
@@ -115,17 +112,15 @@ export async function getServicesForBusiness(businessId: string) {
   return data ?? []
 }
 
-// ─── Staff (admin — RLS + explicit user_id guard) ──────────────
+// ─── Staff (admin — via /api/staff, server auth) ──────────────────────────────
 
 export async function getStaff() {
-  const { supabase, user } = await getAuthUser()
-  const { data, error } = await supabase
-    .from('staff')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: true })
-  if (error) throw error
-  return data
+  const res = await fetch('/api/staff', { credentials: 'include' })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error ?? 'Failed to load staff')
+  }
+  return res.json()
 }
 
 export async function upsertStaffMember(member: {
@@ -134,27 +129,31 @@ export async function upsertStaffMember(member: {
   work_start: string; work_end: string
   active: boolean; color: string
 }) {
-  const { supabase, user } = await getAuthUser()
-  const { data, error } = await supabase
-    .from('staff')
-    .upsert({ ...member, user_id: user.id })
-    .select()
-    .single()
-  if (error) throw error
-  return data
+  const res = await fetch('/api/staff', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(member),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error ?? 'Failed to save staff member')
+  }
+  return res.json()
 }
 
 export async function deleteStaffMember(id: string) {
-  const { supabase, user } = await getAuthUser()
-  const { error } = await supabase
-    .from('staff')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id)
-  if (error) throw error
+  const res = await fetch(`/api/staff?id=${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error ?? 'Failed to delete staff member')
+  }
 }
 
-// ─── Staff (public — scoped by user_id resolved from business_settings) ──────
+// ─── Staff (public — scoped by user_id from business_settings) ───────────────
 
 export async function getStaffForBusiness(businessId: string) {
   const supabase = createClient()
@@ -175,7 +174,7 @@ export async function getStaffForBusiness(businessId: string) {
   return data ?? []
 }
 
-// ─── Bookings (admin — RLS scoped via business_settings join) ────
+// ─── Bookings (admin — RLS scoped via business_settings join) ─────────────────
 
 export async function getBookings() {
   const { supabase, user } = await getAuthUser()
@@ -216,7 +215,7 @@ export async function updateBookingStatus(
   if (error) throw error
 }
 
-// ─── Bookings (public — business_id is server-resolved, not client-supplied) ─
+// ─── Bookings (public — business_id server-resolved, not client-supplied) ────
 
 export async function createBooking(booking: {
   business_id: string
