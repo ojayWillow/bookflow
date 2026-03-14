@@ -3,7 +3,6 @@ import { useState, useEffect, useMemo } from 'react'
 import {
   getServicesForBusiness,
   getStaffForBusiness,
-  createBooking,
   getBookedSlotsForDate,
 } from '@/lib/supabase/queries'
 import { getSlotsForDate, getUnionSlotsForDate, getAvailableDates } from '@/lib/slots'
@@ -123,23 +122,30 @@ export default function BookingWizard({ business }: { business: Business }) {
     setSubmitting(true)
     setSubmitError('')
     try {
-      await createBooking({
-        business_id:      business.id,
-        ref:              bookingRef,
-        service_id:       selectedService.id,
-        service_name:     selectedService.name,
-        service_duration: selectedService.duration,
-        service_price:    selectedService.price,
-        staff_id:         selectedStaffMember?.id ?? null,
-        staff_name:       selectedStaffMember?.name ?? 'Anyone available',
-        date:             selectedDate,
-        time:             selectedTime,
-        customer_name:    form.name,
-        customer_email:   form.email,
-        customer_phone:   form.phone,
-        customer_notes:   form.notes,
-        status:           'confirmed',
+      const res = await fetch('/api/bookings', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_id:      business.id,
+          ref:              bookingRef,
+          service_id:       selectedService.id,
+          service_name:     selectedService.name,
+          service_duration: selectedService.duration,
+          service_price:    selectedService.price,
+          service_currency: selectedService.currency,
+          staff_id:         selectedStaffMember?.id   ?? null,
+          staff_name:       selectedStaffMember?.name ?? 'Anyone available',
+          date:             selectedDate,
+          time:             selectedTime,
+          customer_name:    form.name,
+          customer_email:   form.email,
+          customer_phone:   form.phone,
+          customer_notes:   form.notes,
+          status:           'confirmed',
+        }),
       })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Booking failed')
       setStep('success')
     } catch (err) {
       console.error(err)
