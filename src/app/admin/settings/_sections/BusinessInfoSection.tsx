@@ -1,5 +1,7 @@
 'use client'
-import { Loader2, Check, X } from 'lucide-react'
+import { Lock } from 'lucide-react'
+
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow.app'
 
 interface Props {
   name: string
@@ -15,7 +17,7 @@ interface Props {
 }
 
 export default function BusinessInfoSection({
-  name, tagline, address, phone, email, slug, originalSlug, slugStatus, onChange, onSlugChange
+  name, tagline, address, phone, email, slug, onChange
 }: Props) {
   return (
     <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
@@ -28,24 +30,24 @@ export default function BusinessInfoSection({
               className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Booking page slug</label>
-            <div>
-              <div className={`flex items-center border-2 rounded-xl overflow-hidden transition-colors focus-within:border-indigo-400 ${
-                slugStatus === 'taken' ? 'border-red-300' : slugStatus === 'available' ? 'border-green-300' : 'border-gray-100'
-              }`}>
-                <span className="bg-gray-50 px-3 py-2.5 text-xs text-gray-400 border-r border-gray-100 whitespace-nowrap">/book/</span>
-                <input value={slug}
-                  onChange={e => onSlugChange(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                  className="flex-1 px-3 py-2.5 text-sm focus:outline-none bg-transparent" />
-                {slugStatus === 'checking'  && <Loader2 className="w-4 h-4 animate-spin text-gray-400 mr-3" />}
-                {slugStatus === 'available' && <Check className="w-4 h-4 text-green-500 mr-3" />}
-                {slugStatus === 'taken'     && <X className="w-4 h-4 text-red-500 mr-3" />}
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Booking page URL
+            </label>
+            <div className="flex items-center border-2 border-gray-100 bg-gray-50 rounded-xl overflow-hidden">
+              <span className="px-3 py-2.5 text-xs text-gray-400 border-r border-gray-100 whitespace-nowrap">/book/</span>
+              <span className="flex-1 px-3 py-2.5 text-sm text-gray-500 font-mono truncate">{slug}</span>
+              <div className="pr-3 text-gray-400" title="Your booking URL is permanent and cannot be changed">
+                <Lock className="w-4 h-4" />
               </div>
-              {slugStatus === 'taken'     && <p className="text-xs text-red-500 mt-1">⚠ This slug is already taken</p>}
-              {slugStatus === 'available' && <p className="text-xs text-green-600 mt-1">✓ Available</p>}
-              {slug !== originalSlug && slugStatus !== 'taken' && (
-                <p className="text-xs text-amber-600 mt-1">⚠ Changing your slug will break existing links and QR codes</p>
-              )}
+            </div>
+            <p className="text-xs text-gray-400 mt-1.5 font-mono truncate">
+              {BASE}/book/{slug}
+            </p>
+            <div className="flex items-start gap-1.5 mt-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+              <Lock className="w-3.5 h-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-amber-700 leading-relaxed">
+                <strong>This URL is permanent</strong> and cannot be changed. Customers and QR codes depend on it.
+              </p>
             </div>
           </div>
         </div>
