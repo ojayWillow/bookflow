@@ -14,11 +14,11 @@ function SignupForm() {
   const [form, setForm] = useState({
     firstName: '', lastName: '', businessName: '', slug: '', email: '', password: '',
   })
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [slugTouched, setSlugTouched] = useState(false)
   const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Pre-fill email if passed from homepage CTA
   useEffect(() => {
     const email = params.get('email')
     if (email) setForm(p => ({ ...p, email }))
@@ -40,8 +40,18 @@ function SignupForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError('')
+
+    if (form.password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+    if (form.password.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
+
+    setLoading(true)
     const res  = await fetch('/api/auth/signup', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
@@ -51,11 +61,12 @@ function SignupForm() {
     router.push('/admin')
   }
 
+  const passwordMismatch = confirmPassword.length > 0 && form.password !== confirmPassword
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
 
-        {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
           <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center">
             <Calendar className="w-5 h-5 text-white" />
@@ -69,7 +80,6 @@ function SignupForm() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
 
-            {/* Name row */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">First name</label>
@@ -91,7 +101,6 @@ function SignupForm() {
               </div>
             </div>
 
-            {/* Business name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Business name</label>
               <input
@@ -102,7 +111,6 @@ function SignupForm() {
               />
             </div>
 
-            {/* Booking URL */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Your booking page URL</label>
               <div className="flex items-center border-2 border-gray-100 rounded-xl overflow-hidden focus-within:border-indigo-400 transition-colors">
@@ -125,7 +133,6 @@ function SignupForm() {
               </div>
             </div>
 
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
               <input
@@ -136,7 +143,6 @@ function SignupForm() {
               />
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
               <input
@@ -147,12 +153,32 @@ function SignupForm() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                required
+                disabled={loading}
+                className={`w-full border-2 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-colors disabled:opacity-50 ${
+                  passwordMismatch
+                    ? 'border-red-300 focus:border-red-400'
+                    : 'border-gray-100 focus:border-indigo-400'
+                }`}
+                placeholder="Repeat your password"
+              />
+              {passwordMismatch && (
+                <p className="text-xs text-red-500 mt-1.5">⚠ Passwords do not match</p>
+              )}
+            </div>
+
             {error && (
               <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">⚠ {error}</p>
             )}
 
             <button
-              type="submit" disabled={loading}
+              type="submit" disabled={loading || passwordMismatch}
               className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
