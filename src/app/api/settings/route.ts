@@ -18,7 +18,6 @@ export async function GET() {
     .single()
 
   if (error) {
-    // PGRST116 = no rows found — account exists but settings row is missing
     if (error.code === 'PGRST116') {
       return NextResponse.json({ error: 'No settings found for this account. Please contact support.' }, { status: 404 })
     }
@@ -40,7 +39,8 @@ export async function PATCH(request: NextRequest) {
 
   const body = await request.json()
 
-  // Prevent escalation — always scope update to the authenticated user
+  // Destructure to strip id/user_id from the update payload — prevents privilege escalation.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { id: _id, user_id: _uid, ...safeFields } = body
 
   const { error } = await supabase

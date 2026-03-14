@@ -1,16 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createHmac } from 'crypto'
-
-const SECRET = process.env.CANCEL_TOKEN_SECRET ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'fallback-secret'
-
-export function generateCancelToken(bookingId: string): string {
-  return createHmac('sha256', SECRET).update(bookingId).digest('hex')
-}
+import { generateCancelToken } from '@/lib/cancel-token'
 
 function verifyCancelToken(bookingId: string, token: string): boolean {
   const expected = generateCancelToken(bookingId)
-  // Constant-time comparison to prevent timing attacks
   if (expected.length !== token.length) return false
   let diff = 0
   for (let i = 0; i < expected.length; i++) {
@@ -29,7 +22,7 @@ const html = (title: string, message: string, isError = false) => `
   <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px">
     <div style="background:#fff;border-radius:16px;padding:40px;max-width:420px;width:100%;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
       <div style="width:64px;height:64px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;background:${isError ? '#fee2e2' : '#dcfce7'}">
-        <span style="font-size:28px">${isError ? '⚠️' : '✓'}</span>
+        <span style="font-size:28px">${isError ? '&#9888;&#65039;' : '&#10003;'}</span>
       </div>
       <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111827">${title}</h1>
       <p style="margin:0;color:#6b7280;font-size:15px;line-height:1.6">${message}</p>

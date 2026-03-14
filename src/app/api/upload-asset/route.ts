@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   // 1. Verify the user is logged in via their session cookie
@@ -33,8 +33,8 @@ export async function POST(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-  const ext  = file.name.split('.').pop() ?? 'jpg'
-  const path = `${user.id}/${field.replace('_url', '')}.${ext}`
+  const ext    = file.name.split('.').pop() ?? 'jpg'
+  const path   = `${user.id}/${field.replace('_url', '')}.${ext}`
   const buffer = Buffer.from(await file.arrayBuffer())
 
   const { error: uploadErr } = await supabaseAdmin.storage
