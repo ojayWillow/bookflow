@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Calendar } from 'lucide-react'
+import { Calendar, Loader2 } from 'lucide-react'
 
 function SlugPreview({ slug }: { slug: string }) {
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow.app'
@@ -47,7 +47,6 @@ export default function SignupPage() {
       return
     }
 
-    // Auto-login: API already set session cookies — go straight to dashboard
     router.push('/admin')
   }
 
@@ -71,7 +70,8 @@ export default function SignupPage() {
               value={form.businessName}
               onChange={handleNameChange}
               required
-              className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
+              disabled={loading}
+              className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors disabled:opacity-50"
               placeholder="e.g. Glow Beauty Studio"
             />
           </div>
@@ -84,7 +84,8 @@ export default function SignupPage() {
                 value={form.slug}
                 onChange={e => setForm(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
                 required
-                className="flex-1 px-3 py-2.5 text-sm focus:outline-none bg-transparent"
+                disabled={loading}
+                className="flex-1 px-3 py-2.5 text-sm focus:outline-none bg-transparent disabled:opacity-50"
                 placeholder="glow-beauty-studio"
               />
             </div>
@@ -98,7 +99,8 @@ export default function SignupPage() {
               value={form.email}
               onChange={set('email')}
               required
-              className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
+              disabled={loading}
+              className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors disabled:opacity-50"
               placeholder="you@example.com"
             />
           </div>
@@ -111,7 +113,8 @@ export default function SignupPage() {
               onChange={set('password')}
               required
               minLength={8}
-              className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
+              disabled={loading}
+              className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors disabled:opacity-50"
               placeholder="Min. 8 characters"
             />
           </div>
@@ -123,8 +126,9 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors mt-2"
+            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2 flex items-center justify-center gap-2"
           >
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             {loading ? 'Creating account…' : 'Create account →'}
           </button>
         </form>

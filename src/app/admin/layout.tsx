@@ -1,7 +1,8 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Calendar, BookOpen, Settings, Users, LayoutDashboard, LogOut } from 'lucide-react'
+import { useState } from 'react'
+import { Calendar, BookOpen, Settings, Users, LayoutDashboard, LogOut, Loader2 } from 'lucide-react'
 
 const NAV = [
   { href: '/admin',           label: 'Overview',  icon: LayoutDashboard },
@@ -11,17 +12,18 @@ const NAV = [
   { href: '/admin/settings',  label: 'Settings',  icon: Settings },
 ]
 
-// Pages inside /admin that render without the sidebar
 const BARE_PATHS = ['/admin/login']
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const [signingOut, setSigningOut] = useState(false)
 
   if (BARE_PATHS.includes(pathname)) {
     return <>{children}</>
   }
 
   const handleLogout = async () => {
+    setSigningOut(true)
     await fetch('/api/auth/logout', { method: 'POST' })
     window.location.href = '/admin/login'
   }
@@ -58,10 +60,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="px-3 py-4 border-t border-gray-100">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all w-full"
+            disabled={signingOut}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all w-full disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <LogOut className="w-4 h-4" />
-            Sign out
+            {signingOut
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <LogOut className="w-4 h-4" />}
+            {signingOut ? 'Signing out…' : 'Sign out'}
           </button>
         </div>
       </aside>
