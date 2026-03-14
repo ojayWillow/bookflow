@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { Calendar, BookOpen, Settings, Users, LayoutDashboard, LogOut, Loader2 } from 'lucide-react'
+import NotificationBell from './_components/NotificationBell'
 
 const NAV = [
   { href: '/admin',           label: 'Overview',  icon: LayoutDashboard },
@@ -72,6 +73,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       <main className="flex-1 overflow-auto">
+        {/* Top bar with notification bell */}
+        <div className="flex justify-end items-center px-6 py-3 border-b border-gray-100 bg-white">
+          <NotificationBell />
+        </div>
         {children}
       </main>
     </div>
