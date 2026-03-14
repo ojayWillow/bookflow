@@ -1,18 +1,17 @@
 /**
  * Centralised Supabase query helpers.
  *
- * Admin queries (getSettings, getServices, getStaff, getBookings, …)
- * use the BROWSER client (RLS + auth session cookie) and additionally
- * filter by user_id as a belt-and-suspenders guard.
+ * Admin queries for services, staff, settings, bookings use either
+ * the server-side API routes (for client components) or the server
+ * Supabase client directly (for Server Components / Route Handlers).
  *
  * Public booking queries (getServicesForBusiness, getStaffForBusiness,
  * getBookedSlotsForDate, createBooking) run with the anon key and
- * scope by business_id explicitly. business_id is always resolved
- * server-side (slug → business row) before being passed in here.
+ * scope by business_id explicitly.
  */
 import { createClient } from './client'
 
-// ─── Auth helper ──────────────────────────────────────────────────
+// ─── Auth helper (browser client — use only in server-side contexts) ──────────
 
 async function getAuthUser() {
   const supabase = createClient()
@@ -56,48 +55,50 @@ export async function saveSettings(settings: Record<string, unknown>) {
   if (error) throw error
 }
 
-// ─── Services (admin — RLS + explicit user_id guard) ────────────
+// ─── Services (admin — routed through /api/services to use server auth) ───────
+// These functions call the Next.js API route so that auth is resolved
+// server-side from cookies, avoiding the browser-client 400 issue.
 
 export async function getServices() {
-  const { supabase, user } = await getAuthUser()
-  const { data, error } = await supabase
-    .from('services')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: true })
-  if (error) throw error
-  return data
+  const res = await fetch('/api/services', { credentials: 'include' })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error ?? 'Failed to load services')
+  }
+  return res.json()
 }
 
 export async function upsertService(service: {
   id?: string; name: string; description: string; duration: number; price: number
 }) {
-  const { supabase, user } = await getAuthUser()
-  const { data, error } = await supabase
-    .from('services')
-    .upsert({ ...service, user_id: user.id, currency: 'EUR' })
-    .select()
-    .single()
-  if (error) throw error
-  return data
+  const res = await fetch('/api/services', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(service),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error ?? 'Failed to save service')
+  }
+  return res.json()
 }
 
 export async function deleteService(id: string) {
-  const { supabase, user } = await getAuthUser()
-  const { error } = await supabase
-    .from('services')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id)
-  if (error) throw error
+  const res = await fetch(`/api/services?id=${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error ?? 'Failed to delete service')
+  }
 }
 
 // ─── Services (public — scoped by user_id resolved from business_settings) ────
 
 export async function getServicesForBusiness(businessId: string) {
   const supabase = createClient()
-  // services are tenant-scoped by user_id, not business_id.
-  // Resolve user_id from business_settings using the known business row id.
   const { data: biz, error: bizErr } = await supabase
     .from('business_settings')
     .select('user_id')
@@ -157,8 +158,6 @@ export async function deleteStaffMember(id: string) {
 
 export async function getStaffForBusiness(businessId: string) {
   const supabase = createClient()
-  // staff are tenant-scoped by user_id, not business_id.
-  // Resolve user_id from business_settings using the known business row id.
   const { data: biz, error: bizErr } = await supabase
     .from('business_settings')
     .select('user_id')
@@ -219,12 +218,6 @@ export async function updateBookingStatus(
 
 // ─── Bookings (public — business_id is server-resolved, not client-supplied) ─
 
-/**
- * createBooking is called from the client-side BookingWizard.
- * business_id comes from the Business object that was fetched server-side
- * during slug resolution (page.tsx Server Component), NOT from user input.
- * The anon key + RLS "public can insert" policy allows unauthenticated inserts.
- */
 export async function createBooking(booking: {
   business_id: string
   ref: string
