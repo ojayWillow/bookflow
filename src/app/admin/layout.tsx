@@ -72,12 +72,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto">
-        {/* Top bar with notification bell */}
-        <div className="flex justify-end items-center px-6 py-3 border-b border-gray-100 bg-white">
+      {/* flex-col + h-full so the content area fills the screen and children can use h-full */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex justify-end items-center px-6 py-3 border-b border-gray-100 bg-white flex-shrink-0">
           <NotificationBell />
         </div>
-        {children}
+        <div className="flex-1 overflow-auto">
+          {children}
+        </div>
       </main>
     </div>
   )
