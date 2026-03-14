@@ -126,6 +126,8 @@ export default function LandingPage() {
           <div className="flex gap-6 text-sm text-gray-400">
             <Link href="/admin/login" className="hover:text-gray-700">Sign in</Link>
             <Link href="/signup" className="hover:text-gray-700">Get started</Link>
+            <Link href="/privacy" className="hover:text-gray-700">Privacy</Link>
+            <Link href="/terms" className="hover:text-gray-700">Terms</Link>
           </div>
         </div>
       </footer>
