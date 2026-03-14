@@ -88,18 +88,27 @@ export async function deleteService(id: string) {
     .from('services')
     .delete()
     .eq('id', id)
-    .eq('user_id', user.id)   // belt-and-suspenders alongside RLS
+    .eq('user_id', user.id)
   if (error) throw error
 }
 
-// ─── Services (public — scoped by business_id) ────────────────
+// ─── Services (public — scoped by user_id resolved from business_settings) ────
 
 export async function getServicesForBusiness(businessId: string) {
   const supabase = createClient()
+  // services are tenant-scoped by user_id, not business_id.
+  // Resolve user_id from business_settings using the known business row id.
+  const { data: biz, error: bizErr } = await supabase
+    .from('business_settings')
+    .select('user_id')
+    .eq('id', businessId)
+    .single()
+  if (bizErr || !biz) return []
+
   const { data, error } = await supabase
     .from('services')
     .select('*')
-    .eq('business_id', businessId)
+    .eq('user_id', biz.user_id)
     .order('created_at', { ascending: true })
   if (error) throw error
   return data ?? []
@@ -140,18 +149,27 @@ export async function deleteStaffMember(id: string) {
     .from('staff')
     .delete()
     .eq('id', id)
-    .eq('user_id', user.id)   // belt-and-suspenders alongside RLS
+    .eq('user_id', user.id)
   if (error) throw error
 }
 
-// ─── Staff (public — scoped by business_id) ──────────────────
+// ─── Staff (public — scoped by user_id resolved from business_settings) ──────
 
 export async function getStaffForBusiness(businessId: string) {
   const supabase = createClient()
+  // staff are tenant-scoped by user_id, not business_id.
+  // Resolve user_id from business_settings using the known business row id.
+  const { data: biz, error: bizErr } = await supabase
+    .from('business_settings')
+    .select('user_id')
+    .eq('id', businessId)
+    .single()
+  if (bizErr || !biz) return []
+
   const { data, error } = await supabase
     .from('staff')
     .select('*')
-    .eq('business_id', businessId)
+    .eq('user_id', biz.user_id)
     .eq('active', true)
     .order('created_at', { ascending: true })
   if (error) throw error
@@ -162,7 +180,6 @@ export async function getStaffForBusiness(businessId: string) {
 
 export async function getBookings() {
   const { supabase, user } = await getAuthUser()
-  // Resolve the user's business_id first
   const { data: biz, error: bizErr } = await supabase
     .from('business_settings')
     .select('id')
@@ -196,7 +213,7 @@ export async function updateBookingStatus(
     .from('bookings')
     .update({ status })
     .eq('id', id)
-    .eq('business_id', biz.id)   // ensures cross-tenant update is impossible
+    .eq('business_id', biz.id)
   if (error) throw error
 }
 
@@ -209,7 +226,7 @@ export async function updateBookingStatus(
  * The anon key + RLS "public can insert" policy allows unauthenticated inserts.
  */
 export async function createBooking(booking: {
-  business_id: string        // resolved server-side via slug, never user-controlled
+  business_id: string
   ref: string
   service_id: string | null
   service_name: string
