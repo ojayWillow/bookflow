@@ -9,7 +9,7 @@ function SlugPreview({ slug }: { slug: string }) {
   return (
     <p className="text-xs text-gray-400 mt-1.5">
       Your booking page:{' '}
-      <span className="font-mono text-indigo-600">{base}/book/{slug || '…'}</span>
+      <span className="font-mono text-indigo-600">{base}/book/{slug || '\u2026'}</span>
     </p>
   )
 }
@@ -47,8 +47,8 @@ export default function SignupPage() {
       return
     }
 
-    // Auto-login: API already set session cookies — go straight to dashboard
-    router.push('/admin')
+    // Confirmation email sent — send user to "check your inbox" page
+    router.push(`/verify-email?email=${encodeURIComponent(form.email)}`)
   }
 
   return (
@@ -125,7 +125,7 @@ export default function SignupPage() {
             disabled={loading}
             className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors mt-2"
           >
-            {loading ? 'Creating account…' : 'Create account →'}
+            {loading ? 'Creating account\u2026' : 'Create account \u2192'}
           </button>
         </form>
 
