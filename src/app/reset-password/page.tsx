@@ -5,10 +5,6 @@ import { createBrowserClient } from '@supabase/ssr'
 import { Calendar, Loader2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
-// Create a single browser client instance for this page.
-// updateUser() must run on the SAME client that received the
-// PASSWORD_RECOVERY event — do not proxy through an API route,
-// because the recovery session lives in the browser, not in cookies.
 function makeSupabase() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,42 +13,50 @@ function makeSupabase() {
 }
 
 export default function ResetPasswordPage() {
-  const router  = useRouter()
+  const router      = useRouter()
   const supabaseRef = useRef(makeSupabase())
 
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm]   = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
+  const [password, setPassword]         = useState('')
+  const [confirm, setConfirm]           = useState('')
+  const [loading, setLoading]           = useState(false)
+  const [error, setError]               = useState('')
   const [sessionReady, setSessionReady] = useState(false)
   const [invalidLink, setInvalidLink]   = useState(false)
-  const [done, setDone]         = useState(false)
+  const [done, setDone]                 = useState(false)
 
   useEffect(() => {
     const supabase = supabaseRef.current
 
-    // onAuthStateChange fires PASSWORD_RECOVERY when Supabase
-    // exchanges the #access_token hash from the reset email.
+    // After /auth/callback exchanges the PKCE code server-side,
+    // the session is in cookies. The browser client picks it up
+    // and fires SIGNED_IN. We use that as the ready signal.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+      if (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') {
         setSessionReady(true)
       }
     })
 
-    // If no event fires within 4 seconds, the link is expired or invalid.
+    // Also check for an existing session immediately (page may have
+    // already loaded after the cookie was set by the callback redirect).
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setSessionReady(true)
+    })
+
+    // If nothing fires in 5 seconds the link is expired or invalid.
     const timer = setTimeout(() => {
-      setInvalidLink(prev => {
-        if (!sessionReady) return true
-        return prev
-      })
-    }, 4000)
+      setInvalidLink(true)
+    }, 5000)
 
     return () => {
       subscription.unsubscribe()
       clearTimeout(timer)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Cancel the invalid-link timeout once session is ready
+  useEffect(() => {
+    if (sessionReady) setInvalidLink(false)
+  }, [sessionReady])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,8 +71,6 @@ export default function ResetPasswordPage() {
     setLoading(true)
     setError('')
 
-    // Call updateUser directly on the browser client that holds the
-    // PASSWORD_RECOVERY session — never route this through the server.
     const { error: updateError } = await supabaseRef.current.auth.updateUser({ password })
 
     if (updateError) {
@@ -81,7 +83,7 @@ export default function ResetPasswordPage() {
     setTimeout(() => router.push('/admin/login'), 2000)
   }
 
-  // ─── Success state ────────────────────────────────────────────
+  // ─── Success ───────────────────────────────────────────────
   if (done) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -96,8 +98,8 @@ export default function ResetPasswordPage() {
     )
   }
 
-  // ─── Invalid / expired link ───────────────────────────────────
-  if (invalidLink) {
+  // ─── Expired / invalid link ───────────────────────────────────
+  if (invalidLink && !sessionReady) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 w-full max-w-sm p-8 text-center">
@@ -119,7 +121,7 @@ export default function ResetPasswordPage() {
     )
   }
 
-  // ─── Loading — waiting for hash exchange ──────────────────────
+  // ─── Loading ───────────────────────────────────────────────
   if (!sessionReady) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
