@@ -2,16 +2,26 @@
  * Centralised Supabase query helpers.
  *
  * Admin queries (getSettings, getServices, getStaff, getBookings, …)
- * rely on Supabase Row Level Security scoped to auth.uid().
- * No hardcoded business identifiers needed — RLS handles isolation.
+ * use the BROWSER client (RLS + auth session cookie) and additionally
+ * filter by user_id as a belt-and-suspenders guard.
  *
  * Public booking queries (getServicesForBusiness, getStaffForBusiness,
- * getBookedSlotsForDate) run without a user session and scope by
- * business_id explicitly.
+ * getBookedSlotsForDate, createBooking) run with the anon key and
+ * scope by business_id explicitly. business_id is always resolved
+ * server-side (slug → business row) before being passed in here.
  */
 import { createClient } from './client'
 
-// ─── Business (public) ──────────────────────────────────────
+// ─── Auth helper ──────────────────────────────────────────────────
+
+async function getAuthUser() {
+  const supabase = createClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error || !user) throw new Error('Not authenticated')
+  return { supabase, user }
+}
+
+// ─── Business (public) ───────────────────────────────────────────
 
 export async function getBusinessBySlug(slug: string) {
   const supabase = createClient()
@@ -24,35 +34,36 @@ export async function getBusinessBySlug(slug: string) {
   return data
 }
 
-// ─── Settings (admin — RLS scoped) ──────────────────────────
+// ─── Settings (admin — RLS + explicit user_id guard) ──────────────
 
 export async function getSettings() {
-  const supabase = createClient()
+  const { supabase, user } = await getAuthUser()
   const { data, error } = await supabase
     .from('business_settings')
     .select('*')
+    .eq('user_id', user.id)
     .single()
   if (error) throw error
   return data
 }
 
 export async function saveSettings(settings: Record<string, unknown>) {
-  const supabase = createClient()
-  // RLS ensures we only update the row owned by auth.uid()
+  const { supabase, user } = await getAuthUser()
   const { error } = await supabase
     .from('business_settings')
     .update(settings)
-    .eq('id', (settings as { id: string }).id)
+    .eq('user_id', user.id)
   if (error) throw error
 }
 
-// ─── Services (admin — RLS scoped) ──────────────────────────
+// ─── Services (admin — RLS + explicit user_id guard) ────────────
 
 export async function getServices() {
-  const supabase = createClient()
+  const { supabase, user } = await getAuthUser()
   const { data, error } = await supabase
     .from('services')
     .select('*')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: true })
   if (error) throw error
   return data
@@ -61,12 +72,10 @@ export async function getServices() {
 export async function upsertService(service: {
   id?: string; name: string; description: string; duration: number; price: number
 }) {
-  const supabase = createClient()
-  // business_id is set via a Supabase DB trigger or default;
-  // RLS prevents writing to another business's rows
+  const { supabase, user } = await getAuthUser()
   const { data, error } = await supabase
     .from('services')
-    .upsert({ ...service, currency: 'EUR' })
+    .upsert({ ...service, user_id: user.id, currency: 'EUR' })
     .select()
     .single()
   if (error) throw error
@@ -74,12 +83,16 @@ export async function upsertService(service: {
 }
 
 export async function deleteService(id: string) {
-  const supabase = createClient()
-  const { error } = await supabase.from('services').delete().eq('id', id)
+  const { supabase, user } = await getAuthUser()
+  const { error } = await supabase
+    .from('services')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id)   // belt-and-suspenders alongside RLS
   if (error) throw error
 }
 
-// ─── Services (public — scoped by business_id) ──────────────
+// ─── Services (public — scoped by business_id) ────────────────
 
 export async function getServicesForBusiness(businessId: string) {
   const supabase = createClient()
@@ -92,13 +105,14 @@ export async function getServicesForBusiness(businessId: string) {
   return data ?? []
 }
 
-// ─── Staff (admin — RLS scoped) ─────────────────────────────
+// ─── Staff (admin — RLS + explicit user_id guard) ──────────────
 
 export async function getStaff() {
-  const supabase = createClient()
+  const { supabase, user } = await getAuthUser()
   const { data, error } = await supabase
     .from('staff')
     .select('*')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: true })
   if (error) throw error
   return data
@@ -110,10 +124,10 @@ export async function upsertStaffMember(member: {
   work_start: string; work_end: string
   active: boolean; color: string
 }) {
-  const supabase = createClient()
+  const { supabase, user } = await getAuthUser()
   const { data, error } = await supabase
     .from('staff')
-    .upsert(member)
+    .upsert({ ...member, user_id: user.id })
     .select()
     .single()
   if (error) throw error
@@ -121,12 +135,16 @@ export async function upsertStaffMember(member: {
 }
 
 export async function deleteStaffMember(id: string) {
-  const supabase = createClient()
-  const { error } = await supabase.from('staff').delete().eq('id', id)
+  const { supabase, user } = await getAuthUser()
+  const { error } = await supabase
+    .from('staff')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id)   // belt-and-suspenders alongside RLS
   if (error) throw error
 }
 
-// ─── Staff (public — scoped by business_id) ─────────────────
+// ─── Staff (public — scoped by business_id) ──────────────────
 
 export async function getStaffForBusiness(businessId: string) {
   const supabase = createClient()
@@ -140,13 +158,22 @@ export async function getStaffForBusiness(businessId: string) {
   return data ?? []
 }
 
-// ─── Bookings (admin — RLS scoped) ──────────────────────────
+// ─── Bookings (admin — RLS scoped via business_settings join) ────
 
 export async function getBookings() {
-  const supabase = createClient()
+  const { supabase, user } = await getAuthUser()
+  // Resolve the user's business_id first
+  const { data: biz, error: bizErr } = await supabase
+    .from('business_settings')
+    .select('id')
+    .eq('user_id', user.id)
+    .single()
+  if (bizErr || !biz) throw bizErr ?? new Error('Business not found')
+
   const { data, error } = await supabase
     .from('bookings')
     .select('*')
+    .eq('business_id', biz.id)
     .order('date', { ascending: false })
     .order('time', { ascending: true })
   if (error) throw error
@@ -157,18 +184,32 @@ export async function updateBookingStatus(
   id: string,
   status: 'confirmed' | 'pending' | 'cancelled' | 'completed'
 ) {
-  const supabase = createClient()
+  const { supabase, user } = await getAuthUser()
+  const { data: biz, error: bizErr } = await supabase
+    .from('business_settings')
+    .select('id')
+    .eq('user_id', user.id)
+    .single()
+  if (bizErr || !biz) throw bizErr ?? new Error('Business not found')
+
   const { error } = await supabase
     .from('bookings')
     .update({ status })
     .eq('id', id)
+    .eq('business_id', biz.id)   // ensures cross-tenant update is impossible
   if (error) throw error
 }
 
-// ─── Bookings (public — scoped by business_id) ──────────────
+// ─── Bookings (public — business_id is server-resolved, not client-supplied) ─
 
+/**
+ * createBooking is called from the client-side BookingWizard.
+ * business_id comes from the Business object that was fetched server-side
+ * during slug resolution (page.tsx Server Component), NOT from user input.
+ * The anon key + RLS "public can insert" policy allows unauthenticated inserts.
+ */
 export async function createBooking(booking: {
-  business_id: string
+  business_id: string        // resolved server-side via slug, never user-controlled
   ref: string
   service_id: string | null
   service_name: string
