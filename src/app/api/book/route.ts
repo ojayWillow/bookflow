@@ -1,8 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { Resend } from 'resend'
 import { createClient } from '@/lib/supabase/server'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+
+// ─── Validation schema ────────────────────────────────────────
+// UUID regex used for id fields
+const uuid = z.string().uuid()
+
+// HH:MM time string
+const timeString = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid time format (HH:MM expected)')
+
+// YYYY-MM-DD date string
+const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD expected)')
+
+const BookingSchema = z.object({
+  business_id:      uuid,
+  ref:              z.string().min(1).max(32),
+  service_id:       uuid,
+  service_name:     z.string().min(1).max(200),
+  service_duration: z.number().int().min(5).max(480),   // 5 min – 8 hrs
+  service_price:    z.number().min(0).max(100_000),
+  staff_id:         uuid.nullable().optional(),
+  staff_name:       z.string().min(1).max(200),
+  date:             dateString,
+  time:             timeString,
+  customer_name:    z.string().min(1).max(200).trim(),
+  customer_email:   z.string().email(),
+  customer_phone:   z.string().min(1).max(50),
+  customer_notes:   z.string().max(1000).optional().default(''),
+})
+
+type BookingBody = z.infer<typeof BookingSchema>
+
+// ─── Email templates ──────────────────────────────────────────
 
 function customerEmailHtml(p: {
   businessName: string
@@ -163,11 +195,36 @@ function adminEmailHtml(p: {
 </html>`
 }
 
+// ─── Route handler ────────────────────────────────────────────
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const raw = await req.json()
+
+    // --- Validate & sanitise input ---
+    const parsed = BookingSchema.safeParse(raw)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid booking data', issues: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      )
+    }
+    const body: BookingBody = parsed.data
 
     const supabase = await createClient()
+
+    // --- Verify business_id actually exists (prevents spoofed tenant IDs) ---
+    const { data: bizExists, error: bizLookupError } = await supabase
+      .from('business_settings')
+      .select('id')
+      .eq('id', body.business_id)
+      .single()
+
+    if (bizLookupError || !bizExists) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    }
+
+    // --- Insert booking ---
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .insert({
@@ -177,7 +234,7 @@ export async function POST(req: NextRequest) {
         service_name:     body.service_name,
         service_duration: body.service_duration,
         service_price:    body.service_price,
-        staff_id:         body.staff_id,
+        staff_id:         body.staff_id ?? null,
         staff_name:       body.staff_name,
         date:             body.date,
         time:             body.time,
@@ -195,31 +252,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: bookingError.message }, { status: 500 })
     }
 
-    // Fetch this business's own settings — email, name, address etc.
+    // --- Fetch business settings for email ---
     const { data: biz } = await supabase
       .from('business_settings')
       .select('name,address,phone,email,cancellation_policy')
       .eq('id', body.business_id)
       .single()
 
-    const businessName  = biz?.name   ?? 'BookFlow'
-    const businessAddr  = biz?.address ?? ''
-    const businessPhone = biz?.phone   ?? ''
-    const businessEmail = biz?.email   ?? ''
+    const businessName  = biz?.name                ?? 'BookFlow'
+    const businessAddr  = biz?.address             ?? ''
+    const businessPhone = biz?.phone               ?? ''
+    const businessEmail = biz?.email               ?? ''
     const cancelPolicy  = biz?.cancellation_policy ?? ''
 
-    // Each business receives alerts at their own registered email.
-    // The from address uses the same domain — must be verified in Resend.
     const fromDomain = process.env.RESEND_FROM_DOMAIN ?? 'bookflow.app'
     const fromEmail  = `bookings@${fromDomain}`
-    const adminEmail = businessEmail  // always the business's own email — correct for multi-tenant SaaS
+    const adminEmail = businessEmail
 
     if (!adminEmail) {
       console.warn('No business email found for business_id:', body.business_id)
     }
 
     const emailResults = await Promise.allSettled([
-      // Customer confirmation
       resend.emails.send({
         from:    `${businessName} <${fromEmail}>`,
         to:      body.customer_email,
@@ -240,7 +294,6 @@ export async function POST(req: NextRequest) {
           cancellationPolicy: cancelPolicy,
         }),
       }),
-      // Admin alert — goes to the business's own registered email
       ...(adminEmail ? [resend.emails.send({
         from:    `BookFlow <${fromEmail}>`,
         to:      adminEmail,
