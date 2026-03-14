@@ -18,9 +18,10 @@ type Props = {
   time: string
   form: BookingForm
   bookingRef: string
+  emailSent: boolean
 }
 
-export default function StepSuccess({ business, service, staffMember, date, time, form, bookingRef }: Props) {
+export default function StepSuccess({ business, service, staffMember, date, time, form, bookingRef, emailSent }: Props) {
   const hasSocial = business.instagram_url || business.facebook_url || business.tiktok_url || business.website_url
 
   return (
@@ -29,9 +30,15 @@ export default function StepSuccess({ business, service, staffMember, date, time
         <CheckCircle className="w-10 h-10 text-green-600" />
       </div>
       <h2 className="text-2xl font-bold text-gray-900 mb-2">You&apos;re booked!</h2>
-      <p className="text-gray-400 mb-1">
-        Confirmation sent to <span className="font-medium text-gray-700">{form.email}</span>
-      </p>
+      {emailSent ? (
+        <p className="text-gray-400 mb-1">
+          Confirmation sent to <span className="font-medium text-gray-700">{form.email}</span>
+        </p>
+      ) : (
+        <p className="text-gray-400 mb-1">
+          Check your details below — please save your booking reference.
+        </p>
+      )}
       <p className="text-sm text-gray-400 mb-8">
         Booking ref: <span className="font-mono font-bold text-indigo-600">{bookingRef}</span>
       </p>
@@ -66,7 +73,6 @@ export default function StepSuccess({ business, service, staffMember, date, time
         </div>
       </div>
 
-      {/* Social links on success screen */}
       {hasSocial && (
         <div className="mb-6">
           <p className="text-xs text-gray-400 mb-3">Follow us</p>

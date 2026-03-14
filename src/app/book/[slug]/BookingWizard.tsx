@@ -3,7 +3,6 @@ import { useState, useEffect, useMemo } from 'react'
 import {
   getServicesForBusiness,
   getStaffForBusiness,
-  createBooking,
   getBookedSlotsForDate,
 } from '@/lib/supabase/queries'
 import { getSlotsForDate, getUnionSlotsForDate, getAvailableDates } from '@/lib/slots'
@@ -49,7 +48,6 @@ const validatePhone = (v: string) => {
   return ''
 }
 
-// TikTok icon (not in lucide)
 function TikTokIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -74,6 +72,7 @@ export default function BookingWizard({ business }: { business: Business }) {
   const [loadingSlots, setLoadingSlots]           = useState(false)
   const [submitting, setSubmitting]               = useState(false)
   const [submitError, setSubmitError]             = useState('')
+  const [emailSent, setEmailSent]                 = useState(false)
 
   useEffect(() => {
     setLoadingData(true)
@@ -123,27 +122,33 @@ export default function BookingWizard({ business }: { business: Business }) {
     setSubmitting(true)
     setSubmitError('')
     try {
-      await createBooking({
-        business_id:      business.id,
-        ref:              bookingRef,
-        service_id:       selectedService.id,
-        service_name:     selectedService.name,
-        service_duration: selectedService.duration,
-        service_price:    selectedService.price,
-        staff_id:         selectedStaffMember?.id ?? null,
-        staff_name:       selectedStaffMember?.name ?? 'Anyone available',
-        date:             selectedDate,
-        time:             selectedTime,
-        customer_name:    form.name,
-        customer_email:   form.email,
-        customer_phone:   form.phone,
-        customer_notes:   form.notes,
-        status:           'confirmed',
+      const res = await fetch('/api/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_id:      business.id,
+          ref:              bookingRef,
+          service_id:       selectedService.id,
+          service_name:     selectedService.name,
+          service_duration: selectedService.duration,
+          service_price:    selectedService.price,
+          staff_id:         selectedStaffMember?.id ?? null,
+          staff_name:       selectedStaffMember?.name ?? 'Anyone available',
+          date:             selectedDate,
+          time:             selectedTime,
+          customer_name:    form.name,
+          customer_email:   form.email,
+          customer_phone:   form.phone,
+          customer_notes:   form.notes,
+        }),
       })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error ?? 'Booking failed')
+      setEmailSent(data.emailsSent === true)
       setStep('success')
     } catch (err) {
       console.error(err)
-      setSubmitError('Something went wrong. Please try again.')
+      setSubmitError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -156,7 +161,6 @@ export default function BookingWizard({ business }: { business: Business }) {
 
       {/* ── Header ── */}
       <header className="relative bg-white border-b overflow-hidden">
-        {/* Cover image */}
         {business.cover_url && (
           <div className="absolute inset-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -169,7 +173,6 @@ export default function BookingWizard({ business }: { business: Business }) {
           business.cover_url ? 'py-8' : ''
         }`}>
           <div className="flex items-center gap-4">
-            {/* Logo or letter avatar */}
             {business.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -195,7 +198,6 @@ export default function BookingWizard({ business }: { business: Business }) {
             </div>
           </div>
 
-          {/* Social icons */}
           {hasSocial && (
             <div className="flex items-center gap-2 flex-shrink-0">
               {business.website_url && (
@@ -281,7 +283,7 @@ export default function BookingWizard({ business }: { business: Business }) {
         {step === 'datetime' && selectedService && <StepDateTime service={selectedService} selectedStaffMember={selectedStaffMember ?? null} availableDates={availableDates} selectedDate={selectedDate} selectedTime={selectedTime} slots={slots} loadingSlots={loadingSlots} onSelectDate={date => { setSelectedDate(date); setSelectedTime('') }} onSelectTime={time => { setSelectedTime(time); setStep('details') }} />}
         {step === 'details'  && <StepDetails form={form} errors={errors} touched={touched} onChange={(field, value) => setForm(p => ({ ...p, [field]: value }))} onBlur={field => setTouched(p => ({ ...p, [field]: true }))} onNext={() => { setTouched({ name: true, email: true, phone: true }); if (formValid) setStep('confirm') }} />}
         {step === 'confirm'  && selectedService && <StepConfirm business={business} service={selectedService} staffMember={selectedStaffMember ?? null} date={selectedDate} time={selectedTime} form={form} submitting={submitting} submitError={submitError} onConfirm={handleConfirm} />}
-        {step === 'success'  && selectedService && <StepSuccess business={business} service={selectedService} staffMember={selectedStaffMember ?? null} date={selectedDate} time={selectedTime} form={form} bookingRef={bookingRef} />}
+        {step === 'success'  && selectedService && <StepSuccess business={business} service={selectedService} staffMember={selectedStaffMember ?? null} date={selectedDate} time={selectedTime} form={form} bookingRef={bookingRef} emailSent={emailSent} />}
       </main>
     </div>
   )
