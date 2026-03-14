@@ -1,4 +1,4 @@
-import { Calendar, Zap } from 'lucide-react'
+import { Calendar } from 'lucide-react'
 import Link from 'next/link'
 import HeroSignupForm     from './_components/landing/HeroSignupForm'
 import FeaturesSection    from './_components/landing/FeaturesSection'
@@ -24,34 +24,27 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-3">
             <Link href="/admin/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Sign in</Link>
-            <a href="#hero-signup" className="bg-indigo-600 text-white text-sm px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors font-medium">
-              Get started →
-            </a>
+            <Link href="/signup" className="bg-indigo-600 text-white text-sm px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors font-medium">
+              Try free for 7 days
+            </Link>
           </div>
         </div>
       </nav>
 
       {/* Hero */}
-      <section id="hero-signup" className="pt-32 pb-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 text-sm font-medium px-4 py-2 rounded-full mb-6">
-                <Zap className="w-3.5 h-3.5" />
-                Built for every type of business
-              </div>
-              <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-6">
-                Online booking that<br />
-                <span className="text-indigo-600">just works</span>
-              </h1>
-              <p className="text-xl text-gray-500 leading-relaxed">
-                Give your business a professional booking page in minutes. Customers book, you get notified, everyone knows what&apos;s happening.
-              </p>
-            </div>
-            <div>
-              <HeroSignupForm />
-            </div>
+      <section className="pt-32 pb-20 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-6">
+            Online booking that<br />
+            <span className="text-indigo-600">just works</span>
+          </h1>
+          <p className="text-xl text-gray-500 leading-relaxed mb-10 max-w-xl mx-auto">
+            Give your business a professional booking page in minutes. Customers book, you get notified, everyone knows what&apos;s happening.
+          </p>
+          <div className="flex justify-center">
+            <HeroSignupForm />
           </div>
+          <p className="text-sm text-gray-400 mt-4">7-day free trial &middot; No credit card required</p>
         </div>
       </section>
 
@@ -60,7 +53,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-3xl p-8 md:p-12">
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-2xl shadow-soft p-6">
+              <div className="bg-white rounded-2xl shadow-sm p-6">
                 <div className="flex items-center gap-3 mb-5">
                   <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
                     <Calendar className="w-5 h-5 text-white" />
@@ -78,7 +71,7 @@ export default function LandingPage() {
                   ))}
                 </div>
               </div>
-              <div className="bg-white rounded-2xl shadow-soft p-6">
+              <div className="bg-white rounded-2xl shadow-sm p-6">
                 <p className="font-bold text-gray-900 mb-4">Today&apos;s bookings</p>
                 <div className="space-y-3">
                   {[
@@ -114,11 +107,11 @@ export default function LandingPage() {
       <section className="py-20 px-6 bg-indigo-600">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-white mb-4">Ready to take bookings online?</h2>
-          <p className="text-indigo-200 text-lg mb-8">Join businesses already using BookFlow. Your booking page is 2 minutes away.</p>
-          <a href="#hero-signup"
+          <p className="text-indigo-200 text-lg mb-8">Try BookFlow free for 7 days. No credit card, no contracts.</p>
+          <Link href="/signup"
             className="inline-block bg-white text-indigo-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-indigo-50 transition-colors">
-            Create your free account →
-          </a>
+            Start your free trial →
+          </Link>
         </div>
       </section>
 
@@ -133,9 +126,8 @@ export default function LandingPage() {
           </div>
           <p className="text-sm text-gray-400">© 2026 BookFlow. Built for businesses that take appointments.</p>
           <div className="flex gap-6 text-sm text-gray-400">
-            <a href="#" className="hover:text-gray-700">Privacy</a>
-            <a href="#" className="hover:text-gray-700">Terms</a>
-            <a href="#" className="hover:text-gray-700">Contact</a>
+            <Link href="/admin/login" className="hover:text-gray-700">Sign in</Link>
+            <Link href="/signup" className="hover:text-gray-700">Get started</Link>
           </div>
         </div>
       </footer>

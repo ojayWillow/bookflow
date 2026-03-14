@@ -1,20 +1,27 @@
+import Link from 'next/link'
 import { CheckCircle } from 'lucide-react'
 
 const plans = [
   {
-    name: 'Starter', price: 19,
+    name: 'Starter',
+    price: 19,
     features: ['1 location', 'Up to 5 services', 'Email confirmations', 'Basic branding'],
     highlight: false,
+    cta: 'Start free trial',
   },
   {
-    name: 'Pro', price: 49,
+    name: 'Pro',
+    price: 49,
     features: ['Unlimited services', 'Custom domain', 'SMS reminders', 'Analytics dashboard', 'Priority support'],
     highlight: true,
+    cta: 'Start free trial',
   },
   {
-    name: 'Agency', price: 99,
+    name: 'Agency',
+    price: 99,
     features: ['Multiple locations', 'White-label resale', 'API access', 'Dedicated support', 'Custom integrations'],
     highlight: false,
+    cta: 'Start free trial',
   },
 ]
 
@@ -24,7 +31,7 @@ export default function PricingSection() {
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-14">
           <h2 className="text-3xl font-bold text-gray-900 mb-3">Simple pricing</h2>
-          <p className="text-gray-500 text-lg">Start free. Scale when you&apos;re ready.</p>
+          <p className="text-gray-500 text-lg">Try any plan free for 7 days. No credit card required.</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {plans.map((plan) => (
@@ -35,9 +42,10 @@ export default function PricingSection() {
                 <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-4">Most popular</span>
               )}
               <h3 className={`text-xl font-bold mb-2 ${plan.highlight ? 'text-white' : 'text-gray-900'}`}>{plan.name}</h3>
-              <div className={`text-4xl font-bold mb-6 ${plan.highlight ? 'text-white' : 'text-indigo-600'}`}>
+              <div className={`text-4xl font-bold mb-1 ${plan.highlight ? 'text-white' : 'text-indigo-600'}`}>
                 €{plan.price}<span className={`text-base font-normal ${plan.highlight ? 'text-white/70' : 'text-gray-400'}`}>/mo</span>
               </div>
+              <p className={`text-xs mb-6 ${plan.highlight ? 'text-white/70' : 'text-gray-400'}`}>after 7-day free trial</p>
               <ul className="space-y-3 mb-8">
                 {plan.features.map((f) => (
                   <li key={f} className={`flex items-center gap-2 text-sm ${plan.highlight ? 'text-white/90' : 'text-gray-600'}`}>
@@ -46,16 +54,17 @@ export default function PricingSection() {
                   </li>
                 ))}
               </ul>
-              <a href="#hero-signup" className={`block text-center py-3 rounded-xl font-semibold text-sm transition-colors ${
+              <Link href="/signup" className={`block text-center py-3 rounded-xl font-semibold text-sm transition-colors ${
                 plan.highlight
                   ? 'bg-white text-indigo-600 hover:bg-indigo-50'
                   : 'bg-indigo-600 text-white hover:bg-indigo-700'
               }`}>
-                Get started
-              </a>
+                {plan.cta}
+              </Link>
             </div>
           ))}
         </div>
+        <p className="text-center text-sm text-gray-400 mt-8">Cancel anytime. No contracts.</p>
       </div>
     </section>
   )
