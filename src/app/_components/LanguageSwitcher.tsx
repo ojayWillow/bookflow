@@ -17,12 +17,19 @@ export default function LanguageSwitcher() {
 
   const switchTo = (next: Locale) => {
     if (next === current) return
-    // Persist choice in cookie so middleware respects it on next visit
+    // Persist choice so middleware + booking wizard both respect it
     document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
-    // Swap the locale segment in the current path
-    const segments  = pathname.split('/')
-    segments[1]     = next
-    router.push(segments.join('/'))
+    // Fire custom event so BookingWizard (no locale segment) can re-load dict
+    window.dispatchEvent(new CustomEvent('bookflow:locale-change'))
+    // Swap locale segment in path (works for /lv/... and /book/... alike)
+    const segments = pathname.split('/')
+    if ((locales as readonly string[]).includes(segments[1])) {
+      segments[1] = next
+      router.push(segments.join('/'))
+    } else {
+      // No locale segment (e.g. /book/[slug]) — just fire cookie + event, no navigation
+      // The wizard picks it up via the bookflow:locale-change event
+    }
   }
 
   return (
