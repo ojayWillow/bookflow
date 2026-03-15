@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Search, Phone, Mail, RefreshCw, Loader2, Calendar, X, Clock } from 'lucide-react'
 import { getBookings, updateBookingStatus } from '@/lib/supabase/queries'
+import { createClient } from '@/lib/supabase/client'
 import { format, parseISO } from 'date-fns'
 import AdminSkeleton  from '../_components/AdminSkeleton'
 import ToastContainer from '../_components/Toast'
@@ -102,13 +103,13 @@ function RescheduleModal({
 
 // ─── Main Page ────────────────────────────────────────────────────────────
 export default function BookingsPage() {
-  const [bookings, setBookings]       = useState<Booking[]>([])
-  const [loading, setLoading]         = useState(true)
-  const [filter, setFilter]           = useState('All')
-  const [search, setSearch]           = useState('')
-  const [error, setError]             = useState('')
+  const [bookings, setBookings]         = useState<Booking[]>([])
+  const [loading, setLoading]           = useState(true)
+  const [filter, setFilter]             = useState('All')
+  const [search, setSearch]             = useState('')
+  const [error, setError]               = useState('')
   const [rescheduling, setRescheduling] = useState<Booking | null>(null)
-  const { toasts, toast, dismiss }    = useToast()
+  const { toasts, toast, dismiss }      = useToast()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -123,7 +124,23 @@ export default function BookingsPage() {
     }
   }, [])
 
+  // Initial load
   useEffect(() => { load() }, [load])
+
+  // Real-time subscription — re-fetch whenever any booking row changes
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel('bookings-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bookings' },
+        () => { load() }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [load])
 
   const filtered = bookings.filter(b => {
     const matchFilter = filter === 'All' || b.status === filter
