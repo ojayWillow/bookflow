@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
 
   const { data: booking, error: fetchError } = await supabase
     .from('bookings')
-    .select('id, status, service_name, date, time, customer_name')
+    .select('id, status, service_name, date, time, customer_name, business_id')
     .eq('id', id)
     .single()
 
@@ -77,6 +77,37 @@ export async function GET(req: NextRequest) {
       html('Booking completed', 'This appointment has already been completed and cannot be cancelled.', true),
       { status: 400, headers: { 'Content-Type': 'text/html' } }
     )
+  }
+
+  // ── Cancellation window check ──────────────────────────────────────────────
+  const { data: biz } = await supabase
+    .from('business_settings')
+    .select('cancellation_window_hours')
+    .eq('id', booking.business_id)
+    .single()
+
+  const windowHours = biz?.cancellation_window_hours ?? 24
+
+  if (windowHours > 0) {
+    // Parse appointment datetime (date = 'YYYY-MM-DD', time = 'HH:MM')
+    const appointmentAt = new Date(`${booking.date}T${booking.time}:00`)
+    const deadlineAt    = new Date(appointmentAt.getTime() - windowHours * 60 * 60 * 1000)
+    const now           = new Date()
+
+    if (now >= deadlineAt) {
+      const deadlineStr = deadlineAt.toLocaleString('en-GB', {
+        day: 'numeric', month: 'long', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      })
+      return new NextResponse(
+        html(
+          'Cancellation deadline passed',
+          `This booking can no longer be cancelled online. The cancellation deadline was ${deadlineStr} (${windowHours} hour${windowHours === 1 ? '' : 's'} before your appointment). Please contact us directly if you need assistance.`,
+          true
+        ),
+        { status: 400, headers: { 'Content-Type': 'text/html' } }
+      )
+    }
   }
 
   const { error: updateError } = await supabase
