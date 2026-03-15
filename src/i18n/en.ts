@@ -3,7 +3,6 @@
  * (landing, booking wizard, signup)
  */
 const en = {
-  // ── Nav ──────────────────────────────────────────────────────────────────
   nav: {
     features:  'Features',
     pricing:   'Pricing',
@@ -11,7 +10,6 @@ const en = {
     tryFree:   'Try free for 7 days',
   },
 
-  // ── Hero ─────────────────────────────────────────────────────────────────
   hero: {
     headline1:        'Online booking that',
     headline2:        'just works',
@@ -21,14 +19,12 @@ const en = {
     trialNote:        '7-day free trial · No credit card required',
   },
 
-  // ── Overview (mock UI preview on landing) ─────────────────────────────────
   overview: {
     statsToday:      "Today's bookings",
     statusConfirmed: 'confirmed',
     statusPending:   'pending',
   },
 
-  // ── Features ─────────────────────────────────────────────────────────────
   features: {
     sectionTitle: 'Everything a booking system needs',
     sectionSub:   'Simple to set up. Powerful enough for any business.',
@@ -42,39 +38,23 @@ const en = {
     ],
   },
 
-  // ── Pricing ───────────────────────────────────────────────────────────────
   pricing: {
-    sectionTitle: 'Simple pricing',
-    sectionSub:   'Try free for 7 days. No credit card required.',
-    mostPopular:  'Most popular',
-    perMonth:     '/mo',
-    afterTrial:   'after 7-day free trial',
-    cancelNote:   'Cancel anytime. No contracts.',
-    cta:          'Start free trial',
-    plans: [
-      {
-        name: 'Starter',
-        features: [
-          'Unlimited services',
-          'Online booking page',
-          'Email confirmations',
-          'Custom branding',
-          'Staff management',
-          'Schedule management',
-        ],
-      },
-      {
-        name: 'Pro',
-        features: ['Custom domain', 'SMS reminders', 'Analytics dashboard', 'Multiple locations', 'Priority support'],
-      },
-      {
-        name: 'Agency',
-        features: ['White-label resale', 'API access', 'Dedicated support', 'Custom integrations'],
-      },
+    sectionTitle: 'One plan. Everything included.',
+    sectionSub:   'Try free for 7 days. Card required, cancel anytime before your trial ends.',
+    perWeek:      '/ week',
+    afterTrial:   'after your 7-day free trial',
+    cancelNote:   'Cancel anytime. No contracts. No surprises.',
+    cta:          'Start free trial →',
+    features: [
+      'Unlimited services',
+      'Online booking page',
+      'Email confirmations',
+      'Custom branding',
+      'Staff management',
+      'Schedule management',
     ],
   },
 
-  // ── Testimonials ──────────────────────────────────────────────────────────
   testimonials: {
     sectionTitle: 'Businesses love it',
     items: [
@@ -96,14 +76,12 @@ const en = {
     ],
   },
 
-  // ── Final CTA ─────────────────────────────────────────────────────────────
   cta: {
     headline: 'Ready to take bookings online?',
-    sub:      'Try BookFlow free for 7 days. No credit card, no contracts.',
+    sub:      'Try BookFlow free for 7 days. No contracts.',
     button:   'Start your free trial →',
   },
 
-  // ── Footer ────────────────────────────────────────────────────────────────
   footer: {
     tagline:    '© 2026 BookFlow. Built for businesses that take appointments.',
     signIn:     'Sign in',
@@ -112,7 +90,6 @@ const en = {
     terms:      'Terms',
   },
 
-  // ── Booking wizard ────────────────────────────────────────────────────────
   booking: {
     locale:              'en',
     stepService:         'Service',
@@ -180,7 +157,6 @@ const en = {
     anyoneAvailableStaffName: 'Anyone available',
   },
 
-  // ── Signup ────────────────────────────────────────────────────────────────
   signup: {
     heading:                 'Create your BookFlow account',
     subheading:              'Start your 7-day free trial. No credit card required.',

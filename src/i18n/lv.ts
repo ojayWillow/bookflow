@@ -1,8 +1,5 @@
 /**
  * Latvian translations — public-facing pages
- *
- * Register: informal "tu" — modern SaaS products in Latvia
- * use informal address. Noun cases applied where grammar requires.
  */
 import type { PublicDict } from './en'
 
@@ -43,33 +40,19 @@ const lv: PublicDict = {
   },
 
   pricing: {
-    sectionTitle: 'Skaidras cenas',
-    sectionSub:   'Izmēģini 7 dienas bez maksas. Karte nav vajadzīga.',
-    mostPopular:  'Populārākais',
-    perMonth:     '/mēn.',
-    afterTrial:   'pēc 7 dienu izmēģinājuma',
-    cancelNote:   'Atcelt var jebkurā laikā. Bez saistībām.',
-    cta:          'Sākt bezmaksas izmēģinājumu',
-    plans: [
-      {
-        name: 'Sācējs',
-        features: [
-          'Neierobežoti pakalpojumi',
-          'Online rezervāciju lapa',
-          'E-pasta apstiprinājumi',
-          'Pielāgots dizains',
-          'Darbinieku pārvaldība',
-          'Grafika pārvaldība',
-        ],
-      },
-      {
-        name: 'Pro',
-        features: ['Savs domēns', 'SMS atgādinājumi', 'Statistikas panelis', 'Vairākas atrašanās vietas', 'Prioritārs atbalsts'],
-      },
-      {
-        name: 'Aģentūra',
-        features: ['White-label tālākpārdošana', 'API piekļuve', 'Personīgais atbalsts', 'Pielāgota integrācija'],
-      },
+    sectionTitle: 'Viens plāns. Viss iekļauts.',
+    sectionSub:   'Izmēģini 7 dienas bez maksas. Karte nepieciešama, atcelt var jebkurā laikā.',
+    perWeek:      '/ nedēļā',
+    afterTrial:   'pēc 7 dienu bezmaksas izmēģinājuma',
+    cancelNote:   'Atcelt var jebkurā laikā. Bez saistībām. Bez pārsteigumiem.',
+    cta:          'Sākt bezmaksas izmēģinājumu →',
+    features: [
+      'Neierobežoti pakalpojumi',
+      'Online rezervāciju lapa',
+      'E-pasta apstiprinājumi',
+      'Pielāgots dizains',
+      'Darbinieku pārvaldība',
+      'Grafika pārvaldība',
     ],
   },
 
@@ -84,7 +67,7 @@ const lv: PublicDict = {
 
   cta: {
     headline: 'Gatavs pieņemt rezervācijas tiešsaistē?',
-    sub:      'Izmēģini BookFlow 7 dienas bez maksas. Bez kartes, bez saistībām.',
+    sub:      'Izmēģini BookFlow 7 dienas bez maksas. Bez saistībām.',
     button:   'Sākt bezmaksas izmēģinājumu →',
   },
 
