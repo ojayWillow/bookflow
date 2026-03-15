@@ -202,7 +202,7 @@ function adminEmailHtml(p: {
           </table>
         </td></tr>
         <tr><td style="background:#f9fafb;padding:16px 32px;text-align:center">
-          <p style="margin:0;color:#9ca3af;font-size:12px">${p.businessName}</p>
+          <p style="margin:0;color:#9ca3af;font-size:12px">BookFlow &#8212; ${p.businessName}</p>
         </td></tr>
       </table>
     </td></tr>
@@ -298,7 +298,7 @@ export async function POST(req: NextRequest) {
 
     const emailResults = await Promise.allSettled([
       resend.emails.send({
-        from:    `${businessName} <${fromEmail}>`,
+        from:    `BookFlow <${fromEmail}>`,
         to:      body.customer_email,
         subject: `Booking confirmed \u2014 ${body.service_name} on ${body.date}`,
         html: customerEmailHtml({
@@ -319,7 +319,7 @@ export async function POST(req: NextRequest) {
         }),
       }),
       ...(adminEmail ? [resend.emails.send({
-        from:    `${businessName} <${fromEmail}>`,
+        from:    `BookFlow <${fromEmail}>`,
         to:      adminEmail,
         subject: `New booking: ${body.customer_name} \u2014 ${body.service_name} on ${body.date}`,
         html: adminEmailHtml({
