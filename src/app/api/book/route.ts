@@ -3,16 +3,34 @@ import { z } from 'zod'
 import { Resend } from 'resend'
 import { createClient } from '@/lib/supabase/server'
 import { generateCancelToken } from '@/lib/cancel-token'
+import { randomBytes } from 'crypto'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// ─── Simple in-memory rate limiter (per IP, resets every minute) ──────────────
+// For production scale, replace with @upstash/ratelimit + Redis.
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+const RATE_LIMIT_MAX      = 10   // max bookings per window
+const RATE_LIMIT_WINDOW   = 60_000 // 1 minute in ms
+
+function isRateLimited(ip: string): boolean {
+  const now    = Date.now()
+  const record = rateLimitMap.get(ip)
+  if (!record || now > record.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW })
+    return false
+  }
+  record.count++
+  return record.count > RATE_LIMIT_MAX
+}
+
+// ─── Validation schema ────────────────────────────────────────────────────────
 const uuid       = z.string().uuid()
 const timeString = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid time format (HH:MM expected)')
 const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD expected)')
 
 const BookingSchema = z.object({
   business_id:      uuid,
-  ref:              z.string().min(1).max(32),
   service_id:       uuid,
   service_name:     z.string().min(1).max(200),
   service_duration: z.number().int().min(5).max(480),
@@ -29,7 +47,7 @@ const BookingSchema = z.object({
 
 type BookingBody = z.infer<typeof BookingSchema>
 
-// ─── Email templates ──────────────────────────────────────────
+// ─── Email templates ──────────────────────────────────────────────────────────
 
 function customerEmailHtml(p: {
   businessName: string
@@ -198,10 +216,19 @@ function adminEmailHtml(p: {
 </html>`
 }
 
-// ─── Route handler ────────────────────────────────────────────
+// ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   try {
+    // ── Rate limiting ─────────────────────────────────────────────────────────
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+    if (isRateLimited(ip)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a moment and try again.' },
+        { status: 429 }
+      )
+    }
+
     const raw = await req.json()
 
     const parsed = BookingSchema.safeParse(raw)
@@ -225,11 +252,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
+    // ── Generate booking ref server-side with crypto randomness ───────────────
+    const ref = 'BF-' + randomBytes(4).toString('hex').toUpperCase()
+
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .insert({
         business_id:      body.business_id,
-        ref:              body.ref,
+        ref,
         service_id:       body.service_id,
         service_name:     body.service_name,
         service_duration: body.service_duration,
@@ -269,7 +299,6 @@ export async function POST(req: NextRequest) {
     const fromEmail  = `bookings@${fromDomain}`
     const adminEmail = businessEmail
 
-    // Build signed cancellation URL — no DB token needed
     const cancelToken = generateCancelToken(booking.id)
     const cancelUrl   = `${appUrl}/api/cancel?id=${booking.id}&token=${cancelToken}`
 
@@ -294,7 +323,7 @@ export async function POST(req: NextRequest) {
           time:               body.time,
           duration:           body.service_duration,
           price:              body.service_price,
-          ref:                body.ref,
+          ref:                booking.ref,
           cancellationPolicy: cancelPolicy,
           cancelUrl,
         }),
@@ -315,7 +344,7 @@ export async function POST(req: NextRequest) {
           time:          body.time,
           duration:      body.service_duration,
           price:         body.service_price,
-          ref:           body.ref,
+          ref:           booking.ref,
         }),
       })] : []),
     ])

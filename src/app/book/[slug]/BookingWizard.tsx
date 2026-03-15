@@ -64,7 +64,8 @@ export default function BookingWizard({ business }: { business: Business }) {
   const [selectedTime, setSelectedTime]           = useState('')
   const [form, setForm]                           = useState<BookingForm>({ name: '', email: '', phone: '', notes: '' })
   const [touched, setTouched]                     = useState({ name: false, email: false, phone: false })
-  const [bookingRef]                              = useState(() => 'BF-' + Math.random().toString(36).substring(2, 8).toUpperCase())
+  // bookingRef is now generated server-side and returned in the /api/book response
+  const [bookingRef, setBookingRef]               = useState('')
   const [services, setServices]                   = useState<DBService[]>([])
   const [staffMembers, setStaffMembers]           = useState<DBStaffMember[]>([])
   const [bookedRaw, setBookedRaw]                 = useState<BookedSlotRaw[]>([])
@@ -127,7 +128,6 @@ export default function BookingWizard({ business }: { business: Business }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           business_id:      business.id,
-          ref:              bookingRef,
           service_id:       selectedService.id,
           service_name:     selectedService.name,
           service_duration: selectedService.duration,
@@ -144,6 +144,8 @@ export default function BookingWizard({ business }: { business: Business }) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error ?? 'Booking failed')
+      // ref is now generated server-side and returned in the response
+      setBookingRef(data.booking.ref)
       setEmailSent(data.emailsSent === true)
       setStep('success')
     } catch (err) {
