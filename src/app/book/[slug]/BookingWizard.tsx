@@ -3,10 +3,8 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   getServicesForBusiness,
   getStaffForBusiness,
-  getBookedSlotsForDate,
 } from '@/lib/supabase/queries'
-import { getSlotsForDate, getUnionSlotsForDate, getAvailableDates } from '@/lib/slots'
-import type { BookedSlotRaw, SlotStaffMember } from '@/lib/slots'
+import { getAvailableDates } from '@/lib/slots'
 import { ChevronLeft, CheckCircle, Instagram, Facebook, Globe } from 'lucide-react'
 import type { DBService, DBStaffMember, Business, Step, BookingForm } from './types'
 import StepService  from './_steps/StepService'
@@ -38,21 +36,10 @@ function ensureHttps(url: string): string {
   return `https://${t}`
 }
 
-function toSlotStaff(m: DBStaffMember): SlotStaffMember {
-  return {
-    id: m.id, name: m.name, role: m.role, bio: m.bio,
-    serviceIds: m.service_ids,
-    workDays: m.work_days,
-    workStart: m.work_start,
-    workEnd: m.work_end,
-    active: m.active, color: m.color,
-  }
-}
-
 function TikTokIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/>
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/>
     </svg>
   )
 }
@@ -68,7 +55,7 @@ export default function BookingWizard({ business }: { business: Business }) {
   const [bookingRef, setBookingRef]               = useState('')
   const [services, setServices]                   = useState<DBService[]>([])
   const [staffMembers, setStaffMembers]           = useState<DBStaffMember[]>([])
-  const [bookedRaw, setBookedRaw]                 = useState<BookedSlotRaw[]>([])
+  const [slots, setSlots]                         = useState<{ time: string; available: boolean }[]>([])
   const [loadingData, setLoadingData]             = useState(true)
   const [loadingSlots, setLoadingSlots]           = useState(false)
   const [submitting, setSubmitting]               = useState(false)
@@ -107,49 +94,36 @@ export default function BookingWizard({ business }: { business: Business }) {
     }).finally(() => setLoadingData(false))
   }, [business.id])
 
+  // Fetch slots from server API whenever date, staff, or service changes
   useEffect(() => {
-    if (!selectedDate) return
+    if (!selectedDate || !selectedService) {
+      setSlots([])
+      return
+    }
     setLoadingSlots(true)
-    getBookedSlotsForDate(selectedDate, selectedStaffId, business.id)
-      .then(data => setBookedRaw(data as BookedSlotRaw[]))
-      .catch(() => setBookedRaw([]))
+    const params = new URLSearchParams({
+      businessId: business.id,
+      date:       selectedDate,
+      staffId:    selectedStaffId,
+      serviceId:  selectedService.id,
+    })
+    fetch(`/api/slots?${params}`)
+      .then(r => r.json())
+      .then(data => setSlots(data.slots ?? []))
+      .catch(() => setSlots([]))
       .finally(() => setLoadingSlots(false))
-  }, [selectedDate, selectedStaffId, business.id])
+  }, [selectedDate, selectedStaffId, selectedService, business.id])
 
-  const availableDates      = useMemo(() => getAvailableDates(business), [business])
+  const availableDates = useMemo(() => getAvailableDates(business), [business])
+
   const selectedStaffMember = selectedStaffId !== 'any'
     ? staffMembers.find(m => m.id === selectedStaffId) ?? null
     : null
+
   const availableStaff = useMemo(
     () => selectedService ? staffMembers.filter(m => m.service_ids.includes(selectedService.id)) : [],
     [selectedService, staffMembers]
   )
-
-  const slots = useMemo(() => {
-    if (!selectedService || !selectedDate) return []
-
-    // Specific staff member selected
-    if (selectedStaffId !== 'any') {
-      return getSlotsForDate(
-        selectedDate,
-        selectedService.duration,
-        bookedRaw,
-        selectedStaffMember ? toSlotStaff(selectedStaffMember) : null,
-        business
-      )
-    }
-
-    // "Anyone" selected — getUnionSlotsForDate handles both
-    // the no-staff case (falls back to business hours + all bookings)
-    // and the with-staff case (slot available if any staff member is free)
-    return getUnionSlotsForDate(
-      selectedDate,
-      selectedService.duration,
-      bookedRaw,
-      availableStaff.map(toSlotStaff),
-      business
-    )
-  }, [selectedService, selectedDate, selectedStaffId, bookedRaw, availableStaff, selectedStaffMember, business])
 
   const t = dict?.booking
 
@@ -235,32 +209,22 @@ export default function BookingWizard({ business }: { business: Business }) {
       <header className="bg-white border-b border-gray-100">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
 
-          {/* Left: logo + name */}
           <div className="flex items-center gap-3 min-w-0">
             {business.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={business.logo_url}
-                alt={business.name}
-                className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
-              />
+              <img src={business.logo_url} alt={business.name} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
             ) : (
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-base flex-shrink-0"
-                style={{ backgroundColor: business.primary_color }}
-              >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-base flex-shrink-0"
+                style={{ backgroundColor: business.primary_color }}>
                 {business.name[0]}
               </div>
             )}
             <div className="min-w-0">
               <p className="font-bold text-gray-900 text-sm leading-tight truncate">{business.name}</p>
-              {business.tagline && (
-                <p className="text-xs text-gray-400 truncate">{business.tagline}</p>
-              )}
+              {business.tagline && <p className="text-xs text-gray-400 truncate">{business.tagline}</p>}
             </div>
           </div>
 
-          {/* Right: socials + language */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {hasSocial && (
               <div className="hidden sm:flex items-center gap-1.5">
@@ -329,8 +293,8 @@ export default function BookingWizard({ business }: { business: Business }) {
           </>
         )}
 
-        {step === 'service'  && <StepService  services={services} loading={loadingData} dict={t} onSelect={s => { setSelectedService(s); setSelectedStaffId('any'); setStep('staff') }} />}
-        {step === 'staff'    && selectedService && <StepStaff service={selectedService} availableStaff={availableStaff} selectedStaffId={selectedStaffId} loading={loadingData} dict={t} onSelect={id => { setSelectedStaffId(id); setStep('datetime') }} />}
+        {step === 'service'  && <StepService  services={services} loading={loadingData} dict={t} onSelect={s => { setSelectedService(s); setSelectedStaffId('any'); setSlots([]); setStep('staff') }} />}
+        {step === 'staff'    && selectedService && <StepStaff service={selectedService} availableStaff={availableStaff} selectedStaffId={selectedStaffId} loading={loadingData} dict={t} onSelect={id => { setSelectedStaffId(id); setSlots([]); setStep('datetime') }} />}
         {step === 'datetime' && selectedService && <StepDateTime service={selectedService} selectedStaffMember={selectedStaffMember ?? null} availableDates={availableDates} selectedDate={selectedDate} selectedTime={selectedTime} slots={slots} loadingSlots={loadingSlots} dict={t} onSelectDate={date => { setSelectedDate(date); setSelectedTime('') }} onSelectTime={time => { setSelectedTime(time); setStep('details') }} />}
         {step === 'details'  && <StepDetails form={form} errors={errors} touched={touched} dict={t} onChange={(field, value) => setForm(p => ({ ...p, [field]: value }))} onBlur={field => setTouched(p => ({ ...p, [field]: true }))} onNext={() => { setTouched({ name: true, email: true, phone: true }); if (formValid) setStep('confirm') }} />}
         {step === 'confirm'  && selectedService && <StepConfirm business={business} service={selectedService} staffMember={selectedStaffMember ?? null} date={selectedDate} time={selectedTime} form={form} submitting={submitting} submitError={submitError} dict={t} onConfirm={handleConfirm} />}
