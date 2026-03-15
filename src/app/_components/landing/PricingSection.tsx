@@ -20,19 +20,29 @@ export default function PricingSection({ dict, locale }: Props) {
 
         <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3 sm:gap-6 md:gap-8">
           {dict.plans.map((plan, i) => {
-            const highlight = i === 1
+            const highlight  = i === 1
+            const available  = i === 0   // only Starter is live
+
             return (
               <div
                 key={plan.name}
-                className={`rounded-2xl transition-shadow ${
+                className={`rounded-2xl transition-shadow relative ${
+                  !available ? 'opacity-50' : ''
+                } ${
                   highlight
                     ? 'bg-indigo-600 text-white shadow-xl sm:scale-105'
                     : 'bg-white border-2 border-gray-100'
                 } ${
-                  /* compact padding on mobile, normal on sm+ */
                   highlight ? 'p-5 sm:p-8' : 'p-4 sm:p-8'
                 }`}
               >
+                {/* Coming soon badge for unavailable plans */}
+                {!available && (
+                  <span className="absolute top-3 right-3 bg-gray-200 text-gray-500 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                    Coming soon
+                  </span>
+                )}
+
                 {/* On mobile: header row with name + badge inline */}
                 <div className="flex items-center justify-between mb-2 sm:block">
                   <h3 className={`text-lg sm:text-xl font-bold sm:mb-2 ${highlight ? 'text-white' : 'text-gray-900'}`}>
@@ -45,7 +55,7 @@ export default function PricingSection({ dict, locale }: Props) {
                   )}
                 </div>
 
-                {/* Badge on sm+ (block, above name) — desktop only */}
+                {/* Badge on sm+ — desktop only */}
                 {highlight && (
                   <span className="hidden sm:inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-4 -mt-2">
                     {dict.mostPopular}
@@ -65,7 +75,7 @@ export default function PricingSection({ dict, locale }: Props) {
                   {dict.afterTrial}
                 </p>
 
-                {/* Features — collapsed to 2-col grid on mobile for compactness */}
+                {/* Features */}
                 <ul className="grid grid-cols-2 sm:grid-cols-1 gap-x-3 gap-y-2 sm:gap-y-3 mb-5 sm:mb-8">
                   {plan.features.map((f) => (
                     <li key={f} className={`flex items-start gap-1.5 text-xs sm:text-sm ${highlight ? 'text-white/90' : 'text-gray-600'}`}>
@@ -75,16 +85,28 @@ export default function PricingSection({ dict, locale }: Props) {
                   ))}
                 </ul>
 
-                <Link
-                  href={`/${locale}/signup`}
-                  className={`block text-center py-2.5 sm:py-3 rounded-xl font-semibold text-sm transition-colors ${
-                    highlight
-                      ? 'bg-white text-indigo-600 hover:bg-indigo-50'
-                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                  }`}
-                >
-                  {dict.cta}
-                </Link>
+                {available ? (
+                  <Link
+                    href={`/${locale}/signup`}
+                    className={`block text-center py-2.5 sm:py-3 rounded-xl font-semibold text-sm transition-colors ${
+                      highlight
+                        ? 'bg-white text-indigo-600 hover:bg-indigo-50'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    }`}
+                  >
+                    {dict.cta}
+                  </Link>
+                ) : (
+                  <div
+                    className={`block text-center py-2.5 sm:py-3 rounded-xl font-semibold text-sm cursor-not-allowed ${
+                      highlight
+                        ? 'bg-white/20 text-white/50'
+                        : 'bg-gray-100 text-gray-400'
+                    }`}
+                  >
+                    Coming soon
+                  </div>
+                )}
               </div>
             )
           })}
