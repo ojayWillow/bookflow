@@ -23,9 +23,9 @@ const en = {
 
   // ── Overview (mock UI preview on landing) ─────────────────────────────────
   overview: {
-    statsToday:       "Today's bookings",
-    statusConfirmed:  'confirmed',
-    statusPending:    'pending',
+    statsToday:      "Today's bookings",
+    statusConfirmed: 'confirmed',
+    statusPending:   'pending',
   },
 
   // ── Features ─────────────────────────────────────────────────────────────
@@ -117,7 +117,7 @@ const en = {
     back:                'Back',
     // Step titles / subtitles
     stepServiceTitle:    'Choose a service',
-    stepServiceSub:      'Select the service you'd like to book.',
+    stepServiceSub:      'Select the service you\'d like to book.',
     stepStaffTitle:      'Choose a specialist',
     stepDateTimeTitle:   'Pick a date & time',
     stepDetailsTitle:    'Your details',
