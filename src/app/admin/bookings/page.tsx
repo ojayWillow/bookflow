@@ -1,8 +1,11 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Search, Phone, Mail, RefreshCw, Loader2, Calendar, X, Clock } from 'lucide-react'
 import { getBookings, updateBookingStatus } from '@/lib/supabase/queries'
 import { format, parseISO } from 'date-fns'
+import AdminSkeleton  from '../_components/AdminSkeleton'
+import ToastContainer from '../_components/Toast'
+import { useToast }   from '@/hooks/useToast'
 
 type Booking = {
   id: string; ref: string; service_name: string; service_duration: number
@@ -16,23 +19,21 @@ const STATUS_STYLE: Record<string, string> = {
   confirmed: 'bg-green-100 text-green-700',
   cancelled: 'bg-red-100 text-red-600',
   completed: 'bg-gray-100 text-gray-500',
-  pending: 'bg-amber-100 text-amber-700',
+  pending:   'bg-amber-100 text-amber-700',
 }
 
 const FILTERS = ['All', 'confirmed', 'pending', 'cancelled', 'completed']
 
-// ─── Reschedule Modal ─────────────────────────────────────────────────────────
+// ─── Reschedule Modal ───────────────────────────────────────────────────
 function RescheduleModal({
-  booking,
-  onClose,
-  onSaved,
+  booking, onClose, onSaved,
 }: {
   booking: Booking
   onClose: () => void
   onSaved: () => void
 }) {
-  const [date, setDate] = useState(booking.date)
-  const [time, setTime] = useState(booking.time.slice(0, 5))
+  const [date, setDate]   = useState(booking.date)
+  const [time, setTime]   = useState(booking.time.slice(0, 5))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -40,27 +41,20 @@ function RescheduleModal({
     if (!date || !time) { setError('Please fill in both date and time'); return }
     setSaving(true)
     setError('')
-    const res = await fetch('/api/bookings', {
+    const res  = await fetch('/api/bookings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: booking.id, date, time }),
     })
     const json = await res.json()
-    if (!res.ok) {
-      setError(json.error ?? 'Failed to reschedule')
-      setSaving(false)
-      return
-    }
+    if (!res.ok) { setError(json.error ?? 'Failed to reschedule'); setSaving(false); return }
     onSaved()
     onClose()
   }
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4" onClick={onClose}>
-      <div
-        className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6"
-        onClick={e => e.stopPropagation()}
-      >
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="font-bold text-gray-900">Reschedule booking</h2>
@@ -70,49 +64,33 @@ function RescheduleModal({
             <X className="w-5 h-5" />
           </button>
         </div>
-
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               <Calendar className="w-3.5 h-3.5 inline mr-1" />New date
             </label>
-            <input
-              type="date"
-              value={date}
-              min={format(new Date(), 'yyyy-MM-dd')}
+            <input type="date" value={date} min={format(new Date(), 'yyyy-MM-dd')}
               onChange={e => setDate(e.target.value)}
-              className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
-            />
+              className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               <Clock className="w-3.5 h-3.5 inline mr-1" />New time
             </label>
-            <input
-              type="time"
-              value={time}
-              onChange={e => setTime(e.target.value)}
-              className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
-            />
+            <input type="time" value={time} onChange={e => setTime(e.target.value)}
+              className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors" />
           </div>
-
           {error && (
             <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">⚠ {error}</p>
           )}
         </div>
-
         <div className="flex gap-3 mt-6">
-          <button
-            onClick={onClose}
-            className="flex-1 border-2 border-gray-100 text-gray-500 py-2.5 rounded-xl text-sm font-medium hover:border-gray-200 transition-colors"
-          >
+          <button onClick={onClose}
+            className="flex-1 border-2 border-gray-100 text-gray-500 py-2.5 rounded-xl text-sm font-medium hover:border-gray-200 transition-colors">
             Cancel
           </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-          >
+          <button onClick={handleSave} disabled={saving}
+            className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {saving ? 'Saving…' : 'Save changes'}
           </button>
@@ -122,28 +100,30 @@ function RescheduleModal({
   )
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Main Page ────────────────────────────────────────────────────────────
 export default function BookingsPage() {
-  const [bookings, setBookings] = useState<Booking[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('All')
-  const [search, setSearch] = useState('')
-  const [error, setError] = useState('')
+  const [bookings, setBookings]       = useState<Booking[]>([])
+  const [loading, setLoading]         = useState(true)
+  const [filter, setFilter]           = useState('All')
+  const [search, setSearch]           = useState('')
+  const [error, setError]             = useState('')
   const [rescheduling, setRescheduling] = useState<Booking | null>(null)
+  const { toasts, toast, dismiss }    = useToast()
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     try {
       const data = await getBookings()
       setBookings(data ?? [])
+      setError('')
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load bookings')
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [load])
 
   const filtered = bookings.filter(b => {
     const matchFilter = filter === 'All' || b.status === filter
@@ -156,20 +136,40 @@ export default function BookingsPage() {
     return matchFilter && matchSearch
   })
 
-  const handleStatus = async (id: string, status: 'confirmed' | 'pending' | 'cancelled' | 'completed') => {
-    await updateBookingStatus(id, status)
+  const handleStatus = async (
+    id: string,
+    status: 'confirmed' | 'pending' | 'cancelled' | 'completed',
+  ) => {
+    try {
+      await updateBookingStatus(id, status)
+      await load()
+      const labels: Record<string, string> = {
+        confirmed: 'Booking restored',
+        completed: 'Marked as complete',
+        cancelled: 'Booking cancelled',
+      }
+      toast.success(labels[status] ?? 'Status updated')
+    } catch {
+      toast.error('Failed to update booking status')
+    }
+  }
+
+  const handleRescheduleSaved = async () => {
     await load()
+    toast.success('Booking rescheduled')
   }
 
   const activeCount = bookings.filter(b => b.status === 'confirmed').length
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
+
       {rescheduling && (
         <RescheduleModal
           booking={rescheduling}
           onClose={() => setRescheduling(null)}
-          onSaved={load}
+          onSaved={handleRescheduleSaved}
         />
       )}
 
@@ -208,9 +208,7 @@ export default function BookingsPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-gray-400">
-          <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading bookings…
-        </div>
+        <AdminSkeleton rows={5} />
       ) : (
         <div className="space-y-3">
           {bookings.length === 0 && (
@@ -245,9 +243,7 @@ export default function BookingsPage() {
                     <div className="flex items-center gap-4 mt-1.5 flex-wrap">
                       <span className="text-xs text-gray-400">{format(parseISO(b.date), 'EEE d MMM')} · {b.time}</span>
                       <span className="text-xs text-gray-400">{b.service_duration} min · €{b.service_price}</span>
-                      {b.staff_name && (
-                        <span className="text-xs text-gray-400">{b.staff_name}</span>
-                      )}
+                      {b.staff_name && <span className="text-xs text-gray-400">{b.staff_name}</span>}
                     </div>
                     {b.customer_notes && (
                       <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-lg mt-2 inline-block">📝 {b.customer_notes}</p>
