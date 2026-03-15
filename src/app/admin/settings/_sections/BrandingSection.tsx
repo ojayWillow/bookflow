@@ -1,5 +1,5 @@
 'use client'
-import { Globe, Palette, Instagram, Facebook } from 'lucide-react'
+import { Palette, Globe, Instagram, Facebook } from 'lucide-react'
 import ImageUpload from '../ImageUpload'
 
 const BRAND_COLORS = [
@@ -28,7 +28,6 @@ function TikTokIcon({ className }: { className?: string }) {
 type Settings = {
   primary_color: string
   logo_url: string
-  cover_url: string
   name: string
   tagline: string
   instagram_url: string
@@ -43,11 +42,10 @@ interface Props {
   onHexInput: (v: string) => void
   onColorChange: (color: string) => void
   onLogoUploaded: (url: string) => void
-  onCoverUploaded: (url: string) => void
 }
 
 export default function BrandingSection({
-  settings, hexInput, onHexInput, onColorChange, onLogoUploaded, onCoverUploaded
+  settings, hexInput, onHexInput, onColorChange, onLogoUploaded
 }: Props) {
   return (
     <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
@@ -58,18 +56,13 @@ export default function BrandingSection({
       <p className="text-sm text-gray-400 mb-5">Customise how your booking page looks to customers</p>
 
       <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
-          <ImageUpload
-            label="Logo" hint="Square image, shown in the header"
-            field="logo_url" currentUrl={settings.logo_url}
-            onUploaded={onLogoUploaded}
-          />
-          <ImageUpload
-            label="Cover image" hint="Wide banner behind your header"
-            field="cover_url" currentUrl={settings.cover_url}
-            onUploaded={onCoverUploaded}
-          />
-        </div>
+
+        {/* Logo upload */}
+        <ImageUpload
+          label="Logo" hint="Square image shown in the booking page header"
+          field="logo_url" currentUrl={settings.logo_url}
+          onUploaded={onLogoUploaded}
+        />
 
         {/* Brand colour */}
         <div>
@@ -108,51 +101,52 @@ export default function BrandingSection({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">Live preview</label>
           <div className="rounded-2xl overflow-hidden border-2 border-gray-100 shadow-sm">
-            <div className="relative px-5 py-4 flex items-center justify-between gap-3"
-              style={settings.cover_url ? {} : { backgroundColor: settings.primary_color }}>
-              {settings.cover_url && (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={settings.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40" />
-                </>
-              )}
-              <div className="relative flex items-center gap-3">
+
+            {/* Header bar */}
+            <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
                 {settings.logo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={settings.logo_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                  <img src={settings.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
                 ) : (
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0"
-                    style={{ backgroundColor: settings.cover_url ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.25)' }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
+                    style={{ backgroundColor: settings.primary_color }}>
                     {settings.name[0]}
                   </div>
                 )}
                 <div>
-                  <p className="text-white font-bold text-sm">{settings.name}</p>
-                  <p className="text-white/70 text-xs">{settings.tagline}</p>
+                  <p className="text-gray-900 font-bold text-xs leading-tight">{settings.name}</p>
+                  {settings.tagline && <p className="text-gray-400 text-[10px] leading-tight">{settings.tagline}</p>}
                 </div>
               </div>
-              <div className="relative flex gap-1.5">
-                {settings.website_url   && <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><Globe className="w-3.5 h-3.5 text-white" /></div>}
-                {settings.instagram_url && <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><Instagram className="w-3.5 h-3.5 text-white" /></div>}
-                {settings.facebook_url  && <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><Facebook className="w-3.5 h-3.5 text-white" /></div>}
-                {settings.tiktok_url    && <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><TikTokIcon className="w-3.5 h-3.5 text-white" /></div>}
+              <div className="flex items-center gap-1">
+                {settings.website_url   && <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center"><Globe className="w-3 h-3 text-gray-400" /></div>}
+                {settings.instagram_url && <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center"><Instagram className="w-3 h-3 text-gray-400" /></div>}
+                {settings.facebook_url  && <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center"><Facebook className="w-3 h-3 text-gray-400" /></div>}
+                {settings.tiktok_url    && <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center"><TikTokIcon className="w-3 h-3 text-gray-400" /></div>}
+                <div className="ml-1 flex gap-0.5">
+                  {['LV','EN','RU'].map(l => (
+                    <div key={l} className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-gray-100 text-gray-500">{l}</div>
+                  ))}
+                </div>
               </div>
             </div>
-            <div className="bg-gray-50 px-5 py-4 space-y-3">
-              <div className="bg-white rounded-xl border-2 border-gray-100 p-3.5 flex items-center justify-between">
+
+            {/* Content area */}
+            <div className="bg-gray-50 px-4 py-4 space-y-2.5">
+              <div className="bg-white rounded-xl border-2 border-gray-100 p-3 flex items-center justify-between">
                 <div className="space-y-1">
                   <div className="h-2.5 w-28 bg-gray-200 rounded-full" />
                   <div className="h-2 w-20 bg-gray-100 rounded-full" />
                 </div>
-                <p className="text-lg font-bold" style={{ color: settings.primary_color }}>€35</p>
+                <p className="text-base font-bold" style={{ color: settings.primary_color }}>€35</p>
               </div>
-              <div className="bg-white rounded-xl border-2 border-gray-100 p-3.5 flex items-center justify-between">
+              <div className="bg-white rounded-xl border-2 border-gray-100 p-3 flex items-center justify-between">
                 <div className="space-y-1">
                   <div className="h-2.5 w-24 bg-gray-200 rounded-full" />
                   <div className="h-2 w-16 bg-gray-100 rounded-full" />
                 </div>
-                <p className="text-lg font-bold" style={{ color: settings.primary_color }}>€55</p>
+                <p className="text-base font-bold" style={{ color: settings.primary_color }}>€55</p>
               </div>
               <button className="w-full py-2.5 rounded-xl text-white text-sm font-semibold"
                 style={{ backgroundColor: settings.primary_color }}>
@@ -161,6 +155,7 @@ export default function BrandingSection({
             </div>
           </div>
         </div>
+
       </div>
     </section>
   )
