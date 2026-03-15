@@ -12,7 +12,7 @@ type Settings = {
   slot_interval: number; lead_time_hours: number; max_advance_days: number
   cancellation_window_hours: number
   cancellation_policy: string; primary_color: string
-  logo_url: string; cover_url: string
+  logo_url: string
   instagram_url: string; facebook_url: string; tiktok_url: string; website_url: string
 }
 
@@ -127,7 +127,6 @@ export default function SettingsPage() {
           onHexInput={v => { setHexInput(v); if (isValidHex(v)) set('primary_color', v) }}
           onColorChange={color => { set('primary_color', color); setHexInput(color) }}
           onLogoUploaded={url => set('logo_url', url)}
-          onCoverUploaded={url => set('cover_url', url)}
         />
 
         <OnlinePresenceSection

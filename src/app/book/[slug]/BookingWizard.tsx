@@ -68,14 +68,12 @@ export default function BookingWizard({ business }: { business: Business }) {
   const [submitError, setSubmitError]             = useState('')
   const [emailSent, setEmailSent]                 = useState(false)
   const [dict, setDict]                           = useState<PublicDict | null>(null)
-  const [activeLocale, setActiveLocale]           = useState<Locale>('lv')
 
   const localeRef = useRef<Locale>('lv')
 
   useEffect(() => {
     const detected = readLocaleCookie()
     localeRef.current = detected
-    setActiveLocale(detected)
     getDictionary(detected).then(setDict)
   }, [])
 
@@ -84,7 +82,6 @@ export default function BookingWizard({ business }: { business: Business }) {
       const next = readLocaleCookie()
       if (next !== localeRef.current) {
         localeRef.current = next
-        setActiveLocale(next)
         getDictionary(next).then(setDict)
       }
     }
