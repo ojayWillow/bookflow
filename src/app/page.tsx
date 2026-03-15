@@ -4,6 +4,7 @@ import HeroSignupForm      from './_components/landing/HeroSignupForm'
 import FeaturesSection     from './_components/landing/FeaturesSection'
 import PricingSection      from './_components/landing/PricingSection'
 import TestimonialsSection from './_components/landing/TestimonialsSection'
+import LanguageSwitcher    from './_components/LanguageSwitcher'
 import en from '@/i18n/en'
 
 export default function LandingPage() {
@@ -24,7 +25,8 @@ export default function LandingPage() {
             <a href="#pricing"  className="hover:text-gray-900 transition-colors">Pricing</a>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/admin/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Sign in</Link>
+            <LanguageSwitcher />
+            <Link href="/admin/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors hidden sm:block">Sign in</Link>
             <Link href="/signup" className="bg-indigo-600 text-white text-sm px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors font-medium">
               Try free for 7 days
             </Link>
@@ -132,9 +134,9 @@ export default function LandingPage() {
           <p className="text-sm text-gray-400">© 2026 BookFlow. Built for businesses that take appointments.</p>
           <div className="flex gap-6 text-sm text-gray-400">
             <Link href="/admin/login" className="hover:text-gray-700">Sign in</Link>
-            <Link href="/signup" className="hover:text-gray-700">Get started</Link>
-            <Link href="/privacy" className="hover:text-gray-700">Privacy</Link>
-            <Link href="/terms" className="hover:text-gray-700">Terms</Link>
+            <Link href="/signup"      className="hover:text-gray-700">Get started</Link>
+            <Link href="/privacy"     className="hover:text-gray-700">Privacy</Link>
+            <Link href="/terms"       className="hover:text-gray-700">Terms</Link>
           </div>
         </div>
       </footer>
