@@ -1,6 +1,11 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { notFound } from 'next/navigation'
 import { locales } from '@/i18n/index'
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
 
 export async function generateStaticParams() {
   return locales.map(locale => ({ locale }))
@@ -17,7 +22,7 @@ export async function generateMetadata(
   }
   const descs: Record<string, string> = {
     lv: 'Vienkārša un ātra online rezervāciju sistēma jebkuram biznesam.',
-    ru: 'Простая система онлайн-записи для любого бизнеса.',
+    ru: 'Простая система онлайн-zapisи для любого бизнеса.',
     en: 'Simple online booking for any business. Up in minutes.',
   }
   return {
