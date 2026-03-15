@@ -44,6 +44,28 @@ const BookingSchema = z.object({
 
 type BookingBody = z.infer<typeof BookingSchema>
 
+function toMins(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number)
+  return h * 60 + m
+}
+
+/** Returns true if the proposed slot overlaps any existing booking. */
+function hasConflict(
+  slotStart: number,
+  duration: number,
+  existing: { time: string; service_duration: number; staff_id: string | null }[],
+  staffId: string | null
+): boolean {
+  const slotEnd = slotStart + duration
+  return existing.some(b => {
+    // Only check same staff, or null-staff bookings (they block everyone)
+    if (staffId !== null && b.staff_id !== null && b.staff_id !== staffId) return false
+    const bStart = toMins(b.time)
+    const bEnd   = bStart + b.service_duration
+    return slotStart < bEnd && slotEnd > bStart
+  })
+}
+
 function customerEmailHtml(p: {
   businessName: string
   businessAddress: string
@@ -241,6 +263,31 @@ export async function POST(req: NextRequest) {
 
     if (bizLookupError || !bizExists) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    }
+
+    // ── Server-side double-booking check ─────────────────────────────────────
+    // Fetch all active bookings for this date + business, then check for overlap.
+    const { data: existingBookings } = await supabase
+      .from('bookings')
+      .select('time, service_duration, staff_id')
+      .eq('date', body.date)
+      .eq('business_id', body.business_id)
+      .neq('status', 'cancelled')
+
+    if (existingBookings) {
+      const slotStart = toMins(body.time)
+      const conflict  = hasConflict(
+        slotStart,
+        body.service_duration,
+        existingBookings as { time: string; service_duration: number; staff_id: string | null }[],
+        body.staff_id ?? null
+      )
+      if (conflict) {
+        return NextResponse.json(
+          { error: 'This time slot is no longer available. Please choose another time.' },
+          { status: 409 }
+        )
+      }
     }
 
     const ref = 'BF-' + randomBytes(4).toString('hex').toUpperCase()

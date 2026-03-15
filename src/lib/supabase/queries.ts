@@ -244,24 +244,39 @@ export async function createBooking(booking: {
   return data
 }
 
+/**
+ * Fetch booked slots for a given date, business, and optional staff member.
+ *
+ * When a specific staffId is provided we return:
+ *   - bookings assigned to that staff member
+ *   - bookings with no staff assigned (null) — these block the whole calendar
+ *
+ * When staffId is 'any' we return all bookings for the day so that
+ * the union-slot generator can correctly mark slots as taken.
+ */
 export async function getBookedSlotsForDate(
   date: string,
   staffId: string | 'any',
   businessId: string
 ) {
   const supabase = createClient()
-  let query = supabase
+
+  // Always fetch all non-cancelled bookings for the date — the slot
+  // generator will filter by staff_id itself when needed.
+  const { data, error } = await supabase
     .from('bookings')
     .select('time, service_duration, staff_id')
     .eq('date', date)
     .eq('business_id', businessId)
     .neq('status', 'cancelled')
 
-  if (staffId !== 'any') {
-    query = query.eq('staff_id', staffId)
-  }
-
-  const { data, error } = await query
   if (error) throw error
-  return (data ?? []) as { time: string; service_duration: number; staff_id: string }[]
+
+  const all = (data ?? []) as { time: string; service_duration: number; staff_id: string | null }[]
+
+  if (staffId === 'any') return all
+
+  // For a specific staff member: include bookings for that staff AND
+  // any bookings with null staff_id (they block the full schedule).
+  return all.filter(b => b.staff_id === staffId || b.staff_id === null)
 }
