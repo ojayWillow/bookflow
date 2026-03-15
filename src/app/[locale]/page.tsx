@@ -5,6 +5,7 @@ import HeroSignupForm      from '../_components/landing/HeroSignupForm'
 import FeaturesSection     from '../_components/landing/FeaturesSection'
 import PricingSection      from '../_components/landing/PricingSection'
 import TestimonialsSection from '../_components/landing/TestimonialsSection'
+import LanguageSwitcher    from '../_components/LanguageSwitcher'
 
 export default async function LandingPage({
   params,
@@ -31,7 +32,8 @@ export default async function LandingPage({
             <a href="#pricing"  className="hover:text-gray-900 transition-colors">{t.nav.pricing}</a>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/admin/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+            <LanguageSwitcher />
+            <Link href="/admin/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors hidden sm:block">
               {t.nav.signIn}
             </Link>
             <Link href={`/${locale}/signup`} className="bg-indigo-600 text-white text-sm px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors font-medium">
@@ -85,9 +87,9 @@ export default async function LandingPage({
                 <p className="font-bold text-gray-900 mb-4">{t.overview?.statsToday ?? "Today's bookings"}</p>
                 <div className="space-y-3">
                   {[
-                    ['10:00', 'Anna B.',  'Gel Manicure',   'confirmed'],
-                    ['11:00', 'Laura K.', 'Lash Lift',      'confirmed'],
-                    ['14:00', 'Marta O.', 'Classic Facial', 'pending'],
+                    ['10:00', 'Anna B.',  'Gel Manicure',   t.overview?.statusConfirmed ?? 'confirmed'],
+                    ['11:00', 'Laura K.', 'Lash Lift',      t.overview?.statusConfirmed ?? 'confirmed'],
+                    ['14:00', 'Marta O.', 'Classic Facial', t.overview?.statusPending   ?? 'pending'],
                   ].map(([time, name, service, status]) => (
                     <div key={time} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -98,7 +100,9 @@ export default async function LandingPage({
                         </div>
                       </div>
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                        status === (t.overview?.statusConfirmed ?? 'confirmed')
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-yellow-100 text-yellow-700'
                       }`}>{status}</span>
                     </div>
                   ))}
@@ -136,10 +140,10 @@ export default async function LandingPage({
           </div>
           <p className="text-sm text-gray-400">{t.footer.tagline}</p>
           <div className="flex gap-6 text-sm text-gray-400">
-            <Link href="/admin/login" className="hover:text-gray-700">{t.footer.signIn}</Link>
+            <Link href="/admin/login"      className="hover:text-gray-700">{t.footer.signIn}</Link>
             <Link href={`/${locale}/signup`} className="hover:text-gray-700">{t.footer.getStarted}</Link>
-            <Link href="/privacy" className="hover:text-gray-700">{t.footer.privacy}</Link>
-            <Link href="/terms"   className="hover:text-gray-700">{t.footer.terms}</Link>
+            <Link href="/privacy"          className="hover:text-gray-700">{t.footer.privacy}</Link>
+            <Link href="/terms"            className="hover:text-gray-700">{t.footer.terms}</Link>
           </div>
         </div>
       </footer>

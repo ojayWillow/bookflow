@@ -15,8 +15,9 @@ import StepDateTime from './_steps/StepDateTime'
 import StepDetails  from './_steps/StepDetails'
 import StepConfirm  from './_steps/StepConfirm'
 import StepSuccess  from './_steps/StepSuccess'
-import { getDictionary, type Locale } from '@/i18n/index'
+import { getDictionary, locales, type Locale } from '@/i18n/index'
 import type { PublicDict } from '@/i18n/en'
+import LanguageSwitcher from '@/app/_components/LanguageSwitcher'
 
 const LOCALE_COOKIE = 'BOOKFLOW_LOCALE'
 
@@ -24,10 +25,9 @@ function readLocaleCookie(): Locale {
   if (typeof document === 'undefined') return 'lv'
   const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${LOCALE_COOKIE}=([^;]+)`))
   const val   = match?.[1]?.toLowerCase()
-  if (val === 'en' || val === 'ru' || val === 'lv') return val
-  // Fall back to browser language
+  if (val && (locales as readonly string[]).includes(val)) return val as Locale
   const lang = navigator.language.slice(0, 2).toLowerCase()
-  if (lang === 'en' || lang === 'ru' || lang === 'lv') return lang
+  if ((locales as readonly string[]).includes(lang)) return lang as Locale
   return 'lv'
 }
 
@@ -68,12 +68,28 @@ export default function BookingWizard({ business }: { business: Business }) {
   const [submitError, setSubmitError]             = useState('')
   const [emailSent, setEmailSent]                 = useState(false)
   const [dict, setDict]                           = useState<PublicDict | null>(null)
+  const [locale, setLocale]                       = useState<Locale>('lv')
 
-  // Detect locale from cookie / browser on mount
   useEffect(() => {
-    const locale = readLocaleCookie()
-    getDictionary(locale).then(setDict)
+    const detected = readLocaleCookie()
+    setLocale(detected)
+    getDictionary(detected).then(setDict)
   }, [])
+
+  // Re-load dict when user switches language via the switcher
+  // LanguageSwitcher writes the cookie — we poll for cookie changes via a
+  // storage event isn't available for cookies, so we listen to a custom event
+  useEffect(() => {
+    const handler = () => {
+      const next = readLocaleCookie()
+      if (next !== locale) {
+        setLocale(next)
+        getDictionary(next).then(setDict)
+      }
+    }
+    window.addEventListener('bookflow:locale-change', handler)
+    return () => window.removeEventListener('bookflow:locale-change', handler)
+  }, [locale])
 
   useEffect(() => {
     setLoadingData(true)
@@ -178,7 +194,6 @@ export default function BookingWizard({ business }: { business: Business }) {
 
   const hasSocial = business.instagram_url || business.facebook_url || business.tiktok_url || business.website_url
 
-  // Dict not loaded yet — render shell only (avoids flash of wrong language)
   if (!dict || !t) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -248,6 +263,7 @@ export default function BookingWizard({ business }: { business: Business }) {
                 )}
               </div>
             )}
+            <LanguageSwitcher />
           </div>
         </div>
       </header>
