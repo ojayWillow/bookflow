@@ -68,32 +68,29 @@ export default function BookingWizard({ business }: { business: Business }) {
   const [submitError, setSubmitError]             = useState('')
   const [emailSent, setEmailSent]                 = useState(false)
   const [dict, setDict]                           = useState<PublicDict | null>(null)
-  const [locale, setLocale]                       = useState<Locale>('lv')
+  const [activeLocale, setActiveLocale]           = useState<Locale>('lv')
 
-  // Always-current ref so the event listener never reads stale closure state
   const localeRef = useRef<Locale>('lv')
 
   useEffect(() => {
     const detected = readLocaleCookie()
     localeRef.current = detected
-    setLocale(detected)
+    setActiveLocale(detected)
     getDictionary(detected).then(setDict)
   }, [])
 
-  // Stable listener — registered once, reads locale via ref to avoid stale closure.
-  // LanguageSwitcher fires 'bookflow:locale-change' after writing the cookie.
   useEffect(() => {
     const handler = () => {
       const next = readLocaleCookie()
       if (next !== localeRef.current) {
         localeRef.current = next
-        setLocale(next)
+        setActiveLocale(next)
         getDictionary(next).then(setDict)
       }
     }
     window.addEventListener('bookflow:locale-change', handler)
     return () => window.removeEventListener('bookflow:locale-change', handler)
-  }, []) // empty deps — intentional, localeRef.current is always fresh
+  }, [])
 
   useEffect(() => {
     setLoadingData(true)
@@ -212,67 +209,88 @@ export default function BookingWizard({ business }: { business: Business }) {
     <div className="min-h-screen bg-gray-50">
 
       {/* ── Header ── */}
-      <header className="relative bg-white border-b overflow-hidden">
-        {business.cover_url && (
-          <div className="absolute inset-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={business.cover_url} alt="" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/40" />
+      <header className="bg-white border-b">
+
+        {/* Cover image */}
+        <div className="relative h-36 sm:h-48 bg-gray-200 overflow-hidden">
+          {business.cover_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={business.cover_url}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${business.primary_color}33, ${business.primary_color}88)` }} />
+          )}
+          {/* Language switcher top-right */}
+          <div className="absolute top-3 right-3">
+            <LanguageSwitcher />
           </div>
-        )}
-        <div className={`relative max-w-2xl mx-auto px-6 py-5 flex items-center justify-between gap-4 ${
-          business.cover_url ? 'py-8' : ''
-        }`}>
-          <div className="flex items-center gap-4">
+        </div>
+
+        {/* Profile row — logo overlaps cover */}
+        <div className="max-w-2xl mx-auto px-4 sm:px-6">
+          <div className="flex items-end justify-between -mt-8 mb-3">
+            {/* Logo avatar */}
             {business.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={business.logo_url} alt={business.name} className="w-12 h-12 rounded-2xl object-cover flex-shrink-0 shadow-sm" />
+              <img
+                src={business.logo_url}
+                alt={business.name}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-4 border-white shadow-md flex-shrink-0"
+              />
             ) : (
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
-                style={{ backgroundColor: business.primary_color }}>
+              <div
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-4 border-white shadow-md flex items-center justify-center text-white font-bold text-2xl flex-shrink-0"
+                style={{ backgroundColor: business.primary_color }}
+              >
                 {business.name[0]}
               </div>
             )}
-            <div>
-              <h1 className={`font-bold text-lg ${business.cover_url ? 'text-white' : 'text-gray-900'}`}>{business.name}</h1>
-              <p className={`text-sm ${business.cover_url ? 'text-white/80' : 'text-gray-400'}`}>{business.tagline}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
+
+            {/* Socials */}
             {hasSocial && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 pb-1">
                 {business.website_url && (
                   <a href={business.website_url} target="_blank" rel="noopener noreferrer"
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                      business.cover_url ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-gray-100 text-gray-500 hover:bg-indigo-50 hover:text-indigo-600'
-                    }`}><Globe className="w-4 h-4" /></a>
+                    className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                    <Globe className="w-4 h-4" />
+                  </a>
                 )}
                 {business.instagram_url && (
                   <a href={business.instagram_url} target="_blank" rel="noopener noreferrer"
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                      business.cover_url ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-gray-100 text-gray-500 hover:bg-pink-50 hover:text-pink-600'
-                    }`}><Instagram className="w-4 h-4" /></a>
+                    className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-pink-50 hover:text-pink-600 transition-colors">
+                    <Instagram className="w-4 h-4" />
+                  </a>
                 )}
                 {business.facebook_url && (
                   <a href={business.facebook_url} target="_blank" rel="noopener noreferrer"
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                      business.cover_url ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-600'
-                    }`}><Facebook className="w-4 h-4" /></a>
+                    className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                    <Facebook className="w-4 h-4" />
+                  </a>
                 )}
                 {business.tiktok_url && (
                   <a href={business.tiktok_url} target="_blank" rel="noopener noreferrer"
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                      business.cover_url ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                    }`}><TikTokIcon className="w-4 h-4" /></a>
+                    className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+                    <TikTokIcon className="w-4 h-4" />
+                  </a>
                 )}
               </div>
             )}
-            <LanguageSwitcher />
+          </div>
+
+          {/* Business name + tagline */}
+          <div className="pb-4">
+            <h1 className="text-xl font-bold text-gray-900">{business.name}</h1>
+            {business.tagline && (
+              <p className="text-sm text-gray-400 mt-0.5">{business.tagline}</p>
+            )}
           </div>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-6 py-8">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
         {step !== 'success' && (
           <>
             <div className="flex items-center mb-8">
