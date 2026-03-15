@@ -9,6 +9,13 @@ function TikTokIcon({ className }: { className?: string }) {
   )
 }
 
+function ensureHttps(url: string): string {
+  if (!url) return url
+  const trimmed = url.trim()
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed
+  return `https://${trimmed}`
+}
+
 interface Props {
   websiteUrl: string
   instagramUrl: string
@@ -21,31 +28,47 @@ export default function OnlinePresenceSection({ websiteUrl, instagramUrl, facebo
   return (
     <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
       <h2 className="font-semibold text-gray-900 mb-1">🔗 Online presence</h2>
-      <p className="text-sm text-gray-400 mb-5">These appear as icons on your booking page and confirmation screen</p>
+      <p className="text-sm text-gray-400 mb-5">These appear as icons on your booking page. You can paste just the domain or a full URL.</p>
       <div className="space-y-3">
         <div className="flex items-center gap-3">
           <Globe className="w-5 h-5 text-gray-400 flex-shrink-0" />
-          <input value={websiteUrl} onChange={e => onChange('website_url', e.target.value)}
-            placeholder="https://yourwebsite.com"
-            className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors" />
+          <input
+            value={websiteUrl}
+            onChange={e => onChange('website_url', e.target.value)}
+            onBlur={e => onChange('website_url', ensureHttps(e.target.value))}
+            placeholder="yourwebsite.com"
+            className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+          />
         </div>
         <div className="flex items-center gap-3">
           <Instagram className="w-5 h-5 text-pink-400 flex-shrink-0" />
-          <input value={instagramUrl} onChange={e => onChange('instagram_url', e.target.value)}
-            placeholder="https://instagram.com/yourbusiness"
-            className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors" />
+          <input
+            value={instagramUrl}
+            onChange={e => onChange('instagram_url', e.target.value)}
+            onBlur={e => onChange('instagram_url', ensureHttps(e.target.value))}
+            placeholder="instagram.com/yourbusiness"
+            className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+          />
         </div>
         <div className="flex items-center gap-3">
           <Facebook className="w-5 h-5 text-blue-500 flex-shrink-0" />
-          <input value={facebookUrl} onChange={e => onChange('facebook_url', e.target.value)}
-            placeholder="https://facebook.com/yourbusiness"
-            className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors" />
+          <input
+            value={facebookUrl}
+            onChange={e => onChange('facebook_url', e.target.value)}
+            onBlur={e => onChange('facebook_url', ensureHttps(e.target.value))}
+            placeholder="facebook.com/yourbusiness"
+            className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+          />
         </div>
         <div className="flex items-center gap-3">
           <TikTokIcon className="w-5 h-5 text-gray-500 flex-shrink-0" />
-          <input value={tiktokUrl} onChange={e => onChange('tiktok_url', e.target.value)}
-            placeholder="https://tiktok.com/@yourbusiness"
-            className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors" />
+          <input
+            value={tiktokUrl}
+            onChange={e => onChange('tiktok_url', e.target.value)}
+            onBlur={e => onChange('tiktok_url', ensureHttps(e.target.value))}
+            placeholder="tiktok.com/@yourbusiness"
+            className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+          />
         </div>
       </div>
     </section>

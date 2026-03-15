@@ -30,25 +30,15 @@ export default function BusinessInfoSection({
               className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Booking page URL
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Booking page URL</label>
             <div className="flex items-center border-2 border-gray-100 bg-gray-50 rounded-xl overflow-hidden">
               <span className="px-3 py-2.5 text-xs text-gray-400 border-r border-gray-100 whitespace-nowrap">/book/</span>
               <span className="flex-1 px-3 py-2.5 text-sm text-gray-500 font-mono truncate">{slug}</span>
-              <div className="pr-3 text-gray-400" title="Your booking URL is permanent and cannot be changed">
+              <div className="pr-3 text-gray-300" title="Your booking URL cannot be changed">
                 <Lock className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-xs text-gray-400 mt-1.5 font-mono truncate">
-              {BASE}/book/{slug}
-            </p>
-            <div className="flex items-start gap-1.5 mt-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-              <Lock className="w-3.5 h-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-amber-700 leading-relaxed">
-                <strong>This URL is permanent</strong> and cannot be changed. Customers and QR codes depend on it.
-              </p>
-            </div>
+            <p className="text-xs text-gray-400 mt-1.5 font-mono truncate">{BASE}/book/{slug}</p>
           </div>
         </div>
         <div>
