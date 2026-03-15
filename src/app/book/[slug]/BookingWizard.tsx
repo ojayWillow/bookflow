@@ -31,6 +31,13 @@ function readLocaleCookie(): Locale {
   return 'lv'
 }
 
+function ensureHttps(url: string): string {
+  if (!url) return url
+  const t = url.trim()
+  if (t.startsWith('http://') || t.startsWith('https://')) return t
+  return `https://${t}`
+}
+
 function toSlotStaff(m: DBStaffMember): SlotStaffMember {
   return {
     id: m.id, name: m.name, role: m.role, bio: m.bio,
@@ -239,25 +246,25 @@ export default function BookingWizard({ business }: { business: Business }) {
             {hasSocial && (
               <div className="hidden sm:flex items-center gap-1.5">
                 {business.website_url && (
-                  <a href={business.website_url} target="_blank" rel="noopener noreferrer"
+                  <a href={ensureHttps(business.website_url)} target="_blank" rel="noopener noreferrer"
                     className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
                     <Globe className="w-3.5 h-3.5" />
                   </a>
                 )}
                 {business.instagram_url && (
-                  <a href={business.instagram_url} target="_blank" rel="noopener noreferrer"
+                  <a href={ensureHttps(business.instagram_url)} target="_blank" rel="noopener noreferrer"
                     className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-pink-50 hover:text-pink-500 transition-colors">
                     <Instagram className="w-3.5 h-3.5" />
                   </a>
                 )}
                 {business.facebook_url && (
-                  <a href={business.facebook_url} target="_blank" rel="noopener noreferrer"
+                  <a href={ensureHttps(business.facebook_url)} target="_blank" rel="noopener noreferrer"
                     className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors">
                     <Facebook className="w-3.5 h-3.5" />
                   </a>
                 )}
                 {business.tiktok_url && (
-                  <a href={business.tiktok_url} target="_blank" rel="noopener noreferrer"
+                  <a href={ensureHttps(business.tiktok_url)} target="_blank" rel="noopener noreferrer"
                     className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 transition-colors">
                     <TikTokIcon className="w-3.5 h-3.5" />
                   </a>
