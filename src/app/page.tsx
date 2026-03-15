@@ -42,7 +42,11 @@ export default function LandingPage() {
             Give your business a professional booking page in minutes. Customers book, you get notified, everyone knows what&apos;s happening.
           </p>
           <div className="flex justify-center">
-            <HeroSignupForm />
+            <HeroSignupForm
+              locale="en"
+              emailPlaceholder="Enter your email"
+              cta="Get started"
+            />
           </div>
           <p className="text-sm text-gray-400 mt-4">7-day free trial &middot; No credit card required</p>
         </div>
