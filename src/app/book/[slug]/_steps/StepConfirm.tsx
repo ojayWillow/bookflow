@@ -1,4 +1,4 @@
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, type Locale } from 'date-fns'
 import { lv, ru, enGB } from 'date-fns/locale'
 import type { DBService, DBStaffMember, Business, BookingForm } from '../types'
 import type { PublicDict } from '@/i18n/en'

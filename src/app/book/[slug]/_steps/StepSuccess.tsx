@@ -1,4 +1,4 @@
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, type Locale } from 'date-fns'
 import { lv, ru, enGB } from 'date-fns/locale'
 import { CheckCircle, MapPin, Phone, Mail, Globe, Instagram, Facebook } from 'lucide-react'
 import type { DBService, DBStaffMember, Business, BookingForm } from '../types'
