@@ -1,8 +1,9 @@
 import { Calendar } from 'lucide-react'
 import Link from 'next/link'
-import HeroSignupForm  from './_components/landing/HeroSignupForm'
-import FeaturesSection from './_components/landing/FeaturesSection'
-import PricingSection  from './_components/landing/PricingSection'
+import HeroSignupForm       from './_components/landing/HeroSignupForm'
+import FeaturesSection      from './_components/landing/FeaturesSection'
+import PricingSection       from './_components/landing/PricingSection'
+import TestimonialsSection  from './_components/landing/TestimonialsSection'
 
 export default function LandingPage() {
   return (
@@ -100,6 +101,7 @@ export default function LandingPage() {
 
       <FeaturesSection />
       <PricingSection />
+      <TestimonialsSection />
 
       {/* Final CTA */}
       <section className="py-20 px-6 bg-indigo-600">
