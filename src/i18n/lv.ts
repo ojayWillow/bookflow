@@ -69,9 +69,9 @@ const lv: PublicDict = {
   testimonials: {
     sectionTitle: 'Uzņēmumi ir apmierināti',
     items: [
-      { name: 'Marina K.',    business: 'Marina BeautyRoom', text: 'Klienti tagad rezervē paši, nevis raksta man pusnaktī. Tas mainīja visu.' },
-      { name: 'Andris P.',    business: 'AutoPro Rīga',      text: 'Vienā pēcpusdienā pārgājām no papīra dienasgrāmatas uz pilnīgi digitālu sistēmu.' },
-      { name: 'Jekaterina S.', business: 'Old Riga SPA',     text: 'Apstiprinājuma e-pasti vien ietaupa man 20 ziņas dienā. Klienti vienmēr zina savas detaļas.' },
+      { name: 'Marina K.',     business: 'Marina BeautyRoom', text: 'Klienti tagad rezervē paši, nevis raksta man pusnaktī. Tas mainīja visu.' },
+      { name: 'Andris P.',     business: 'AutoPro Rīga',      text: 'Vienā pēcpusdienā pārgājām no papīra dienasgrāmatas uz pilnīgi digitālu sistēmu.' },
+      { name: 'Jekaterina S.', business: 'Old Riga SPA',      text: 'Apstiprinājuma e-pasti vien ietaupa man 20 ziņas dienā. Klienti vienmēr zina savas detaļas.' },
     ],
   },
 
@@ -105,6 +105,8 @@ const lv: PublicDict = {
     stepDetailsSub:      'Nepieciešama informācija rezervācijas apstiprināšanai.',
     stepConfirmTitle:    'Pārbaudi rezervāciju',
     stepConfirmSub:      'Lūdzu pārbaudi visu pirms apstiprināšanas.',
+    noServicesTitle:     'Pakalpojumi nav pievienoti',
+    noServicesSub:       'Šis uzņēmums vēl nav pievienojis nevienu pakalpojumu.',
     anyoneAvailable:     'Jebkurš speciālists',
     anyoneAvailableSub:  'Piešķirsim pirmo brīvo speciālistu.',
     noStaff:             'Nav pieejamu speciālistu šim pakalpojumam.',

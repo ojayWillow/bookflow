@@ -124,6 +124,9 @@ const en = {
     stepDetailsSub:      'We need a few details to confirm your booking.',
     stepConfirmTitle:    'Review your booking',
     stepConfirmSub:      'Please check everything before confirming.',
+    // Services
+    noServicesTitle:     'No services available',
+    noServicesSub:       'This business hasn\'t added any services yet.',
     // Staff
     anyoneAvailable:     'Anyone available',
     anyoneAvailableSub:  'We\'ll assign the first available specialist.',
