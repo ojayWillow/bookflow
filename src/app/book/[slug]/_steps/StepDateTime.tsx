@@ -1,8 +1,10 @@
 import { format, parseISO } from 'date-fns'
+import { lv, ru, enGB } from 'date-fns/locale'
 import { CalendarX } from 'lucide-react'
 import type { DBService, DBStaffMember } from '../types'
+import type { PublicDict } from '@/i18n/en'
 
-const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const DATE_FNS_LOCALE: Record<string, Locale> = { lv, ru, en: enGB }
 
 type Slot = { time: string; available: boolean }
 
@@ -14,6 +16,7 @@ type Props = {
   selectedTime: string
   slots: Slot[]
   loadingSlots: boolean
+  dict: PublicDict['booking']
   onSelectDate: (date: string) => void
   onSelectTime: (time: string) => void
 }
@@ -21,11 +24,13 @@ type Props = {
 export default function StepDateTime({
   service, selectedStaffMember, availableDates,
   selectedDate, selectedTime, slots, loadingSlots,
-  onSelectDate, onSelectTime,
+  dict: t, onSelectDate, onSelectTime,
 }: Props) {
+  const dfLocale = DATE_FNS_LOCALE[t.locale ?? 'lv'] ?? lv
+
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Pick a date &amp; time</h2>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">{t.stepDateTimeTitle}</h2>
       <div className="flex items-center gap-2 mb-6 flex-wrap">
         <span className="text-sm text-gray-400">{service.name}</span>
         <span className="text-gray-300">·</span>
@@ -38,21 +43,19 @@ export default function StepDateTime({
             <span className="text-sm text-gray-400">{selectedStaffMember.name}</span>
           </div>
         ) : (
-          <span className="text-sm text-gray-400">Anyone available</span>
+          <span className="text-sm text-gray-400">{t.anyoneAvailable}</span>
         )}
       </div>
 
-      <p className="text-sm font-medium text-gray-700 mb-3">Select a date</p>
+      <p className="text-sm font-medium text-gray-700 mb-3">{t.selectDate}</p>
 
       {availableDates.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
             <CalendarX className="w-8 h-8 text-gray-300" />
           </div>
-          <p className="font-semibold text-gray-700 mb-1">No available dates</p>
-          <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
-            There are no bookable dates at the moment. The business may not have set their opening days or schedule yet.
-          </p>
+          <p className="font-semibold text-gray-700 mb-1">{t.noAvailableDatesTitle}</p>
+          <p className="text-sm text-gray-400 max-w-xs leading-relaxed">{t.noAvailableDatesSub}</p>
         </div>
       ) : (
         <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-6">
@@ -60,14 +63,17 @@ export default function StepDateTime({
             const d = parseISO(date)
             const isSelected = date === selectedDate
             return (
-              <button key={date}
-                onClick={() => onSelectDate(date)}
+              <button key={date} onClick={() => onSelectDate(date)}
                 className={`flex flex-col items-center py-3 rounded-xl border-2 transition-all ${
                   isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-100 bg-white hover:border-indigo-300'
                 }`}>
-                <span className={`text-xs font-medium ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>{DAYS_SHORT[d.getDay()]}</span>
+                <span className={`text-xs font-medium ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
+                  {format(d, 'EEE', { locale: dfLocale })}
+                </span>
                 <span className={`text-lg font-bold ${isSelected ? 'text-white' : 'text-gray-900'}`}>{format(d, 'd')}</span>
-                <span className={`text-xs ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>{format(d, 'MMM')}</span>
+                <span className={`text-xs ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>
+                  {format(d, 'MMM', { locale: dfLocale })}
+                </span>
               </button>
             )
           })}
@@ -76,7 +82,7 @@ export default function StepDateTime({
 
       {selectedDate && (
         <div>
-          <p className="text-sm font-medium text-gray-700 mb-3">Select a time</p>
+          <p className="text-sm font-medium text-gray-700 mb-3">{t.selectTime}</p>
           {loadingSlots ? (
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
               {Array.from({ length: 12 }).map((_, i) => (
@@ -86,19 +92,18 @@ export default function StepDateTime({
           ) : (
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
               {slots.map(slot => (
-                <button key={slot.time}
-                  disabled={!slot.available}
+                <button key={slot.time} disabled={!slot.available}
                   onClick={() => onSelectTime(slot.time)}
                   className={`py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                    !slot.available             ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through'
-                    : selectedTime === slot.time ? 'border-indigo-600 bg-indigo-600 text-white'
+                    !slot.available              ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through'
+                    : selectedTime === slot.time  ? 'border-indigo-600 bg-indigo-600 text-white'
                     : 'border-gray-100 bg-white hover:border-indigo-400 text-gray-700'
                   }`}>
                   {slot.time}
                 </button>
               ))}
               {slots.length === 0 && (
-                <p className="col-span-full text-sm text-gray-400 text-center py-4">No available slots for this date.</p>
+                <p className="col-span-full text-sm text-gray-400 text-center py-4">{t.noSlots}</p>
               )}
             </div>
           )}

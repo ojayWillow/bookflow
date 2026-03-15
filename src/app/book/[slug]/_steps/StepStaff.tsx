@@ -1,20 +1,22 @@
 import { Users } from 'lucide-react'
 import type { DBService, DBStaffMember } from '../types'
+import type { PublicDict } from '@/i18n/en'
 
 type Props = {
   service: DBService
   availableStaff: DBStaffMember[]
   selectedStaffId: string
   loading: boolean
+  dict: PublicDict['booking']
   onSelect: (staffId: string) => void
 }
 
-export default function StepStaff({ service, availableStaff, selectedStaffId, loading, onSelect }: Props) {
+export default function StepStaff({ service, availableStaff, selectedStaffId, loading, dict: t, onSelect }: Props) {
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Choose who you&apos;d like</h2>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">{t.stepStaffTitle}</h2>
       <p className="text-gray-400 text-sm mb-6">
-        {service.name} · {service.duration} min · €{service.price}
+        {service.name} · {service.duration} {t.min} · €{service.price}
       </p>
 
       {loading ? (
@@ -25,8 +27,7 @@ export default function StepStaff({ service, availableStaff, selectedStaffId, lo
         </div>
       ) : (
         <div className="space-y-3">
-          <button
-            onClick={() => onSelect('any')}
+          <button onClick={() => onSelect('any')}
             className={`w-full text-left bg-white border-2 rounded-2xl p-5 hover:border-indigo-400 transition-all ${
               selectedStaffId === 'any' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'
             }`}>
@@ -35,15 +36,14 @@ export default function StepStaff({ service, availableStaff, selectedStaffId, lo
                 <Users className="w-6 h-6 text-gray-400" />
               </div>
               <div>
-                <p className="font-semibold text-gray-900">Anyone available</p>
-                <p className="text-sm text-gray-400">Show all available slots across the team</p>
+                <p className="font-semibold text-gray-900">{t.anyoneAvailable}</p>
+                <p className="text-sm text-gray-400">{t.anyoneAvailableSub}</p>
               </div>
             </div>
           </button>
 
           {availableStaff.map(m => (
-            <button key={m.id}
-              onClick={() => onSelect(m.id)}
+            <button key={m.id} onClick={() => onSelect(m.id)}
               className={`w-full text-left bg-white border-2 rounded-2xl p-5 hover:border-indigo-400 transition-all ${
                 selectedStaffId === m.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'
               }`}>
@@ -62,7 +62,7 @@ export default function StepStaff({ service, availableStaff, selectedStaffId, lo
           ))}
 
           {availableStaff.length === 0 && (
-            <p className="text-center text-gray-400 text-sm py-6">No staff assigned to this service yet.</p>
+            <p className="text-center text-gray-400 text-sm py-6">{t.noStaff}</p>
           )}
         </div>
       )}

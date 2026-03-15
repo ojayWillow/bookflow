@@ -1,6 +1,10 @@
 import { format, parseISO } from 'date-fns'
+import { lv, ru, enGB } from 'date-fns/locale'
 import { CheckCircle, MapPin, Phone, Mail, Globe, Instagram, Facebook } from 'lucide-react'
 import type { DBService, DBStaffMember, Business, BookingForm } from '../types'
+import type { PublicDict } from '@/i18n/en'
+
+const DATE_FNS_LOCALE: Record<string, Locale> = { lv, ru, en: enGB }
 
 function TikTokIcon({ className }: { className?: string }) {
   return (
@@ -19,9 +23,11 @@ type Props = {
   form: BookingForm
   bookingRef: string
   emailSent: boolean
+  dict: PublicDict['booking']
 }
 
-export default function StepSuccess({ business, service, staffMember, date, time, form, bookingRef, emailSent }: Props) {
+export default function StepSuccess({ business, service, staffMember, date, time, form, bookingRef, emailSent, dict: t }: Props) {
+  const dfLocale  = DATE_FNS_LOCALE[t.locale ?? 'lv'] ?? lv
   const hasSocial = business.instagram_url || business.facebook_url || business.tiktok_url || business.website_url
 
   return (
@@ -29,24 +35,22 @@ export default function StepSuccess({ business, service, staffMember, date, time
       <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
         <CheckCircle className="w-10 h-10 text-green-600" />
       </div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">You&apos;re booked!</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">{t.successTitle}</h2>
       {emailSent ? (
         <p className="text-gray-400 mb-1">
-          Confirmation sent to <span className="font-medium text-gray-700">{form.email}</span>
+          {t.successEmailSent.replace('{{email}}', form.email)}
         </p>
       ) : (
-        <p className="text-gray-400 mb-1">
-          Check your details below — please save your booking reference.
-        </p>
+        <p className="text-gray-400 mb-1">{t.successSaveRef}</p>
       )}
       <p className="text-sm text-gray-400 mb-8">
-        Booking ref: <span className="font-mono font-bold text-indigo-600">{bookingRef}</span>
+        {t.bookingRef}: <span className="font-mono font-bold text-indigo-600">{bookingRef}</span>
       </p>
 
       <div className="bg-white border-2 border-gray-100 rounded-2xl overflow-hidden text-left mb-6">
         <div className="bg-green-600 px-6 py-4">
           <p className="text-white font-bold">{service.name}</p>
-          <p className="text-white/80 text-sm">{format(parseISO(date), 'EEEE, d MMMM yyyy')} at {time}</p>
+          <p className="text-white/80 text-sm">{format(parseISO(date), 'EEEE, d MMMM yyyy', { locale: dfLocale })} {t.at} {time}</p>
         </div>
         <div className="p-5 space-y-3">
           {staffMember && (
@@ -75,7 +79,7 @@ export default function StepSuccess({ business, service, staffMember, date, time
 
       {hasSocial && (
         <div className="mb-6">
-          <p className="text-xs text-gray-400 mb-3">Follow us</p>
+          <p className="text-xs text-gray-400 mb-3">{t.followUs}</p>
           <div className="flex items-center justify-center gap-3">
             {business.website_url && (
               <a href={business.website_url} target="_blank" rel="noopener noreferrer"
