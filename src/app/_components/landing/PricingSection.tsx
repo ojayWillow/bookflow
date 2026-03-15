@@ -11,19 +11,25 @@ interface Props {
 
 export default function PricingSection({ dict, locale }: Props) {
   return (
-    <section id="pricing" className="py-20 px-6">
+    <section id="pricing" className="py-16 sm:py-20 px-4 sm:px-6">
       <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-14">
-          <h2 className="text-3xl font-bold text-gray-900 mb-3">{dict.sectionTitle}</h2>
-          <p className="text-gray-500 text-lg">{dict.sectionSub}</p>
+        <div className="text-center mb-10 sm:mb-14">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">{dict.sectionTitle}</h2>
+          <p className="text-gray-500 text-base sm:text-lg">{dict.sectionSub}</p>
         </div>
-        <div className="grid md:grid-cols-3 gap-6">
+        {/* overflow-visible so the Pro card shadow is never clipped on mobile */}
+        <div className="grid md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
           {dict.plans.map((plan, i) => {
             const highlight = i === 1
             return (
-              <div key={plan.name} className={`rounded-2xl p-8 ${
-                highlight ? 'bg-indigo-600 text-white shadow-xl scale-105' : 'bg-white border-2 border-gray-100'
-              }`}>
+              <div
+                key={plan.name}
+                className={`rounded-2xl p-6 sm:p-8 transition-shadow ${
+                  highlight
+                    ? 'bg-indigo-600 text-white shadow-xl md:scale-105'
+                    : 'bg-white border-2 border-gray-100'
+                }`}
+              >
                 {highlight && (
                   <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-4">
                     {dict.mostPopular}
@@ -42,11 +48,14 @@ export default function PricingSection({ dict, locale }: Props) {
                     </li>
                   ))}
                 </ul>
-                <Link href={`/${locale}/signup`} className={`block text-center py-3 rounded-xl font-semibold text-sm transition-colors ${
-                  highlight
-                    ? 'bg-white text-indigo-600 hover:bg-indigo-50'
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                }`}>
+                <Link
+                  href={`/${locale}/signup`}
+                  className={`block text-center py-3 rounded-xl font-semibold text-sm transition-colors ${
+                    highlight
+                      ? 'bg-white text-indigo-600 hover:bg-indigo-50'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  }`}
+                >
                   {dict.cta}
                 </Link>
               </div>

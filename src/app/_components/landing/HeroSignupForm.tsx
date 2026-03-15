@@ -26,11 +26,11 @@ export default function HeroSignupForm({ locale, emailPlaceholder, cta }: Props)
         onChange={e => setEmail(e.target.value)}
         required
         placeholder={emailPlaceholder}
-        className="flex-1 h-12 border-2 border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:border-indigo-400 transition-colors bg-white"
+        className="flex-1 h-12 border-2 border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:border-indigo-400 transition-colors bg-white w-full"
       />
       <button
         type="submit"
-        className="h-12 bg-indigo-600 text-white px-6 rounded-xl font-semibold text-sm hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+        className="h-12 bg-indigo-600 text-white px-6 rounded-xl font-semibold text-sm hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 whitespace-nowrap w-full sm:w-auto"
       >
         {cta} <ArrowRight className="w-4 h-4" />
       </button>
