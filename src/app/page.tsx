@@ -1,9 +1,10 @@
 import { Calendar } from 'lucide-react'
 import Link from 'next/link'
-import HeroSignupForm       from './_components/landing/HeroSignupForm'
-import FeaturesSection      from './_components/landing/FeaturesSection'
-import PricingSection       from './_components/landing/PricingSection'
-import TestimonialsSection  from './_components/landing/TestimonialsSection'
+import HeroSignupForm      from './_components/landing/HeroSignupForm'
+import FeaturesSection     from './_components/landing/FeaturesSection'
+import PricingSection      from './_components/landing/PricingSection'
+import TestimonialsSection from './_components/landing/TestimonialsSection'
+import en from '@/i18n/en'
 
 export default function LandingPage() {
   return (
@@ -43,9 +44,9 @@ export default function LandingPage() {
           </p>
           <div className="flex justify-center">
             <HeroSignupForm
-              locale="en"
-              emailPlaceholder="Enter your email"
-              cta="Get started"
+              locale={en.booking.locale}
+              emailPlaceholder={en.hero.emailPlaceholder}
+              cta={en.hero.cta}
             />
           </div>
           <p className="text-sm text-gray-400 mt-4">7-day free trial &middot; No credit card required</p>
@@ -103,9 +104,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <FeaturesSection />
-      <PricingSection />
-      <TestimonialsSection />
+      <FeaturesSection     dict={en.features} />
+      <PricingSection      dict={en.pricing}  locale={en.booking.locale} />
+      <TestimonialsSection dict={en.testimonials} />
 
       {/* Final CTA */}
       <section className="py-20 px-6 bg-indigo-600">
