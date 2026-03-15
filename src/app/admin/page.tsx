@@ -48,12 +48,9 @@ export default function AdminOverview() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Business open/close hours from settings
   const settingsOpen  = parseInt(settings.open_time.split(':')[0])
   const settingsClose = parseInt(settings.close_time.split(':')[0])
 
-  // Find earliest and latest booking hours for the current view
-  // so the grid always expands to show every booking
   const visibleDates = (() => {
     if (view === 'day') return [currentDate]
     const weekStart = startOfWeek(parseISO(currentDate), { weekStartsOn: 1 })
@@ -86,10 +83,10 @@ export default function AdminOverview() {
     .reduce((sum, b) => sum + b.service_price, 0)
 
   const stats = [
-    { label: "Today's appointments", value: todayAll.length,    color: 'text-indigo-600 bg-indigo-50' },
-    { label: 'Pending confirmation',  value: pendingCount,       color: 'text-amber-600 bg-amber-50'  },
+    { label: "Today's appointments", value: todayAll.length,         color: 'text-indigo-600 bg-indigo-50' },
+    { label: 'Pending confirmation',  value: pendingCount,            color: 'text-amber-600 bg-amber-50'  },
     { label: 'Total revenue',         value: `\u20ac${totalRevenue}`, color: 'text-green-600 bg-green-50'  },
-    { label: 'Active staff',          value: staff.length,       color: 'text-purple-600 bg-purple-50' },
+    { label: 'Active staff',          value: staff.length,            color: 'text-purple-600 bg-purple-50' },
   ]
 
   if (loading) return (
@@ -98,7 +95,7 @@ export default function AdminOverview() {
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
       </svg>
-      Loading\u2026
+      Loading…
     </div>
   )
 
@@ -106,12 +103,12 @@ export default function AdminOverview() {
     <div className="flex flex-col h-full">
 
       {/* Header */}
-      <div className="px-8 pt-8 pb-4 flex items-start justify-between gap-4">
+      <div className="px-4 md:px-8 pt-6 md:pt-8 pb-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Overview</h1>
           <p className="text-gray-400 mt-1 text-sm">{format(parseISO(currentDate), 'EEEE, d MMMM yyyy')}</p>
         </div>
-        <div className="flex bg-gray-100 rounded-xl p-1">
+        <div className="flex bg-gray-100 rounded-xl p-1 self-start">
           {(['day', 'week'] as const).map(v => (
             <button key={v} onClick={() => setView(v)}
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
@@ -126,7 +123,7 @@ export default function AdminOverview() {
       <StatsBar stats={stats} />
 
       {/* Date nav */}
-      <div className="px-8 pb-4 flex items-center gap-3">
+      <div className="px-4 md:px-8 pb-4 flex items-center gap-2 md:gap-3 flex-wrap">
         <button
           onClick={() => setCurrentDate(format(addDays(parseISO(currentDate), view === 'day' ? -1 : -7), 'yyyy-MM-dd'))}
           className="w-8 h-8 flex items-center justify-center rounded-xl border-2 border-gray-100 hover:border-indigo-300 transition-colors text-gray-400 hover:text-indigo-600">&#8592;</button>
@@ -142,8 +139,8 @@ export default function AdminOverview() {
         </span>
       </div>
 
-      {/* Views */}
-      <div className="flex-1 overflow-auto px-8 pb-8">
+      {/* Views — horizontally scrollable on mobile */}
+      <div className="flex-1 overflow-auto px-4 md:px-8 pb-6 md:pb-8">
         {view === 'day' && (
           <DayView
             bookings={bookings}
@@ -156,13 +153,15 @@ export default function AdminOverview() {
           />
         )}
         {view === 'week' && (
-          <WeekView
-            weekDays={weekDays}
-            bookings={bookings}
-            staff={staff}
-            selectedBookingId={selectedBooking?.id ?? null}
-            onSelectBooking={setSelectedBooking}
-          />
+          <div className="overflow-x-auto">
+            <WeekView
+              weekDays={weekDays}
+              bookings={bookings}
+              staff={staff}
+              selectedBookingId={selectedBooking?.id ?? null}
+              onSelectBooking={setSelectedBooking}
+            />
+          </div>
         )}
       </div>
 
