@@ -2,6 +2,9 @@
 import { useState, useEffect } from 'react'
 import { Clock, Loader2 } from 'lucide-react'
 import { getServices, upsertService, deleteService } from '@/lib/supabase/queries'
+import AdminSkeleton  from '../_components/AdminSkeleton'
+import ToastContainer from '../_components/Toast'
+import { useToast }   from '@/hooks/useToast'
 
 type Service = {
   id: string; name: string; description: string
@@ -9,25 +12,27 @@ type Service = {
 }
 
 const toForm = (s?: Service) => ({
-  name: s?.name ?? '',
+  name:        s?.name        ?? '',
   description: s?.description ?? '',
-  duration: s ? String(s.duration) : '60',
-  price: s ? String(s.price) : '0',
+  duration:    s ? String(s.duration) : '60',
+  price:       s ? String(s.price)    : '0',
 })
 
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [loading, setLoading]   = useState(true)
+  const [saving, setSaving]     = useState(false)
   const [showModal, setShowModal] = useState(false)
-  const [editing, setEditing] = useState<Service | null>(null)
-  const [form, setForm] = useState(toForm())
-  const [error, setError] = useState('')
+  const [editing, setEditing]   = useState<Service | null>(null)
+  const [form, setForm]         = useState(toForm())
+  const [error, setError]       = useState('')
+  const { toasts, toast, dismiss } = useToast()
 
   const load = async () => {
     try {
       const data = await getServices()
       setServices(data ?? [])
+      setError('')
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load services')
     } finally {
@@ -38,22 +43,24 @@ export default function ServicesPage() {
   useEffect(() => { load() }, [])
 
   const openCreate = () => { setForm(toForm()); setEditing(null); setShowModal(true) }
-  const openEdit = (s: Service) => { setForm(toForm(s)); setEditing(s); setShowModal(true) }
+  const openEdit   = (s: Service) => { setForm(toForm(s)); setEditing(s); setShowModal(true) }
 
   const handleSave = async () => {
     setSaving(true)
     try {
       await upsertService({
         ...(editing ? { id: editing.id } : {}),
-        name: form.name,
+        name:        form.name,
         description: form.description,
-        duration: Math.max(5, parseInt(form.duration) || 60),
-        price: Math.max(0, parseFloat(form.price) || 0),
+        duration:    Math.max(5, parseInt(form.duration) || 60),
+        price:       Math.max(0, parseFloat(form.price) || 0),
       })
       await load()
       setShowModal(false)
+      toast.success(editing ? 'Service updated' : 'Service created')
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to save service')
+      toast.error('Failed to save service')
     } finally {
       setSaving(false)
     }
@@ -64,13 +71,17 @@ export default function ServicesPage() {
     try {
       await deleteService(id)
       await load()
+      toast.success('Service deleted')
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to delete service')
+      toast.error('Failed to delete service')
     }
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
+
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Services</h1>
@@ -83,15 +94,11 @@ export default function ServicesPage() {
       </div>
 
       {error && (
-        <div className="mb-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">
-          ⚠ {error}
-        </div>
+        <div className="mb-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">⚠ {error}</div>
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-gray-400">
-          <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading services…
-        </div>
+        <AdminSkeleton rows={3} />
       ) : (
         <div className="grid gap-4">
           {services.map((s, i) => (
@@ -115,6 +122,13 @@ export default function ServicesPage() {
               </div>
             </div>
           ))}
+          {services.length === 0 && (
+            <div className="text-center py-16 text-gray-400">
+              <p className="text-4xl mb-3">✨</p>
+              <p className="font-medium">No services yet</p>
+              <p className="text-sm mt-1">Add your first service to start taking bookings.</p>
+            </div>
+          )}
         </div>
       )}
 

@@ -2,11 +2,13 @@
 import { useState, useEffect } from 'react'
 import { Clock, Plus, X, Search, Loader2 } from 'lucide-react'
 import {
-  getStaff, upsertStaffMember, deleteStaffMember,
-  getServices,
+  getStaff, upsertStaffMember, deleteStaffMember, getServices,
 } from '@/lib/supabase/queries'
+import AdminSkeleton  from '../_components/AdminSkeleton'
+import ToastContainer from '../_components/Toast'
+import { useToast }   from '@/hooks/useToast'
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const DAYS   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444']
 
 type DBService = { id: string; name: string; duration: number; price: number }
@@ -26,21 +28,23 @@ const emptyForm = {
 }
 
 export default function StaffPage() {
-  const [members, setMembers] = useState<DBStaff[]>([])
-  const [services, setServices] = useState<DBService[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [members, setMembers]     = useState<DBStaff[]>([])
+  const [services, setServices]   = useState<DBService[]>([])
+  const [loading, setLoading]     = useState(true)
+  const [saving, setSaving]       = useState(false)
   const [showModal, setShowModal] = useState(false)
-  const [editing, setEditing] = useState<DBStaff | null>(null)
-  const [form, setForm] = useState({ ...emptyForm })
+  const [editing, setEditing]     = useState<DBStaff | null>(null)
+  const [form, setForm]           = useState({ ...emptyForm })
   const [skillSearch, setSkillSearch] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError]         = useState('')
+  const { toasts, toast, dismiss } = useToast()
 
   const loadAll = async () => {
     try {
       const [staffData, svcData] = await Promise.all([getStaff(), getServices()])
       setMembers((staffData ?? []) as DBStaff[])
-      setServices((svcData ?? []) as DBService[])
+      setServices((svcData  ?? []) as DBService[])
+      setError('')
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load data')
     } finally {
@@ -50,62 +54,40 @@ export default function StaffPage() {
 
   useEffect(() => { loadAll() }, [])
 
-  const openCreate = () => {
-    setForm({ ...emptyForm })
-    setEditing(null)
-    setSkillSearch('')
-    setShowModal(true)
-  }
-
-  const openEdit = (m: DBStaff) => {
-    setForm({
-      name: m.name, role: m.role, bio: m.bio,
-      service_ids: [...m.service_ids],
-      work_days: [...m.work_days],
-      work_start: m.work_start, work_end: m.work_end,
-      active: m.active, color: m.color,
-    })
-    setEditing(m)
-    setSkillSearch('')
-    setShowModal(true)
+  const openCreate = () => { setForm({ ...emptyForm }); setEditing(null); setSkillSearch(''); setShowModal(true) }
+  const openEdit   = (m: DBStaff) => {
+    setForm({ name: m.name, role: m.role, bio: m.bio, service_ids: [...m.service_ids],
+      work_days: [...m.work_days], work_start: m.work_start, work_end: m.work_end,
+      active: m.active, color: m.color })
+    setEditing(m); setSkillSearch(''); setShowModal(true)
   }
 
   const toggleService = (id: string) =>
-    setForm(p => ({
-      ...p,
-      service_ids: p.service_ids.includes(id)
-        ? p.service_ids.filter(s => s !== id)
-        : [...p.service_ids, id],
-    }))
+    setForm(p => ({ ...p, service_ids: p.service_ids.includes(id)
+      ? p.service_ids.filter(s => s !== id)
+      : [...p.service_ids, id] }))
 
   const toggleDay = (d: number) =>
-    setForm(p => ({
-      ...p,
-      work_days: p.work_days.includes(d)
-        ? p.work_days.filter(x => x !== d)
-        : [...p.work_days, d].sort(),
-    }))
+    setForm(p => ({ ...p, work_days: p.work_days.includes(d)
+      ? p.work_days.filter(x => x !== d)
+      : [...p.work_days, d].sort() }))
 
   const handleSave = async () => {
-    setSaving(true)
-    setError('')
+    setSaving(true); setError('')
     try {
       await upsertStaffMember({
         ...(editing ? { id: editing.id } : {}),
-        name: form.name,
-        role: form.role,
-        bio: form.bio,
-        service_ids: form.service_ids,
-        work_days: form.work_days,
-        work_start: form.work_start,
-        work_end: form.work_end,
-        active: form.active,
-        color: form.color,
+        name: form.name, role: form.role, bio: form.bio,
+        service_ids: form.service_ids, work_days: form.work_days,
+        work_start: form.work_start, work_end: form.work_end,
+        active: form.active, color: form.color,
       })
       await loadAll()
       setShowModal(false)
+      toast.success(editing ? 'Staff member updated' : 'Staff member added')
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to save staff member')
+      toast.error('Failed to save staff member')
     } finally {
       setSaving(false)
     }
@@ -116,8 +98,10 @@ export default function StaffPage() {
     try {
       await deleteStaffMember(id)
       await loadAll()
+      toast.success('Staff member removed')
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to delete staff member')
+      toast.error('Failed to remove staff member')
     }
   }
 
@@ -125,8 +109,10 @@ export default function StaffPage() {
     try {
       await upsertStaffMember({ ...m, active: !m.active })
       await loadAll()
+      toast.success(m.active ? `${m.name} set to inactive` : `${m.name} set to active`)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to update staff member')
+      toast.error('Failed to update staff member')
     }
   }
 
@@ -135,7 +121,9 @@ export default function StaffPage() {
   )
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
+
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Staff</h1>
@@ -154,9 +142,7 @@ export default function StaffPage() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-gray-400">
-          <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading staff…
-        </div>
+        <AdminSkeleton rows={3} />
       ) : (
         <div className="grid gap-4">
           {members.map(m => {
@@ -230,7 +216,6 @@ export default function StaffPage() {
         </div>
       )}
 
-      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 my-8">
@@ -244,7 +229,6 @@ export default function StaffPage() {
             </div>
 
             <div className="space-y-5">
-              {/* Colour picker */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Avatar colour</label>
                 <div className="flex gap-2 items-center">
@@ -286,7 +270,6 @@ export default function StaffPage() {
                   rows={2} placeholder="Short description shown to customers" />
               </div>
 
-              {/* Skill picker — now from Supabase */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium text-gray-700">
@@ -336,7 +319,6 @@ export default function StaffPage() {
                 </p>
               </div>
 
-              {/* Working days */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Working days</label>
                 <div className="flex gap-2">
