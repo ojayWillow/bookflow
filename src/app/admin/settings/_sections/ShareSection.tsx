@@ -29,6 +29,10 @@ export default function ShareSection({ bookingUrl, whatsappLink, qrUrl }: Props)
 
   const buttonCode = `<a href="${bookingUrl}" target="_blank" style="display:inline-block;background:${btnColor};color:#fff;font-family:sans-serif;font-size:15px;font-weight:600;padding:12px 28px;border-radius:10px;text-decoration:none;">${btnLabel}</a>`
 
+  const btnSubText = 'Name it whatever you like — Book a table, Schedule a visit, Reserve now. Paste the snippet anywhere on your site.'
+  const instagramTip = 'Paste your booking link in your bio. Add Book here to your posts.'
+  const googleTip = 'Add your link under Booking in your Google Business profile. A Book online button appears on Maps.'
+
   return (
     <div className="space-y-6">
 
@@ -36,7 +40,8 @@ export default function ShareSection({ bookingUrl, whatsappLink, qrUrl }: Props)
       <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5">
         <p className="text-sm font-semibold text-indigo-900 mb-1">One link. Works everywhere.</p>
         <p className="text-xs text-indigo-700 leading-relaxed mb-4">
-          This is your booking page link. Share it in your Instagram bio, WhatsApp, email signature, Google Business, or anywhere else — it always opens your booking page.
+          This is your booking page link. Share it in your Instagram bio, WhatsApp, email signature,
+          Google Business, or anywhere else — it always opens your booking page.
         </p>
         <div className="flex items-center gap-2">
           <div className="flex-1 bg-white border border-indigo-200 rounded-xl px-4 py-2.5 text-sm font-mono text-indigo-600 truncate">
@@ -56,9 +61,7 @@ export default function ShareSection({ bookingUrl, whatsappLink, qrUrl }: Props)
       {/* ── Button generator ── */}
       <div className="bg-white border-2 border-gray-100 rounded-2xl p-5">
         <p className="text-sm font-semibold text-gray-900 mb-1">Add a booking button to your website</p>
-        <p className="text-xs text-gray-400 mb-4 leading-relaxed">
-          Name it whatever you like — "Book a table", "Schedule a visit", "Reserve now". Paste the snippet anywhere on your site.
-        </p>
+        <p className="text-xs text-gray-400 mb-4 leading-relaxed">{btnSubText}</p>
 
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="flex-1">
@@ -126,7 +129,9 @@ export default function ShareSection({ bookingUrl, whatsappLink, qrUrl }: Props)
             <img src={qrUrl} alt="QR code" width={100} height={100} className="rounded-lg" />
           </div>
           <div className="space-y-2">
-            <p className="text-xs text-gray-500 leading-relaxed">Print it on a business card, flyer or table stand. Customers scan it and land straight on your booking page.</p>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Print it on a business card, flyer or table stand. Customers scan it and land straight on your booking page.
+            </p>
             <a
               href={qrUrl}
               download="bookflow-qr.png"
@@ -145,36 +150,36 @@ export default function ShareSection({ bookingUrl, whatsappLink, qrUrl }: Props)
 
           <div className="flex items-start gap-3 p-3 bg-green-50 rounded-xl">
             <MessageCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-            <div>
+            <div className="space-y-1.5">
               <p className="text-xs font-semibold text-gray-800">WhatsApp</p>
-              <p className="text-xs text-gray-500 mt-0.5">Add to your WhatsApp Business profile under Website, or send it directly to customers.</p>
+              <p className="text-xs text-gray-500">Add to your WhatsApp Business profile under Website, or send directly to customers.</p>
               <CopyButton text={whatsappLink} label="Copy WhatsApp link" />
             </div>
           </div>
 
           <div className="flex items-start gap-3 p-3 bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl">
             <span className="text-base mt-0.5">📸</span>
-            <div>
+            <div className="space-y-1.5">
               <p className="text-xs font-semibold text-gray-800">Instagram</p>
-              <p className="text-xs text-gray-500 mt-0.5">Paste your booking link in your bio. Add "Book here 👇" to your posts.</p>
+              <p className="text-xs text-gray-500">{instagramTip}</p>
               <CopyButton text={bookingUrl} label="Copy link" />
             </div>
           </div>
 
           <div className="flex items-start gap-3 p-3 bg-red-50 rounded-xl">
             <MapPin className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-            <div>
+            <div className="space-y-1.5">
               <p className="text-xs font-semibold text-gray-800">Google Business</p>
-              <p className="text-xs text-gray-500 mt-0.5">Add your link under Booking in your Google Business profile. A "Book online" button appears on Maps.</p>
+              <p className="text-xs text-gray-500">{googleTip}</p>
               <CopyButton text={bookingUrl} label="Copy link" />
             </div>
           </div>
 
           <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-xl">
             <span className="text-base mt-0.5">✉️</span>
-            <div>
+            <div className="space-y-1.5">
               <p className="text-xs font-semibold text-gray-800">Email signature</p>
-              <p className="text-xs text-gray-500 mt-0.5">Add your booking link to every email you send. Customers can book directly from your signature.</p>
+              <p className="text-xs text-gray-500">Add your booking link to every email you send. Customers can book directly from your signature.</p>
               <CopyButton text={bookingUrl} label="Copy link" />
             </div>
           </div>
