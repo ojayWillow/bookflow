@@ -13,6 +13,7 @@ type Settings = {
   phone: string; email: string; slug: string
   open_days: number[]; open_time: string; close_time: string
   slot_interval: number; lead_time_hours: number; max_advance_days: number
+  cancellation_window_hours: number
   cancellation_policy: string; primary_color: string
   logo_url: string; cover_url: string
   instagram_url: string; facebook_url: string; tiktok_url: string; website_url: string
@@ -175,6 +176,7 @@ export default function SettingsPage() {
         <BookingRulesSection
           leadTimeHours={settings.lead_time_hours}
           maxAdvanceDays={settings.max_advance_days}
+          cancellationWindowHours={settings.cancellation_window_hours ?? 24}
           cancellationPolicy={settings.cancellation_policy}
           onChange={set}
         />
