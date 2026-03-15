@@ -108,14 +108,12 @@ const en = {
   // ── Booking wizard ────────────────────────────────────────────────────────
   booking: {
     locale:              'en',
-    // Step nav labels
     stepService:         'Service',
     stepStaff:           'Specialist',
     stepDateTime:        'Date & time',
     stepDetails:         'Details',
     stepConfirm:         'Confirm',
     back:                'Back',
-    // Step titles / subtitles
     stepServiceTitle:    'Choose a service',
     stepServiceSub:      'Select the service you\'d like to book.',
     stepStaffTitle:      'Choose a specialist',
@@ -124,20 +122,16 @@ const en = {
     stepDetailsSub:      'We need a few details to confirm your booking.',
     stepConfirmTitle:    'Review your booking',
     stepConfirmSub:      'Please check everything before confirming.',
-    // Services
     noServicesTitle:     'No services available',
     noServicesSub:       'This business hasn\'t added any services yet.',
-    // Staff
     anyoneAvailable:     'Anyone available',
     anyoneAvailableSub:  'We\'ll assign the first available specialist.',
     noStaff:             'No specialists available for this service.',
-    // Date / time
     selectDate:          'Select a date',
     selectTime:          'Select a time',
     noAvailableDatesTitle: 'No available dates',
     noAvailableDatesSub:   'The business may not have set their schedule yet.',
     noSlots:             'No available slots for this date.',
-    // Details form
     labelName:           'Full name',
     labelEmail:          'Email',
     labelPhone:          'Phone number',
@@ -147,7 +141,6 @@ const en = {
     placeholderNotes:    'Anything we should know?',
     looksGood:           'Looks good',
     reviewBooking:       'Review booking',
-    // Confirm step
     bookingSummary:      'Booking summary',
     rowService:          'Service',
     rowDuration:         'Duration',
@@ -162,14 +155,12 @@ const en = {
     cancellationPolicy:  'Cancellation policy',
     confirmBooking:      'Confirm booking',
     confirming:          'Confirming…',
-    // Success
     successTitle:        'You\'re booked!',
     successEmailSent:    'Confirmation sent to {{email}}',
     successSaveRef:      'Check your details below — please save your booking reference.',
     bookingRef:          'Booking ref',
     at:                  'at',
     followUs:            'Follow us',
-    // Misc
     min:                 'min',
     errorGeneric:        'Something went wrong. Please try again.',
     errorNameParts:      'Please enter your first and last name',
@@ -209,7 +200,7 @@ const en = {
     errorPasswordShort:      'Password must be at least 8 characters',
     errorGeneric:            'Something went wrong. Please try again.',
   },
-} as const
+}
 
 export type PublicDict = typeof en
 export default en
