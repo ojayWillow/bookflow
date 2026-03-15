@@ -44,7 +44,7 @@ const lv: PublicDict = {
 
   pricing: {
     sectionTitle: 'Skaidras cenas',
-    sectionSub:   'Izmēģini jebkuru plānu 7 dienas bez maksas. Karte nav vajadzīga.',
+    sectionSub:   'Izmēģini 7 dienas bez maksas. Karte nav vajadzīga.',
     mostPopular:  'Populārākais',
     perMonth:     '/mēn.',
     afterTrial:   'pēc 7 dienu izmēģinājuma',
@@ -53,15 +53,22 @@ const lv: PublicDict = {
     plans: [
       {
         name: 'Sācējs',
-        features: ['1 atrašanās vieta', 'Līdz 5 pakalpojumiem', 'E-pasta apstiprinājumi', 'Pamata dizains'],
+        features: [
+          'Neierobežoti pakalpojumi',
+          'Online rezervāciju lapa',
+          'E-pasta apstiprinājumi',
+          'Pielāgots dizains',
+          'Darbinieku pārvaldība',
+          'Grafika pārvaldība',
+        ],
       },
       {
         name: 'Pro',
-        features: ['Neierobežoti pakalpojumi', 'Savs domēns', 'SMS atgādinājumi', 'Statistikas panelis', 'Prioritārs atbalsts'],
+        features: ['Savs domēns', 'SMS atgādinājumi', 'Statistikas panelis', 'Vairākas atrašanās vietas', 'Prioritārs atbalsts'],
       },
       {
         name: 'Aģentūra',
-        features: ['Vairākas atrašanās vietas', 'White-label tālākpārdošana', 'API piekļuve', 'Personīgais atbalsts', 'Pielāgota integrācija'],
+        features: ['White-label tālākpārdošana', 'API piekļuve', 'Personīgais atbalsts', 'Pielāgota integrācija'],
       },
     ],
   },

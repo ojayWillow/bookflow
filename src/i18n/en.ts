@@ -45,7 +45,7 @@ const en = {
   // ── Pricing ───────────────────────────────────────────────────────────────
   pricing: {
     sectionTitle: 'Simple pricing',
-    sectionSub:   'Try any plan free for 7 days. No credit card required.',
+    sectionSub:   'Try free for 7 days. No credit card required.',
     mostPopular:  'Most popular',
     perMonth:     '/mo',
     afterTrial:   'after 7-day free trial',
@@ -54,15 +54,22 @@ const en = {
     plans: [
       {
         name: 'Starter',
-        features: ['1 location', 'Up to 5 services', 'Email confirmations', 'Basic branding'],
+        features: [
+          'Unlimited services',
+          'Online booking page',
+          'Email confirmations',
+          'Custom branding',
+          'Staff management',
+          'Schedule management',
+        ],
       },
       {
         name: 'Pro',
-        features: ['Unlimited services', 'Custom domain', 'SMS reminders', 'Analytics dashboard', 'Priority support'],
+        features: ['Custom domain', 'SMS reminders', 'Analytics dashboard', 'Multiple locations', 'Priority support'],
       },
       {
         name: 'Agency',
-        features: ['Multiple locations', 'White-label resale', 'API access', 'Dedicated support', 'Custom integrations'],
+        features: ['White-label resale', 'API access', 'Dedicated support', 'Custom integrations'],
       },
     ],
   },
