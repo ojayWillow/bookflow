@@ -3,13 +3,19 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 
-export default function HeroSignupForm() {
+interface Props {
+  locale: string
+  emailPlaceholder: string
+  cta: string
+}
+
+export default function HeroSignupForm({ locale, emailPlaceholder, cta }: Props) {
   const [email, setEmail] = useState('')
   const router = useRouter()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    router.push(`/signup?email=${encodeURIComponent(email)}`)
+    router.push(`/${locale}/signup?email=${encodeURIComponent(email)}`)
   }
 
   return (
@@ -19,14 +25,14 @@ export default function HeroSignupForm() {
         value={email}
         onChange={e => setEmail(e.target.value)}
         required
-        placeholder="Enter your email"
+        placeholder={emailPlaceholder}
         className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 transition-colors bg-white"
       />
       <button
         type="submit"
         className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
       >
-        Get started <ArrowRight className="w-4 h-4" />
+        {cta} <ArrowRight className="w-4 h-4" />
       </button>
     </form>
   )
