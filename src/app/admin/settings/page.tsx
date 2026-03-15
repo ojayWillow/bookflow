@@ -3,10 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Loader2 } from 'lucide-react'
 import BrandingSection      from './_sections/BrandingSection'
 import OnlinePresenceSection from './_sections/OnlinePresenceSection'
-import ShareSection          from './_sections/ShareSection'
 import BusinessInfoSection   from './_sections/BusinessInfoSection'
-import ScheduleSection       from './_sections/ScheduleSection'
-import BookingRulesSection   from './_sections/BookingRulesSection'
 
 type Settings = {
   id: string; name: string; tagline: string; address: string
@@ -83,19 +80,9 @@ export default function SettingsPage() {
   const set = (field: string, value: unknown) =>
     setSettings(p => p ? { ...p, [field]: value } : p)
 
-  const toggleDay = (day: number) => {
-    if (!settings) return
-    setSettings(prev => prev ? ({
-      ...prev,
-      open_days: prev.open_days.includes(day)
-        ? prev.open_days.filter(d => d !== day)
-        : [...prev.open_days, day].sort(),
-    }) : prev)
-  }
-
   if (loading) return (
     <div className="flex items-center justify-center py-32 text-gray-400">
-      <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading settings…
+      <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading…
     </div>
   )
   if (!settings) return (
@@ -107,17 +94,11 @@ export default function SettingsPage() {
     </div>
   )
 
-  const bookingUrl    = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow.app'}/book/${settings.slug}`
-  const iframeCode    = `<iframe src="${bookingUrl}" width="100%" height="700" frameborder="0" style="border-radius:16px"></iframe>`
-  const whatsappPhone = settings.phone.replace(/[^0-9]/g, '')
-  const whatsappLink  = `https://wa.me/${whatsappPhone}?text=Hi%2C+I'd+like+to+make+a+booking+at+${encodeURIComponent(settings.name)}`
-  const qrUrl         = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(bookingUrl)}`
-
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="p-6 md:p-8 max-w-2xl">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-400 mt-1">Configure your business, schedule and booking rules</p>
+        <p className="text-gray-400 mt-1">Your business identity and branding</p>
       </div>
 
       {error && (
@@ -127,6 +108,19 @@ export default function SettingsPage() {
       )}
 
       <div className="space-y-6">
+        <BusinessInfoSection
+          name={settings.name}
+          tagline={settings.tagline}
+          address={settings.address}
+          phone={settings.phone}
+          email={settings.email}
+          slug={settings.slug}
+          originalSlug={originalSlug}
+          slugStatus={slugStatus}
+          onChange={set}
+          onSlugChange={v => { set('slug', v); checkSlug(v) }}
+        />
+
         <BrandingSection
           settings={settings}
           hexInput={hexInput}
@@ -144,49 +138,12 @@ export default function SettingsPage() {
           onChange={set}
         />
 
-        <ShareSection
-          bookingUrl={bookingUrl}
-          iframeCode={iframeCode}
-          whatsappLink={whatsappLink}
-          qrUrl={qrUrl}
-        />
-
-        <BusinessInfoSection
-          name={settings.name}
-          tagline={settings.tagline}
-          address={settings.address}
-          phone={settings.phone}
-          email={settings.email}
-          slug={settings.slug}
-          originalSlug={originalSlug}
-          slugStatus={slugStatus}
-          onChange={set}
-          onSlugChange={v => { set('slug', v); checkSlug(v) }}
-        />
-
-        <ScheduleSection
-          openDays={settings.open_days}
-          openTime={settings.open_time}
-          closeTime={settings.close_time}
-          slotInterval={settings.slot_interval}
-          onToggleDay={toggleDay}
-          onChange={set}
-        />
-
-        <BookingRulesSection
-          leadTimeHours={settings.lead_time_hours}
-          maxAdvanceDays={settings.max_advance_days}
-          cancellationWindowHours={settings.cancellation_window_hours ?? 24}
-          cancellationPolicy={settings.cancellation_policy}
-          onChange={set}
-        />
-
         <button
           onClick={handleSave}
           disabled={saving || slugStatus === 'taken'}
           className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
           {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-          {saved ? '✓ Settings saved!' : slugStatus === 'taken' ? 'Fix slug to save' : 'Save settings'}
+          {saved ? '✓ Saved!' : slugStatus === 'taken' ? 'Fix URL to save' : 'Save settings'}
         </button>
       </div>
     </div>

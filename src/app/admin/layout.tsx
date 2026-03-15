@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { Calendar, BookOpen, Settings, Users, LayoutDashboard, LogOut, Loader2, Menu, X } from 'lucide-react'
+import { Calendar, BookOpen, Settings, Users, LayoutDashboard, LogOut, Loader2, Menu, X, Clock, Share2 } from 'lucide-react'
 import NotificationBell from './_components/NotificationBell'
 
 const NAV = [
@@ -10,6 +10,8 @@ const NAV = [
   { href: '/admin/bookings',  label: 'Bookings',  icon: BookOpen },
   { href: '/admin/services',  label: 'Services',  icon: Calendar },
   { href: '/admin/staff',     label: 'Staff',     icon: Users },
+  { href: '/admin/schedule',  label: 'Schedule',  icon: Clock },
+  { href: '/admin/share',     label: 'Share',     icon: Share2 },
   { href: '/admin/settings',  label: 'Settings',  icon: Settings },
 ]
 
@@ -39,7 +41,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           <span className="font-bold text-gray-900 text-sm">BookFlow</span>
         </div>
-        {/* Close button — mobile only */}
         <button
           onClick={() => setDrawerOpen(false)}
           className="md:hidden p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
@@ -83,13 +84,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-
-      {/* ─── Desktop sidebar ───────────────────────────────────────────── */}
       <aside className="hidden md:flex w-56 bg-white border-r border-gray-100 flex-col flex-shrink-0">
         {SidebarContent}
       </aside>
 
-      {/* ─── Mobile drawer overlay ────────────────────────────────────── */}
       {drawerOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/40 md:hidden"
@@ -104,24 +102,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {SidebarContent}
       </aside>
 
-      {/* ─── Main content ───────────────────────────────────────────────── */}
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         <div className="flex justify-between items-center px-4 md:px-6 py-3 border-b border-gray-100 bg-white flex-shrink-0">
-          {/* Hamburger — mobile only */}
           <button
             onClick={() => setDrawerOpen(true)}
             className="md:hidden p-2 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="hidden md:block" />{/* spacer on desktop */}
+          <div className="hidden md:block" />
           <NotificationBell />
         </div>
         <div className="flex-1 overflow-auto">
           {children}
         </div>
       </main>
-
     </div>
   )
 }
