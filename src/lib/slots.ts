@@ -1,8 +1,7 @@
 import { addDays, format, isBefore } from 'date-fns'
 
-// ─── Shared types ────────────────────────────────────────────
+// ─── Shared types ────────────────────────────────────
 
-// Local type — no longer imported from @/data/mock
 export type SlotStaffMember = {
   id: string
   name: string
@@ -19,7 +18,7 @@ export type SlotStaffMember = {
 export type BookedSlotRaw = {
   time: string
   service_duration: number
-  staff_id: string
+  staff_id: string | null
 }
 
 type Settings = {
@@ -31,7 +30,7 @@ type Settings = {
   max_advance_days?: number
 }
 
-// ─── Helpers ─────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────
 
 function toMins(hhmm: string): number {
   const [h, m] = hhmm.split(':').map(Number)
@@ -42,6 +41,9 @@ function toHHMM(mins: number): string {
   return `${Math.floor(mins / 60).toString().padStart(2, '0')}:${(mins % 60).toString().padStart(2, '0')}`
 }
 
+/**
+ * Returns true if [slotStart, slotStart+durationMins) overlaps any booking in `booked`.
+ */
 function isBlocked(
   slotStart: number,
   durationMins: number,
@@ -49,12 +51,12 @@ function isBlocked(
 ): boolean {
   return booked.some(b => {
     const bStart = toMins(b.time)
-    const bEnd = bStart + b.service_duration
+    const bEnd   = bStart + b.service_duration
     return slotStart < bEnd && slotStart + durationMins > bStart
   })
 }
 
-// ─── Public API ──────────────────────────────────────────────
+// ─── Public API ────────────────────────────────────────────
 
 export function getAvailableDates(settings: Settings): string[] {
   const openDays = settings.open_days ?? [1, 2, 3, 4, 5]
@@ -73,6 +75,14 @@ export function getAvailableDates(settings: Settings): string[] {
   return dates
 }
 
+/**
+ * Slots for a specific staff member (or no staff).
+ *
+ * `bookedSlots` contains ALL bookings for the day (all staff).
+ * We only block this staff member's slots with:
+ *   - bookings assigned to them
+ *   - bookings with null staff_id ("anyone" bookings that block everyone)
+ */
 export function getSlotsForDate(
   date: string,
   durationMins: number,
@@ -90,15 +100,22 @@ export function getSlotsForDate(
     if (!staffMember.workDays.includes(dow)) return []
   }
 
-  const openMins      = toMins(startTime)
-  const closeMins     = toMins(endTime)
-  const leadCutoffMs  = Date.now() + leadHours * 3_600_000
+  const openMins     = toMins(startTime)
+  const closeMins    = toMins(endTime)
+  const leadCutoffMs = Date.now() + leadHours * 3_600_000
 
-  const booked: BookedSlotRaw[] = (bookedSlots as Array<string | BookedSlotRaw>).map(b =>
+  const allBooked: BookedSlotRaw[] = (bookedSlots as Array<string | BookedSlotRaw>).map(b =>
     typeof b === 'string'
-      ? { time: b, service_duration: durationMins, staff_id: '' }
+      ? { time: b, service_duration: durationMins, staff_id: null }
       : b
   )
+
+  // Only consider bookings relevant to this staff member:
+  //   - same staff_id, OR
+  //   - null staff_id ("anyone" — blocks the whole schedule)
+  const relevant = staffMember
+    ? allBooked.filter(b => b.staff_id === staffMember.id || b.staff_id === null)
+    : allBooked
 
   const slots: { time: string; available: boolean }[] = []
 
@@ -110,12 +127,20 @@ export function getSlotsForDate(
       slots.push({ time, available: false })
       continue
     }
-    slots.push({ time, available: !isBlocked(m, durationMins, booked) })
+    slots.push({ time, available: !isBlocked(m, durationMins, relevant) })
   }
 
   return slots
 }
 
+/**
+ * Union slots when "Anyone" is selected.
+ *
+ * A slot is available if AT LEAST ONE staff member is free.
+ * A staff member is blocked by:
+ *   - bookings assigned to them
+ *   - null staff_id bookings ("anyone" bookings block all staff)
+ */
 export function getUnionSlotsForDate(
   date: string,
   durationMins: number,
@@ -123,12 +148,15 @@ export function getUnionSlotsForDate(
   staffList: SlotStaffMember[],
   settings: Settings
 ): { time: string; available: boolean }[] {
-  const interval  = settings.slot_interval  ?? 30
-  const leadHours = settings.lead_time_hours ?? 2
-  const openMins  = toMins(settings.open_time  ?? '09:00')
-  const closeMins = toMins(settings.close_time ?? '18:00')
+  const interval     = settings.slot_interval  ?? 30
+  const leadHours    = settings.lead_time_hours ?? 2
+  const openMins     = toMins(settings.open_time  ?? '09:00')
+  const closeMins    = toMins(settings.close_time ?? '18:00')
   const leadCutoffMs = Date.now() + leadHours * 3_600_000
-  const dow = new Date(date + 'T12:00:00').getDay()
+  const dow          = new Date(date + 'T12:00:00').getDay()
+
+  // Null-staff bookings block every staff member
+  const nullBooked = allBooked.filter(b => b.staff_id === null)
 
   const slots: { time: string; available: boolean }[] = []
 
@@ -146,7 +174,13 @@ export function getUnionSlotsForDate(
       const staffStart = toMins(staff.workStart)
       const staffEnd   = toMins(staff.workEnd)
       if (m < staffStart || m + durationMins > staffEnd) return false
-      const staffBooked = allBooked.filter(b => b.staff_id === staff.id)
+
+      // Bookings that block this specific staff member:
+      // their own bookings + any null-staff bookings
+      const staffBooked = [
+        ...allBooked.filter(b => b.staff_id === staff.id),
+        ...nullBooked,
+      ]
       return !isBlocked(m, durationMins, staffBooked)
     })
 
