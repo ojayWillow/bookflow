@@ -7,11 +7,9 @@ import { randomBytes } from 'crypto'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-// ─── Simple in-memory rate limiter (per IP, resets every minute) ──────────────
-// For production scale, replace with @upstash/ratelimit + Redis.
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT_MAX      = 10   // max bookings per window
-const RATE_LIMIT_WINDOW   = 60_000 // 1 minute in ms
+const RATE_LIMIT_MAX    = 10
+const RATE_LIMIT_WINDOW = 60_000
 
 function isRateLimited(ip: string): boolean {
   const now    = Date.now()
@@ -24,7 +22,6 @@ function isRateLimited(ip: string): boolean {
   return record.count > RATE_LIMIT_MAX
 }
 
-// ─── Validation schema ────────────────────────────────────────────────────────
 const uuid       = z.string().uuid()
 const timeString = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid time format (HH:MM expected)')
 const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD expected)')
@@ -46,8 +43,6 @@ const BookingSchema = z.object({
 })
 
 type BookingBody = z.infer<typeof BookingSchema>
-
-// ─── Email templates ──────────────────────────────────────────────────────────
 
 function customerEmailHtml(p: {
   businessName: string
@@ -207,7 +202,7 @@ function adminEmailHtml(p: {
           </table>
         </td></tr>
         <tr><td style="background:#f9fafb;padding:16px 32px;text-align:center">
-          <p style="margin:0;color:#9ca3af;font-size:12px">BookFlow &#8212; ${p.businessName}</p>
+          <p style="margin:0;color:#9ca3af;font-size:12px">${p.businessName}</p>
         </td></tr>
       </table>
     </td></tr>
@@ -216,11 +211,8 @@ function adminEmailHtml(p: {
 </html>`
 }
 
-// ─── Route handler ────────────────────────────────────────────────────────────
-
 export async function POST(req: NextRequest) {
   try {
-    // ── Rate limiting ─────────────────────────────────────────────────────────
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
     if (isRateLimited(ip)) {
       return NextResponse.json(
@@ -230,7 +222,6 @@ export async function POST(req: NextRequest) {
     }
 
     const raw = await req.json()
-
     const parsed = BookingSchema.safeParse(raw)
     if (!parsed.success) {
       return NextResponse.json(
@@ -252,7 +243,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    // ── Generate booking ref server-side with crypto randomness ───────────────
     const ref = 'BF-' + randomBytes(4).toString('hex').toUpperCase()
 
     const { data: booking, error: bookingError } = await supabase
@@ -288,15 +278,15 @@ export async function POST(req: NextRequest) {
       .eq('id', body.business_id)
       .single()
 
-    const businessName  = biz?.name                ?? 'BookFlow'
+    const businessName  = biz?.name                ?? 'Business'
     const businessAddr  = biz?.address             ?? ''
     const businessPhone = biz?.phone               ?? ''
     const businessEmail = biz?.email               ?? ''
     const cancelPolicy  = biz?.cancellation_policy ?? ''
 
-    const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow.app'
-    const fromDomain = process.env.RESEND_FROM_DOMAIN  ?? 'bookflow.app'
-    const fromEmail  = `bookings@${fromDomain}`
+    const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow-three.vercel.app'
+    const fromDomain = process.env.RESEND_FROM_DOMAIN  ?? 'kolab.lv'
+    const fromEmail  = `noreply@${fromDomain}`
     const adminEmail = businessEmail
 
     const cancelToken = generateCancelToken(booking.id)
@@ -329,7 +319,7 @@ export async function POST(req: NextRequest) {
         }),
       }),
       ...(adminEmail ? [resend.emails.send({
-        from:    `BookFlow <${fromEmail}>`,
+        from:    `${businessName} <${fromEmail}>`,
         to:      adminEmail,
         subject: `New booking: ${body.customer_name} \u2014 ${body.service_name} on ${body.date}`,
         html: adminEmailHtml({
