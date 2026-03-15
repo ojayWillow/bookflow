@@ -41,18 +41,16 @@ function toHHMM(mins: number): string {
   return `${Math.floor(mins / 60).toString().padStart(2, '0')}:${(mins % 60).toString().padStart(2, '0')}`
 }
 
-/**
- * Returns true if [slotStart, slotStart+durationMins) overlaps any booking in `booked`.
- */
 function isBlocked(
   slotStart: number,
   durationMins: number,
   booked: BookedSlotRaw[]
 ): boolean {
+  const slotEnd = slotStart + durationMins
   return booked.some(b => {
     const bStart = toMins(b.time)
     const bEnd   = bStart + b.service_duration
-    return slotStart < bEnd && slotStart + durationMins > bStart
+    return slotStart < bEnd && slotEnd > bStart
   })
 }
 
@@ -76,12 +74,13 @@ export function getAvailableDates(settings: Settings): string[] {
 }
 
 /**
- * Slots for a specific staff member (or no staff).
+ * Slots for a specific staff member (or no staff / anyone).
  *
- * `bookedSlots` contains ALL bookings for the day (all staff).
- * We only block this staff member's slots with:
- *   - bookings assigned to them
- *   - bookings with null staff_id ("anyone" bookings that block everyone)
+ * bookedSlots contains ALL bookings for the day.
+ * When a staffMember is given we only block using:
+ *   - bookings for that staff member
+ *   - bookings with null staff_id (anyone — blocks the whole schedule)
+ * When no staffMember, ALL bookings block slots.
  */
 export function getSlotsForDate(
   date: string,
@@ -110,12 +109,10 @@ export function getSlotsForDate(
       : b
   )
 
-  // Only consider bookings relevant to this staff member:
-  //   - same staff_id, OR
-  //   - null staff_id ("anyone" — blocks the whole schedule)
+  // Filter to only relevant bookings for this staff member
   const relevant = staffMember
     ? allBooked.filter(b => b.staff_id === staffMember.id || b.staff_id === null)
-    : allBooked
+    : allBooked // no staff = all bookings are relevant blockers
 
   const slots: { time: string; available: boolean }[] = []
 
@@ -134,12 +131,10 @@ export function getSlotsForDate(
 }
 
 /**
- * Union slots when "Anyone" is selected.
+ * Union slots when "Anyone" is selected AND staff exist.
  *
  * A slot is available if AT LEAST ONE staff member is free.
- * A staff member is blocked by:
- *   - bookings assigned to them
- *   - null staff_id bookings ("anyone" bookings block all staff)
+ * Each staff member is blocked by their own bookings + null-staff bookings.
  */
 export function getUnionSlotsForDate(
   date: string,
@@ -148,6 +143,12 @@ export function getUnionSlotsForDate(
   staffList: SlotStaffMember[],
   settings: Settings
 ): { time: string; available: boolean }[] {
+  // If no staff configured, fall back to simple business-hours blocking
+  // using all bookings as blockers (treat as a single shared calendar)
+  if (staffList.length === 0) {
+    return getSlotsForDate(date, durationMins, allBooked, null, settings)
+  }
+
   const interval     = settings.slot_interval  ?? 30
   const leadHours    = settings.lead_time_hours ?? 2
   const openMins     = toMins(settings.open_time  ?? '09:00')
@@ -175,9 +176,8 @@ export function getUnionSlotsForDate(
       const staffEnd   = toMins(staff.workEnd)
       if (m < staffStart || m + durationMins > staffEnd) return false
 
-      // Bookings that block this specific staff member:
-      // their own bookings + any null-staff bookings
-      const staffBooked = [
+      // Block this staff member with: their own bookings + null-staff bookings
+      const staffBooked: BookedSlotRaw[] = [
         ...allBooked.filter(b => b.staff_id === staff.id),
         ...nullBooked,
       ]
