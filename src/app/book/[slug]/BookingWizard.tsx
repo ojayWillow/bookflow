@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   getServicesForBusiness,
   getStaffForBusiness,
@@ -70,26 +70,30 @@ export default function BookingWizard({ business }: { business: Business }) {
   const [dict, setDict]                           = useState<PublicDict | null>(null)
   const [locale, setLocale]                       = useState<Locale>('lv')
 
+  // Always-current ref so the event listener never reads stale closure state
+  const localeRef = useRef<Locale>('lv')
+
   useEffect(() => {
     const detected = readLocaleCookie()
+    localeRef.current = detected
     setLocale(detected)
     getDictionary(detected).then(setDict)
   }, [])
 
-  // Re-load dict when user switches language via the switcher
-  // LanguageSwitcher writes the cookie — we poll for cookie changes via a
-  // storage event isn't available for cookies, so we listen to a custom event
+  // Stable listener — registered once, reads locale via ref to avoid stale closure.
+  // LanguageSwitcher fires 'bookflow:locale-change' after writing the cookie.
   useEffect(() => {
     const handler = () => {
       const next = readLocaleCookie()
-      if (next !== locale) {
+      if (next !== localeRef.current) {
+        localeRef.current = next
         setLocale(next)
         getDictionary(next).then(setDict)
       }
     }
     window.addEventListener('bookflow:locale-change', handler)
     return () => window.removeEventListener('bookflow:locale-change', handler)
-  }, [locale])
+  }, []) // empty deps — intentional, localeRef.current is always fresh
 
   useEffect(() => {
     setLoadingData(true)
