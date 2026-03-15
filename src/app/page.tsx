@@ -13,14 +13,14 @@ export default function LandingPage() {
 
       {/* ── Nav ── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between">
 
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Calendar className="w-4 h-4 text-white" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             </div>
-            <span className="text-lg font-bold text-gray-900">BookFlow</span>
+            <span className="text-base sm:text-lg font-bold text-gray-900">BookFlow</span>
           </div>
 
           {/* Desktop nav links */}
@@ -31,15 +31,18 @@ export default function LandingPage() {
 
           {/* Right side */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <LanguageSwitcher />
-            {/* Sign in — hidden on smallest screens */}
-            <Link href="/admin/login" className="hidden sm:block text-sm text-gray-600 hover:text-gray-900 transition-colors">
+            {/* Language switcher — smaller on mobile */}
+            <div className="scale-90 sm:scale-100 origin-right">
+              <LanguageSwitcher />
+            </div>
+            {/* Sign in — desktop only */}
+            <Link href="/admin/login" className="hidden md:block text-sm text-gray-600 hover:text-gray-900 transition-colors">
               Sign in
             </Link>
-            {/* CTA — hidden on mobile, shown sm+ */}
+            {/* CTA — desktop only (mobile uses sticky bottom bar) */}
             <Link
               href="/signup"
-              className="hidden sm:inline-flex items-center bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors whitespace-nowrap"
+              className="hidden md:inline-flex items-center bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors whitespace-nowrap"
             >
               Try free for 7 days
             </Link>
@@ -48,48 +51,47 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ── */}
-      {/* Extra bottom padding on mobile to clear the sticky CTA bar */}
-      <section className="pt-24 sm:pt-32 pb-36 sm:pb-16 px-4 sm:px-6">
+      <section className="pt-20 sm:pt-32 pb-32 sm:pb-16 px-4 sm:px-6">
         <div className="max-w-3xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-5">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-4">
             Online booking that<br />
             <span className="text-indigo-600">just works</span>
           </h1>
-          <p className="text-base sm:text-xl text-gray-500 leading-relaxed mb-8 max-w-md sm:max-w-lg mx-auto">
+          <p className="text-sm sm:text-xl text-gray-500 leading-relaxed mb-6 max-w-xs sm:max-w-lg mx-auto">
             Give your business a professional booking page in minutes. Customers book, you get notified, everyone knows what&apos;s happening.
           </p>
 
-          {/* Form — hidden on mobile (sticky bar handles CTA) */}
-          <div className="hidden sm:flex justify-center">
+          {/* Email form — desktop only; mobile uses sticky bottom bar */}
+          <div className="hidden md:flex justify-center">
             <HeroSignupForm
               locale={en.booking.locale}
               emailPlaceholder={en.hero.emailPlaceholder}
               cta={en.hero.cta}
             />
           </div>
-          <p className="hidden sm:block text-sm text-gray-400 mt-4">7-day free trial &middot; No credit card required</p>
+          <p className="hidden md:block text-sm text-gray-400 mt-4">7-day free trial &middot; No credit card required</p>
 
           {/* Trust row */}
-          <div className="mt-6 sm:mt-8 flex items-center justify-center gap-3 text-sm text-gray-400">
-            <div className="flex -space-x-2">
+          <div className="mt-5 sm:mt-8 flex items-center justify-center gap-2 sm:gap-3">
+            <div className="flex -space-x-1.5">
               {['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981'].map((color, i) => (
                 <div
                   key={i}
-                  className="w-7 h-7 rounded-full border-2 border-white"
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-white"
                   style={{ backgroundColor: color }}
                 />
               ))}
             </div>
-            <span className="text-xs sm:text-sm">Trusted by <strong className="text-gray-600">1,200+ businesses</strong></span>
+            <span className="text-xs sm:text-sm text-gray-400">Trusted by <strong className="text-gray-600">1,200+ businesses</strong></span>
           </div>
         </div>
       </section>
 
       {/* ── Sticky mobile CTA bar ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-white border-t border-gray-200 px-4 py-3 shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white border-t border-gray-200 px-4 py-3 shadow-lg">
         <Link
           href="/signup"
-          className="flex items-center justify-center gap-2 w-full h-12 bg-indigo-600 text-white font-semibold text-sm rounded-xl hover:bg-indigo-700 transition-colors"
+          className="flex items-center justify-center gap-2 w-full h-11 bg-indigo-600 text-white font-semibold text-sm rounded-xl hover:bg-indigo-700 transition-colors"
         >
           Try free for 7 days &rarr;
         </Link>
@@ -155,10 +157,10 @@ export default function LandingPage() {
       <section className="py-16 sm:py-20 px-4 sm:px-6 bg-indigo-600">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Ready to take bookings online?</h2>
-          <p className="text-indigo-200 text-base sm:text-lg mb-8">Try BookFlow free for 7 days. No credit card, no contracts.</p>
+          <p className="text-indigo-200 text-sm sm:text-lg mb-8">Try BookFlow free for 7 days. No credit card, no contracts.</p>
           <Link
             href="/signup"
-            className="inline-block bg-white text-indigo-600 px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-semibold hover:bg-indigo-50 transition-colors"
+            className="inline-block bg-white text-indigo-600 px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-sm sm:text-lg font-semibold hover:bg-indigo-50 transition-colors"
           >
             Start your free trial →
           </Link>
@@ -166,7 +168,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-gray-200 py-8 sm:py-10 px-4 sm:px-6 pb-24 sm:pb-10">
+      <footer className="border-t border-gray-200 py-8 sm:py-10 px-4 sm:px-6 pb-24 md:pb-10">
         <div className="max-w-5xl mx-auto flex flex-col items-center gap-4 md:flex-row md:justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center">
