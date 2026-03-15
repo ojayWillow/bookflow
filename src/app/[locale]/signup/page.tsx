@@ -9,7 +9,7 @@ import type { PublicDict } from '@/i18n/en'
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow.app'
 
-function SignupForm({ locale, t }: { locale: string; t: PublicDict }) {
+function SignupForm({ _locale, t }: { _locale: string; t: PublicDict }) {
   const s        = t.signup
   const router   = useRouter()
   const params   = useSearchParams()
@@ -175,7 +175,7 @@ export default function SignupPage({ params }: { params: { locale: string } }) {
 
   return (
     <Suspense>
-      <SignupForm locale={params.locale} t={dict} />
+      <SignupForm _locale={params.locale} t={dict} />
     </Suspense>
   )
 }

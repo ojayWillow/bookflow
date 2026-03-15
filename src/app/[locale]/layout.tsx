@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { locales, type Locale } from '@/i18n/index'
+import { locales } from '@/i18n/index'
 
 export async function generateStaticParams() {
   return locales.map(locale => ({ locale }))
