@@ -209,84 +209,67 @@ export default function BookingWizard({ business }: { business: Business }) {
     <div className="min-h-screen bg-gray-50">
 
       {/* ── Header ── */}
-      <header className="bg-white border-b">
+      <header className="bg-white border-b border-gray-100">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
 
-        {/* Cover image */}
-        <div className="relative h-36 sm:h-48 bg-gray-200 overflow-hidden">
-          {business.cover_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={business.cover_url}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${business.primary_color}33, ${business.primary_color}88)` }} />
-          )}
-          {/* Language switcher top-right */}
-          <div className="absolute top-3 right-3">
-            <LanguageSwitcher />
-          </div>
-        </div>
-
-        {/* Profile row — logo overlaps cover */}
-        <div className="max-w-2xl mx-auto px-4 sm:px-6">
-          <div className="flex items-end justify-between -mt-8 mb-3">
-            {/* Logo avatar */}
+          {/* Left: logo + name */}
+          <div className="flex items-center gap-3 min-w-0">
             {business.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={business.logo_url}
                 alt={business.name}
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-4 border-white shadow-md flex-shrink-0"
+                className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
               />
             ) : (
               <div
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-4 border-white shadow-md flex items-center justify-center text-white font-bold text-2xl flex-shrink-0"
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-base flex-shrink-0"
                 style={{ backgroundColor: business.primary_color }}
               >
                 {business.name[0]}
               </div>
             )}
+            <div className="min-w-0">
+              <p className="font-bold text-gray-900 text-sm leading-tight truncate">{business.name}</p>
+              {business.tagline && (
+                <p className="text-xs text-gray-400 truncate">{business.tagline}</p>
+              )}
+            </div>
+          </div>
 
-            {/* Socials */}
+          {/* Right: socials + language */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             {hasSocial && (
-              <div className="flex items-center gap-2 pb-1">
+              <div className="hidden sm:flex items-center gap-1.5">
                 {business.website_url && (
                   <a href={business.website_url} target="_blank" rel="noopener noreferrer"
-                    className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
-                    <Globe className="w-4 h-4" />
+                    className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                    <Globe className="w-3.5 h-3.5" />
                   </a>
                 )}
                 {business.instagram_url && (
                   <a href={business.instagram_url} target="_blank" rel="noopener noreferrer"
-                    className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-pink-50 hover:text-pink-600 transition-colors">
-                    <Instagram className="w-4 h-4" />
+                    className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-pink-50 hover:text-pink-500 transition-colors">
+                    <Instagram className="w-3.5 h-3.5" />
                   </a>
                 )}
                 {business.facebook_url && (
                   <a href={business.facebook_url} target="_blank" rel="noopener noreferrer"
-                    className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors">
-                    <Facebook className="w-4 h-4" />
+                    className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                    <Facebook className="w-3.5 h-3.5" />
                   </a>
                 )}
                 {business.tiktok_url && (
                   <a href={business.tiktok_url} target="_blank" rel="noopener noreferrer"
-                    className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
-                    <TikTokIcon className="w-4 h-4" />
+                    className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 transition-colors">
+                    <TikTokIcon className="w-3.5 h-3.5" />
                   </a>
                 )}
               </div>
             )}
+            <LanguageSwitcher />
           </div>
 
-          {/* Business name + tagline */}
-          <div className="pb-4">
-            <h1 className="text-xl font-bold text-gray-900">{business.name}</h1>
-            {business.tagline && (
-              <p className="text-sm text-gray-400 mt-0.5">{business.tagline}</p>
-            )}
-          </div>
         </div>
       </header>
 
