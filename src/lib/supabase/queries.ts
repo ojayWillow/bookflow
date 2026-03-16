@@ -156,7 +156,9 @@ export async function getStaffForBusiness(businessId: string) {
   return data ?? []
 }
 
-export async function getBookings() {
+const PAGE_SIZE = 25
+
+export async function getBookings(page = 0) {
   const { supabase, user } = await getAuthUser()
   const { data: biz, error: bizErr } = await supabase
     .from('business_settings')
@@ -165,14 +167,19 @@ export async function getBookings() {
     .single()
   if (bizErr || !biz) throw bizErr ?? new Error('Business not found')
 
-  const { data, error } = await supabase
+  const from = page * PAGE_SIZE
+  const to   = from + PAGE_SIZE - 1
+
+  const { data, error, count } = await supabase
     .from('bookings')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('business_id', biz.id)
     .order('date', { ascending: false })
     .order('time', { ascending: true })
+    .range(from, to)
+
   if (error) throw error
-  return data
+  return { data: data ?? [], total: count ?? 0, pageSize: PAGE_SIZE }
 }
 
 export async function updateBookingStatus(
