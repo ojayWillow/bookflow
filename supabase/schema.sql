@@ -103,6 +103,8 @@ create table if not exists business_settings (
   lead_time_hours      integer not null default 2,
   max_advance_days     integer not null default 30,
   cancellation_policy  text not null default 'Free cancellation up to 24 hours before your appointment.',
+  cancellation_window_hours integer not null default 24,
+  require_approval     boolean not null default false,
   primary_color        text not null default '#6366f1',
   slug                 text unique not null default 'demo',
   logo_url             text not null default '',
@@ -197,31 +199,7 @@ create index if not exists idx_bookings_staff_date on bookings(staff_id, date);
 create index if not exists idx_business_slug       on business_settings(slug);
 
 -- ─────────────────────────────────────────────────────────────
--- SEED — Default business settings
--- NOTE: This seed is intended for manual use during local dev only.
--- In production, business rows are created via /api/auth/signup.
--- To seed locally: replace 'YOUR-USER-UUID-HERE' with your auth.users id
--- (Supabase Dashboard → Authentication → Users → copy UUID)
+-- MIGRATIONS — run these in Supabase SQL Editor for existing DBs
 -- ─────────────────────────────────────────────────────────────
--- insert into business_settings (
---   user_id, name, tagline, address, phone, email, currency,
---   open_days, open_time, close_time, slot_interval,
---   lead_time_hours, max_advance_days, cancellation_policy, primary_color, slug
--- ) values (
---   'YOUR-USER-UUID-HERE',
---   'Glow Beauty Studio',
---   'Premium beauty & wellness services in the heart of Riga',
---   'Brīvības iela 45, Rīga, LV-1010',
---   '+371 2612 3456',
---   'hello@glowbeauty.lv',
---   'EUR',
---   '{1,2,3,4,5,6}',
---   '09:00',
---   '19:00',
---   30,
---   2,
---   30,
---   'Free cancellation up to 24 hours before your appointment.',
---   '#6366f1',
---   'demo'
--- ) on conflict (slug) do nothing;
+-- alter table business_settings add column if not exists cancellation_window_hours integer not null default 24;
+-- alter table business_settings add column if not exists require_approval boolean not null default false;

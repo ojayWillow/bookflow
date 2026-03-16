@@ -1,9 +1,11 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Loader2 } from 'lucide-react'
-import BrandingSection      from './_sections/BrandingSection'
-import OnlinePresenceSection from './_sections/OnlinePresenceSection'
-import BusinessInfoSection   from './_sections/BusinessInfoSection'
+import BrandingSection        from './_sections/BrandingSection'
+import OnlinePresenceSection  from './_sections/OnlinePresenceSection'
+import BusinessInfoSection    from './_sections/BusinessInfoSection'
+import ScheduleSection        from './_sections/ScheduleSection'
+import BookingRulesSection    from './_sections/BookingRulesSection'
 
 type Settings = {
   id: string; name: string; tagline: string; address: string
@@ -12,7 +14,7 @@ type Settings = {
   slot_interval: number; lead_time_hours: number; max_advance_days: number
   cancellation_window_hours: number
   cancellation_policy: string; primary_color: string
-  logo_url: string
+  logo_url: string; require_approval: boolean
   instagram_url: string; facebook_url: string; tiktok_url: string; website_url: string
 }
 
@@ -80,6 +82,15 @@ export default function SettingsPage() {
   const set = (field: string, value: unknown) =>
     setSettings(p => p ? { ...p, [field]: value } : p)
 
+  const toggleDay = (day: number) =>
+    setSettings(p => {
+      if (!p) return p
+      const days = p.open_days.includes(day)
+        ? p.open_days.filter(d => d !== day)
+        : [...p.open_days, day].sort((a, b) => a - b)
+      return { ...p, open_days: days }
+    })
+
   if (loading) return (
     <div className="flex items-center justify-center py-32 text-gray-400">
       <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading…
@@ -88,7 +99,7 @@ export default function SettingsPage() {
   if (!settings) return (
     <div className="p-8">
       <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-6 py-5">
-        <p className="font-semibold mb-1">⚠ Could not load settings</p>
+        <p className="font-semibold mb-1">&#9888; Could not load settings</p>
         <p className="text-sm">{error}</p>
       </div>
     </div>
@@ -98,12 +109,12 @@ export default function SettingsPage() {
     <div className="p-6 md:p-8 max-w-2xl">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-400 mt-1">Your business identity and branding</p>
+        <p className="text-gray-400 mt-1">Your business identity and booking rules</p>
       </div>
 
       {error && (
         <div className="mb-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">
-          ⚠ {error}
+          &#9888; {error}
         </div>
       )}
 
@@ -129,6 +140,24 @@ export default function SettingsPage() {
           onLogoUploaded={url => set('logo_url', url)}
         />
 
+        <ScheduleSection
+          openDays={settings.open_days}
+          openTime={settings.open_time}
+          closeTime={settings.close_time}
+          slotInterval={settings.slot_interval}
+          onToggleDay={toggleDay}
+          onChange={set}
+        />
+
+        <BookingRulesSection
+          leadTimeHours={settings.lead_time_hours}
+          maxAdvanceDays={settings.max_advance_days}
+          cancellationWindowHours={settings.cancellation_window_hours ?? 24}
+          cancellationPolicy={settings.cancellation_policy}
+          requireApproval={settings.require_approval ?? false}
+          onChange={set}
+        />
+
         <OnlinePresenceSection
           websiteUrl={settings.website_url}
           instagramUrl={settings.instagram_url}
@@ -142,7 +171,7 @@ export default function SettingsPage() {
           disabled={saving || slugStatus === 'taken'}
           className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
           {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-          {saved ? '✓ Saved!' : slugStatus === 'taken' ? 'Fix URL to save' : 'Save settings'}
+          {saved ? '&#10003; Saved!' : slugStatus === 'taken' ? 'Fix URL to save' : 'Save settings'}
         </button>
       </div>
     </div>
