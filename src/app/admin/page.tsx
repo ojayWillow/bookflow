@@ -6,6 +6,7 @@ import StatsBar       from './_components/StatsBar'
 import DayView        from './_components/DayView'
 import WeekView       from './_components/WeekView'
 import BookingPopover from './_components/BookingPopover'
+import { useAdminLang } from '@/hooks/useAdminLang'
 
 const TODAY = format(new Date(), 'yyyy-MM-dd')
 
@@ -30,6 +31,7 @@ type Settings = {
 }
 
 export default function AdminOverview() {
+  const { t } = useAdminLang()
   const [view, setView]                       = useState<'day' | 'week'>('day')
   const [currentDate, setCurrentDate]         = useState(TODAY)
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
@@ -51,7 +53,6 @@ export default function AdminOverview() {
   const settingsOpen  = parseInt(settings.open_time.split(':')[0])
   const settingsClose = parseInt(settings.close_time.split(':')[0])
 
-  // Derive the earliest start and latest end across all active staff
   const staffOpenHour  = staff.length
     ? Math.min(...staff.map(m => parseInt(m.work_start.split(':')[0])))
     : settingsOpen
@@ -71,8 +72,6 @@ export default function AdminOverview() {
 
   const bookingHours = visibleBookings.map(b => parseInt(b.time.split(':')[0]))
 
-  // openHour  = earliest of: staff work_start, business open_time, any booking
-  // closeHour = latest of:   staff work_end,   business close_time, any booking
   const openHour  = bookingHours.length
     ? Math.min(staffOpenHour,  settingsOpen,  ...bookingHours)
     : Math.min(staffOpenHour,  settingsOpen)
@@ -93,10 +92,10 @@ export default function AdminOverview() {
     .reduce((sum, b) => sum + b.service_price, 0)
 
   const stats = [
-    { label: "Today's appointments", value: todayAll.length,         color: 'text-indigo-600 bg-indigo-50' },
-    { label: 'Pending confirmation',  value: pendingCount,            color: 'text-amber-600 bg-amber-50'  },
-    { label: 'Total revenue',         value: `\u20ac${totalRevenue}`, color: 'text-green-600 bg-green-50'  },
-    { label: 'Active staff',          value: staff.length,            color: 'text-purple-600 bg-purple-50' },
+    { label: t.overview.statsToday,   value: todayAll.length,         color: 'text-indigo-600 bg-indigo-50' },
+    { label: t.overview.statsPending, value: pendingCount,            color: 'text-amber-600 bg-amber-50'  },
+    { label: t.overview.statsRevenue, value: `\u20ac${totalRevenue}`, color: 'text-green-600 bg-green-50'  },
+    { label: t.overview.statsStaff,   value: staff.length,            color: 'text-purple-600 bg-purple-50' },
   ]
 
   if (loading) return (
@@ -105,7 +104,7 @@ export default function AdminOverview() {
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
       </svg>
-      Loading…
+      {t.common.loading}
     </div>
   )
 
@@ -115,7 +114,7 @@ export default function AdminOverview() {
       {/* Header */}
       <div className="px-4 md:px-8 pt-6 md:pt-8 pb-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Overview</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t.overview.title}</h1>
           <p className="text-gray-400 mt-1 text-sm">{format(parseISO(currentDate), 'EEEE, d MMMM yyyy')}</p>
         </div>
         <div className="flex bg-gray-100 rounded-xl p-1 self-start">
@@ -124,7 +123,7 @@ export default function AdminOverview() {
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 view === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}>
-              {v.charAt(0).toUpperCase() + v.slice(1)}
+              {v === 'day' ? t.overview.day : t.overview.week}
             </button>
           ))}
         </div>
@@ -138,7 +137,9 @@ export default function AdminOverview() {
           onClick={() => setCurrentDate(format(addDays(parseISO(currentDate), view === 'day' ? -1 : -7), 'yyyy-MM-dd'))}
           className="w-8 h-8 flex items-center justify-center rounded-xl border-2 border-gray-100 hover:border-indigo-300 transition-colors text-gray-400 hover:text-indigo-600">&#8592;</button>
         <button onClick={() => setCurrentDate(TODAY)}
-          className="px-3 py-1.5 text-xs font-medium rounded-xl border-2 border-gray-100 hover:border-indigo-300 transition-colors text-gray-500">Today</button>
+          className="px-3 py-1.5 text-xs font-medium rounded-xl border-2 border-gray-100 hover:border-indigo-300 transition-colors text-gray-500">
+          {t.overview.today}
+        </button>
         <button
           onClick={() => setCurrentDate(format(addDays(parseISO(currentDate), view === 'day' ? 1 : 7), 'yyyy-MM-dd'))}
           className="w-8 h-8 flex items-center justify-center rounded-xl border-2 border-gray-100 hover:border-indigo-300 transition-colors text-gray-400 hover:text-indigo-600">&#8594;</button>

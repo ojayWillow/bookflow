@@ -4,16 +4,13 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { Calendar, BookOpen, Settings, Users, LayoutDashboard, LogOut, Loader2, Menu, X, Clock, Share2, Palette } from 'lucide-react'
 import NotificationBell from './_components/NotificationBell'
+import { useAdminLang } from '@/hooks/useAdminLang'
+import type { Locale } from '@/i18n'
 
-const NAV = [
-  { href: '/admin',           label: 'Overview',  icon: LayoutDashboard },
-  { href: '/admin/bookings',  label: 'Bookings',  icon: BookOpen },
-  { href: '/admin/services',  label: 'Services',  icon: Calendar },
-  { href: '/admin/staff',     label: 'Staff',     icon: Users },
-  { href: '/admin/schedule',  label: 'Schedule',  icon: Clock },
-  { href: '/admin/branding',  label: 'Branding',  icon: Palette },
-  { href: '/admin/share',     label: 'Share',     icon: Share2 },
-  { href: '/admin/settings',  label: 'Settings',  icon: Settings },
+const LANGS: { code: Locale; label: string }[] = [
+  { code: 'lv', label: 'LV' },
+  { code: 'en', label: 'EN' },
+  { code: 'ru', label: 'RU' },
 ]
 
 const BARE_PATHS = ['/admin/login']
@@ -22,6 +19,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname  = usePathname()
   const [signingOut, setSigningOut] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const { lang, setLang, t } = useAdminLang()
+
+  const NAV = [
+    { href: '/admin',           label: t.nav.overview,  icon: LayoutDashboard },
+    { href: '/admin/bookings',  label: t.nav.bookings,  icon: BookOpen },
+    { href: '/admin/services',  label: t.nav.services,  icon: Calendar },
+    { href: '/admin/staff',     label: t.nav.staff,     icon: Users },
+    { href: '/admin/schedule',  label: 'Schedule',      icon: Clock },
+    { href: '/admin/branding',  label: 'Branding',      icon: Palette },
+    { href: '/admin/share',     label: 'Share',         icon: Share2 },
+    { href: '/admin/settings',  label: t.nav.settings,  icon: Settings },
+  ]
 
   if (BARE_PATHS.includes(pathname)) {
     return <>{children}</>
@@ -77,7 +86,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {signingOut
             ? <Loader2 className="w-4 h-4 animate-spin" />
             : <LogOut className="w-4 h-4" />}
-          {signingOut ? 'Signing out…' : 'Sign out'}
+          {signingOut ? t.nav.signingOut : t.nav.signOut}
         </button>
       </div>
     </>
@@ -112,7 +121,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Menu className="w-5 h-5" />
           </button>
           <div className="hidden md:block" />
-          <NotificationBell />
+
+          {/* Language switcher + notification bell */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-0.5">
+              {LANGS.map(({ code, label }) => (
+                <button
+                  key={code}
+                  onClick={() => setLang(code)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    lang === code
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-400 hover:text-gray-700'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <NotificationBell />
+          </div>
         </div>
         <div className="flex-1 overflow-auto">
           {children}
