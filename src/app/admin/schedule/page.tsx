@@ -11,8 +11,7 @@ type Settings = {
   slot_interval: number; lead_time_hours: number; max_advance_days: number
   cancellation_window_hours: number
   cancellation_policy: string; primary_color: string
-  logo_url: string; cover_url: string
-  require_approval: boolean
+  logo_url: string; require_approval: boolean
   instagram_url: string; facebook_url: string; tiktok_url: string; website_url: string
 }
 
@@ -21,6 +20,7 @@ export default function SchedulePage() {
   const [loading, setLoading]   = useState(true)
   const [saving, setSaving]     = useState(false)
   const [saved, setSaved]       = useState(false)
+  const [dirty, setDirty]       = useState(false)
   const [error, setError]       = useState('')
 
   useEffect(() => {
@@ -43,6 +43,7 @@ export default function SchedulePage() {
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Failed to save')
       setSaved(true)
+      setDirty(false)
       setTimeout(() => setSaved(false), 3000)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to save')
@@ -51,18 +52,22 @@ export default function SchedulePage() {
     }
   }
 
-  const set = (field: string, value: unknown) =>
+  const set = (field: string, value: unknown) => {
     setSettings(p => p ? { ...p, [field]: value } : p)
-
-  const toggleDay = (day: number) => {
-    if (!settings) return
-    setSettings(prev => prev ? ({
-      ...prev,
-      open_days: prev.open_days.includes(day)
-        ? prev.open_days.filter(d => d !== day)
-        : [...prev.open_days, day].sort(),
-    }) : prev)
+    setDirty(true)
+    setSaved(false)
   }
+
+  const toggleDay = (day: number) =>
+    setSettings(p => {
+      if (!p) return p
+      const days = p.open_days.includes(day)
+        ? p.open_days.filter(d => d !== day)
+        : [...p.open_days, day].sort((a, b) => a - b)
+      setDirty(true)
+      setSaved(false)
+      return { ...p, open_days: days }
+    })
 
   if (loading) return (
     <div className="flex items-center justify-center py-32 text-gray-400">
@@ -72,7 +77,7 @@ export default function SchedulePage() {
   if (!settings) return (
     <div className="p-8">
       <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-6 py-5">
-        <p className="font-semibold mb-1">⚠ Could not load schedule</p>
+        <p className="font-semibold mb-1">⚠️ Could not load schedule</p>
         <p className="text-sm">{error}</p>
       </div>
     </div>
@@ -85,9 +90,23 @@ export default function SchedulePage() {
         <p className="text-gray-400 mt-1">Set your working hours and booking rules</p>
       </div>
 
+      {dirty && !saved && (
+        <div className="mb-5 flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3">
+          <span>🟡 You have unsaved changes — don&apos;t forget to save.</span>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+            Save now
+          </button>
+        </div>
+      )}
+
       {error && (
         <div className="mb-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">
-          ⚠ {error}
+          ⚠️ {error}
         </div>
       )}
 

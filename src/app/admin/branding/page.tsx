@@ -1,7 +1,8 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
-import BusinessInfoSection from './_sections/BusinessInfoSection'
+import BrandingSection       from '../settings/_sections/BrandingSection'
+import OnlinePresenceSection from '../settings/_sections/OnlinePresenceSection'
 
 type Settings = {
   id: string; name: string; tagline: string; address: string
@@ -14,42 +15,32 @@ type Settings = {
   instagram_url: string; facebook_url: string; tiktok_url: string; website_url: string
 }
 
-export default function SettingsPage() {
-  const [settings, setSettings]         = useState<Settings | null>(null)
-  const [loading, setLoading]           = useState(true)
-  const [saving, setSaving]             = useState(false)
-  const [saved, setSaved]               = useState(false)
-  const [dirty, setDirty]               = useState(false)
-  const [error, setError]               = useState('')
-  const [slugStatus, setSlugStatus]     = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
-  const [originalSlug, setOriginalSlug] = useState('')
-  const slugTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+function isValidHex(v: string) {
+  return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(v)
+}
+
+export default function BrandingPage() {
+  const [settings, setSettings] = useState<Settings | null>(null)
+  const [loading, setLoading]   = useState(true)
+  const [saving, setSaving]     = useState(false)
+  const [saved, setSaved]       = useState(false)
+  const [dirty, setDirty]       = useState(false)
+  const [error, setError]       = useState('')
+  const [hexInput, setHexInput] = useState('')
 
   useEffect(() => {
     fetch('/api/settings')
       .then(async res => { const j = await res.json(); if (!res.ok) throw new Error(j.error); return j })
       .then(data => {
         setSettings(data as Settings)
-        setOriginalSlug((data as Settings).slug)
+        setHexInput((data as Settings).primary_color)
       })
-      .catch(e => setError(e instanceof Error ? e.message : 'Failed to load settings'))
+      .catch(e => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false))
   }, [])
 
-  const checkSlug = useCallback((slug: string) => {
-    if (slug === originalSlug) { setSlugStatus('idle'); return }
-    if (slug.length < 2)       { setSlugStatus('idle'); return }
-    setSlugStatus('checking')
-    if (slugTimer.current) clearTimeout(slugTimer.current)
-    slugTimer.current = setTimeout(async () => {
-      const res  = await fetch(`/api/check-slug?slug=${encodeURIComponent(slug)}`)
-      const json = await res.json()
-      setSlugStatus(json.available ? 'available' : 'taken')
-    }, 500)
-  }, [originalSlug])
-
   const handleSave = async () => {
-    if (!settings || slugStatus === 'taken') return
+    if (!settings) return
     setSaving(true); setError('')
     try {
       const res  = await fetch('/api/settings', {
@@ -61,11 +52,9 @@ export default function SettingsPage() {
       if (!res.ok) throw new Error(json.error || 'Failed to save')
       setSaved(true)
       setDirty(false)
-      setOriginalSlug(settings.slug)
-      setSlugStatus('idle')
       setTimeout(() => setSaved(false), 3000)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to save settings')
+      setError(e instanceof Error ? e.message : 'Failed to save')
     } finally {
       setSaving(false)
     }
@@ -85,7 +74,7 @@ export default function SettingsPage() {
   if (!settings) return (
     <div className="p-8">
       <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-6 py-5">
-        <p className="font-semibold mb-1">⚠️ Could not load settings</p>
+        <p className="font-semibold mb-1">⚠️ Could not load branding</p>
         <p className="text-sm">{error}</p>
       </div>
     </div>
@@ -94,8 +83,8 @@ export default function SettingsPage() {
   return (
     <div className="p-6 md:p-8 max-w-2xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-400 mt-1">Your business identity and contact details</p>
+        <h1 className="text-2xl font-bold text-gray-900">Branding</h1>
+        <p className="text-gray-400 mt-1">How your booking page looks and where you&apos;re found online</p>
       </div>
 
       {dirty && !saved && (
@@ -103,7 +92,7 @@ export default function SettingsPage() {
           <span>🟡 You have unsaved changes — don&apos;t forget to save.</span>
           <button
             onClick={handleSave}
-            disabled={saving || slugStatus === 'taken'}
+            disabled={saving}
             className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
           >
             {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
@@ -119,25 +108,28 @@ export default function SettingsPage() {
       )}
 
       <div className="space-y-6">
-        <BusinessInfoSection
-          name={settings.name}
-          tagline={settings.tagline}
-          address={settings.address}
-          phone={settings.phone}
-          email={settings.email}
-          slug={settings.slug}
-          originalSlug={originalSlug}
-          slugStatus={slugStatus}
+        <BrandingSection
+          settings={settings}
+          hexInput={hexInput}
+          onHexInput={v => { setHexInput(v); if (isValidHex(v)) set('primary_color', v) }}
+          onColorChange={color => { set('primary_color', color); setHexInput(color) }}
+          onLogoUploaded={url => set('logo_url', url)}
+        />
+
+        <OnlinePresenceSection
+          websiteUrl={settings.website_url}
+          instagramUrl={settings.instagram_url}
+          facebookUrl={settings.facebook_url}
+          tiktokUrl={settings.tiktok_url}
           onChange={set}
-          onSlugChange={v => { set('slug', v); checkSlug(v) }}
         />
 
         <button
           onClick={handleSave}
-          disabled={saving || slugStatus === 'taken'}
+          disabled={saving}
           className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
           {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-          {saved ? '✓ Saved!' : slugStatus === 'taken' ? 'Fix URL to save' : 'Save settings'}
+          {saved ? '✓ Saved!' : 'Save branding'}
         </button>
       </div>
     </div>

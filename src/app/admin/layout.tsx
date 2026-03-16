@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { Calendar, BookOpen, Settings, Users, LayoutDashboard, LogOut, Loader2, Menu, X, Clock, Share2 } from 'lucide-react'
+import { Calendar, BookOpen, Settings, Users, LayoutDashboard, LogOut, Loader2, Menu, X, Clock, Share2, Palette } from 'lucide-react'
 import NotificationBell from './_components/NotificationBell'
 
 const NAV = [
@@ -11,6 +11,7 @@ const NAV = [
   { href: '/admin/services',  label: 'Services',  icon: Calendar },
   { href: '/admin/staff',     label: 'Staff',     icon: Users },
   { href: '/admin/schedule',  label: 'Schedule',  icon: Clock },
+  { href: '/admin/branding',  label: 'Branding',  icon: Palette },
   { href: '/admin/share',     label: 'Share',     icon: Share2 },
   { href: '/admin/settings',  label: 'Settings',  icon: Settings },
 ]
