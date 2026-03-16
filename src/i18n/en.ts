@@ -139,9 +139,15 @@ const en = {
     cancellationPolicy:  'Cancellation policy',
     confirmBooking:      'Confirm booking',
     confirming:          'Confirming…',
+    // confirmed success screen
     successTitle:        'You\'re booked!',
     successEmailSent:    'Confirmation sent to {{email}}',
     successSaveRef:      'Check your details below — please save your booking reference.',
+    // pending success screen
+    pendingTitle:        'Request received!',
+    pendingSubtitle:     'We\'ll review your request and confirm your appointment shortly.',
+    pendingEmailSent:    'We\'ve sent a confirmation to {{email}}',
+    pendingNote:         'You\'ll receive another email once your booking is approved.',
     bookingRef:          'Booking ref',
     at:                  'at',
     followUs:            'Follow us',

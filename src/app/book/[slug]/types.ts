@@ -16,6 +16,7 @@ export type Business = {
   open_days: number[]; open_time: string; close_time: string
   slot_interval: number; lead_time_hours: number; max_advance_days: number
   cancellation_policy: string; primary_color: string
+  require_approval: boolean
   // Branding
   logo_url:      string
   cover_url:     string

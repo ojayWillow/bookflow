@@ -128,9 +128,15 @@ const ru: PublicDict = {
     cancellationPolicy:  'Условия отмены',
     confirmBooking:      'Подтвердить запись',
     confirming:          'Подтверждаем…',
+    // confirmed success screen
     successTitle:        'Вы записаны!',
     successEmailSent:    'Подтверждение отправлено на {{email}}',
     successSaveRef:      'Сохраните номер записи — он может понадобиться.',
+    // pending success screen
+    pendingTitle:        'Заявка получена!',
+    pendingSubtitle:     'Мы рассмотрим вашу заявку и скоро подтвердим запись.',
+    pendingEmailSent:    'Мы отправили подтверждение на {{email}}',
+    pendingNote:         'Вы получите ещё одно письмо, как только ваша запись будет подтверждена.',
     bookingRef:          'Номер записи',
     at:                  'в',
     followUs:            'Подписывайтесь',
