@@ -1,16 +1,7 @@
 /**
  * Centralised Supabase query helpers.
- *
- * Admin mutations for services and staff are routed through Next.js
- * API routes (/api/services, /api/staff) so that auth is resolved
- * server-side from cookies via @supabase/ssr — avoiding the browser
- * client 400 / stale-JWT problem.
- *
- * Public booking queries run with the anon key scoped by business_id.
  */
 import { createClient } from './client'
-
-// ─── Auth helper (browser client) ────────────────────────────────────────────
 
 async function getAuthUser() {
   const supabase = createClient()
@@ -18,8 +9,6 @@ async function getAuthUser() {
   if (error || !user) throw new Error('Not authenticated')
   return { supabase, user }
 }
-
-// ─── Business (public) ────────────────────────────────────────────────────────
 
 export async function getBusinessBySlug(slug: string) {
   const supabase = createClient()
@@ -31,8 +20,6 @@ export async function getBusinessBySlug(slug: string) {
   if (error) return null
   return data
 }
-
-// ─── Settings (admin — RLS + explicit user_id guard) ──────────────────────────
 
 export async function getSettings() {
   const { supabase, user } = await getAuthUser()
@@ -53,8 +40,6 @@ export async function saveSettings(settings: Record<string, unknown>) {
     .eq('user_id', user.id)
   if (error) throw error
 }
-
-// ─── Services (admin — via /api/services, server auth) ───────────────────────
 
 export async function getServices() {
   const res = await fetch('/api/services', { credentials: 'include' })
@@ -92,8 +77,6 @@ export async function deleteService(id: string) {
   }
 }
 
-// ─── Services (public — scoped by user_id from business_settings) ────────────
-
 export async function getServicesForBusiness(businessId: string) {
   const supabase = createClient()
   const { data: biz, error: bizErr } = await supabase
@@ -112,8 +95,6 @@ export async function getServicesForBusiness(businessId: string) {
   return data ?? []
 }
 
-// ─── Staff (admin — via /api/staff, server auth) ──────────────────────────────
-
 export async function getStaff() {
   const res = await fetch('/api/staff', { credentials: 'include' })
   if (!res.ok) {
@@ -128,6 +109,9 @@ export async function upsertStaffMember(member: {
   service_ids: string[]; work_days: number[]
   work_start: string; work_end: string
   active: boolean; color: string
+  avatar_url?: string | null
+  break_start?: string | null
+  break_end?: string | null
 }) {
   const res = await fetch('/api/staff', {
     method: 'POST',
@@ -153,8 +137,6 @@ export async function deleteStaffMember(id: string) {
   }
 }
 
-// ─── Staff (public — scoped by user_id from business_settings) ───────────────
-
 export async function getStaffForBusiness(businessId: string) {
   const supabase = createClient()
   const { data: biz, error: bizErr } = await supabase
@@ -173,8 +155,6 @@ export async function getStaffForBusiness(businessId: string) {
   if (error) throw error
   return data ?? []
 }
-
-// ─── Bookings (admin — RLS scoped via business_settings join) ─────────────────
 
 export async function getBookings() {
   const { supabase, user } = await getAuthUser()
@@ -215,8 +195,6 @@ export async function updateBookingStatus(
   if (error) throw error
 }
 
-// ─── Bookings (public — business_id server-resolved, not client-supplied) ────
-
 export async function createBooking(booking: {
   business_id: string
   ref: string
@@ -244,25 +222,12 @@ export async function createBooking(booking: {
   return data
 }
 
-/**
- * Fetch booked slots for a given date, business, and optional staff member.
- *
- * When a specific staffId is provided we return:
- *   - bookings assigned to that staff member
- *   - bookings with no staff assigned (null) — these block the whole calendar
- *
- * When staffId is 'any' we return all bookings for the day so that
- * the union-slot generator can correctly mark slots as taken.
- */
 export async function getBookedSlotsForDate(
   date: string,
   staffId: string | 'any',
   businessId: string
 ) {
   const supabase = createClient()
-
-  // Always fetch all non-cancelled bookings for the date — the slot
-  // generator will filter by staff_id itself when needed.
   const { data, error } = await supabase
     .from('bookings')
     .select('time, service_duration, staff_id')
@@ -273,10 +238,6 @@ export async function getBookedSlotsForDate(
   if (error) throw error
 
   const all = (data ?? []) as { time: string; service_duration: number; staff_id: string | null }[]
-
   if (staffId === 'any') return all
-
-  // For a specific staff member: include bookings for that staff AND
-  // any bookings with null staff_id (they block the full schedule).
   return all.filter(b => b.staff_id === staffId || b.staff_id === null)
 }

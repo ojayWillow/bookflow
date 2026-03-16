@@ -1,9 +1,11 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Clock, Plus, X, Search, Loader2 } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Clock, Plus, X, Search, Loader2, Camera, Coffee } from 'lucide-react'
+import Image from 'next/image'
 import {
   getStaff, upsertStaffMember, deleteStaffMember, getServices,
 } from '@/lib/supabase/queries'
+import { createClient } from '@/lib/supabase/client'
 import AdminSkeleton  from '../_components/AdminSkeleton'
 import ToastContainer from '../_components/Toast'
 import { useToast }   from '@/hooks/useToast'
@@ -17,6 +19,9 @@ type DBStaff = {
   service_ids: string[]; work_days: number[]
   work_start: string; work_end: string
   active: boolean; color: string
+  avatar_url: string | null
+  break_start: string | null
+  break_end: string | null
 }
 
 const emptyForm = {
@@ -25,6 +30,9 @@ const emptyForm = {
   work_days: [1, 2, 3, 4, 5] as number[],
   work_start: '09:00', work_end: '18:00',
   active: true, color: '#6366f1',
+  avatar_url: null as string | null,
+  break_start: '' as string,
+  break_end: '' as string,
 }
 
 export default function StaffPage() {
@@ -37,6 +45,8 @@ export default function StaffPage() {
   const [form, setForm]           = useState({ ...emptyForm })
   const [skillSearch, setSkillSearch] = useState('')
   const [error, setError]         = useState('')
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { toasts, toast, dismiss } = useToast()
 
   const loadAll = async () => {
@@ -56,10 +66,39 @@ export default function StaffPage() {
 
   const openCreate = () => { setForm({ ...emptyForm }); setEditing(null); setSkillSearch(''); setShowModal(true) }
   const openEdit   = (m: DBStaff) => {
-    setForm({ name: m.name, role: m.role, bio: m.bio, service_ids: [...m.service_ids],
-      work_days: [...m.work_days], work_start: m.work_start, work_end: m.work_end,
-      active: m.active, color: m.color })
+    setForm({
+      name: m.name, role: m.role, bio: m.bio,
+      service_ids: [...m.service_ids],
+      work_days: [...m.work_days],
+      work_start: m.work_start, work_end: m.work_end,
+      active: m.active, color: m.color,
+      avatar_url: m.avatar_url ?? null,
+      break_start: m.break_start ?? '',
+      break_end: m.break_end ?? '',
+    })
     setEditing(m); setSkillSearch(''); setShowModal(true)
+  }
+
+  const handleAvatarUpload = async (file: File) => {
+    setAvatarUploading(true)
+    try {
+      const supabase = createClient()
+      const ext  = file.name.split('.').pop()
+      const path = `staff-avatars/${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('business-assets')
+        .upload(path, file, { upsert: true })
+      if (upErr) throw upErr
+      const { data: { publicUrl } } = supabase.storage
+        .from('business-assets')
+        .getPublicUrl(path)
+      setForm(p => ({ ...p, avatar_url: publicUrl }))
+    } catch (e: unknown) {
+      toast.error('Failed to upload photo')
+      console.error(e)
+    } finally {
+      setAvatarUploading(false)
+    }
   }
 
   const toggleService = (id: string) =>
@@ -81,6 +120,9 @@ export default function StaffPage() {
         service_ids: form.service_ids, work_days: form.work_days,
         work_start: form.work_start, work_end: form.work_end,
         active: form.active, color: form.color,
+        avatar_url: form.avatar_url,
+        break_start: form.break_start || null,
+        break_end:   form.break_end   || null,
       })
       await loadAll()
       setShowModal(false)
@@ -153,10 +195,20 @@ export default function StaffPage() {
               }`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0"
-                      style={{ backgroundColor: m.color }}>
-                      {m.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                    </div>
+                    {/* Avatar */}
+                    {m.avatar_url ? (
+                      <Image
+                        src={m.avatar_url}
+                        alt={m.name}
+                        width={56} height={56}
+                        className="w-14 h-14 rounded-2xl object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0"
+                        style={{ backgroundColor: m.color }}>
+                        {m.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                      </div>
+                    )}
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-bold text-gray-900">{m.name}</p>
@@ -172,7 +224,7 @@ export default function StaffPage() {
                           <span className="text-xs text-gray-300">No services assigned</span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 mt-2.5">
+                      <div className="flex items-center gap-3 mt-2.5 flex-wrap">
                         <div className="flex gap-1">
                           {['S','M','T','W','T','F','S'].map((d, i) => (
                             <span key={i} className={`w-5 h-5 rounded-md text-xs flex items-center justify-center font-medium ${
@@ -183,6 +235,11 @@ export default function StaffPage() {
                         <span className="flex items-center gap-1 text-xs text-gray-400">
                           <Clock className="w-3 h-3" />{m.work_start}–{m.work_end}
                         </span>
+                        {m.break_start && m.break_end && (
+                          <span className="flex items-center gap-1 text-xs text-amber-500">
+                            <Coffee className="w-3 h-3" />{m.break_start}–{m.break_end}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -229,22 +286,71 @@ export default function StaffPage() {
             </div>
 
             <div className="space-y-5">
+
+              {/* Profile photo */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Avatar colour</label>
-                <div className="flex gap-2 items-center">
-                  {COLORS.map(c => (
-                    <button key={c} type="button" onClick={() => setForm(p => ({ ...p, color: c }))}
-                      style={{ backgroundColor: c }}
-                      className={`w-8 h-8 rounded-full transition-all ${
-                        form.color === c ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : 'hover:scale-105'
-                      }`} />
-                  ))}
-                  <div className="ml-3 w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm"
-                    style={{ backgroundColor: form.color }}>
-                    {form.name ? form.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'AB'}
+                <label className="block text-sm font-medium text-gray-700 mb-2">Profile photo</label>
+                <div className="flex items-center gap-4">
+                  <div className="relative w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 bg-gray-100 flex items-center justify-center"
+                    style={{ backgroundColor: form.avatar_url ? undefined : form.color }}>
+                    {form.avatar_url ? (
+                      <Image src={form.avatar_url} alt="Avatar" width={64} height={64} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-white font-bold text-xl">
+                        {form.name ? form.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'AB'}
+                      </span>
+                    )}
+                    {avatarUploading && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 text-white animate-spin" />
+                      </div>
+                    )}
                   </div>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={avatarUploading}
+                      className="flex items-center gap-2 text-sm text-indigo-600 border-2 border-indigo-100 px-3 py-2 rounded-xl hover:bg-indigo-50 transition-colors font-medium disabled:opacity-50"
+                    >
+                      <Camera className="w-4 h-4" />
+                      {form.avatar_url ? 'Change photo' : 'Upload photo'}
+                    </button>
+                    {form.avatar_url && (
+                      <button
+                        type="button"
+                        onClick={() => setForm(p => ({ ...p, avatar_url: null }))}
+                        className="text-xs text-gray-400 hover:text-red-400 transition-colors text-left"
+                      >
+                        Remove photo
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleAvatarUpload(f) }}
+                  />
                 </div>
               </div>
+
+              {/* Avatar colour (shown only when no photo) */}
+              {!form.avatar_url && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Avatar colour</label>
+                  <div className="flex gap-2 items-center">
+                    {COLORS.map(c => (
+                      <button key={c} type="button" onClick={() => setForm(p => ({ ...p, color: c }))}
+                        style={{ backgroundColor: c }}
+                        className={`w-8 h-8 rounded-full transition-all ${
+                          form.color === c ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : 'hover:scale-105'
+                        }`} />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -349,12 +455,50 @@ export default function StaffPage() {
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors" />
                 </div>
               </div>
+
+              {/* Lunch break */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Coffee className="w-4 h-4 text-amber-500" />
+                  <label className="text-sm font-medium text-gray-700">Lunch break</label>
+                  <span className="text-xs text-gray-400 font-normal">(optional — blocks bookings during this window)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1.5">Break starts</label>
+                    <input type="time" value={form.break_start}
+                      onChange={e => setForm(p => ({ ...p, break_start: e.target.value }))}
+                      className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1.5">Break ends</label>
+                    <input type="time" value={form.break_end}
+                      onChange={e => setForm(p => ({ ...p, break_end: e.target.value }))}
+                      className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors bg-white" />
+                  </div>
+                </div>
+                {form.break_start && form.break_end && (
+                  <p className="text-xs text-amber-600 mt-2">
+                    ☕ Slots from {form.break_start} to {form.break_end} will be blocked for this staff member.
+                  </p>
+                )}
+                {form.break_start && form.break_end && (
+                  <button
+                    type="button"
+                    onClick={() => setForm(p => ({ ...p, break_start: '', break_end: '' }))}
+                    className="text-xs text-gray-400 hover:text-red-400 mt-1 transition-colors"
+                  >
+                    Clear break
+                  </button>
+                )}
+              </div>
+
             </div>
 
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleSave}
-                disabled={!form.name || !form.role || form.service_ids.length === 0 || saving}
+                disabled={!form.name || !form.role || form.service_ids.length === 0 || saving || avatarUploading}
                 className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                 Save
