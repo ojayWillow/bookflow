@@ -151,7 +151,14 @@ export default function BookingWizard({ business }: { business: Business }) {
 
   const stepKeys: Step[] = ['service', 'staff', 'datetime', 'details', 'confirm']
   const stepIndex = stepKeys.indexOf(step)
-  const goBack    = () => { if (stepIndex > 0) setStep(stepKeys[stepIndex - 1]) }
+
+  const goBack = () => {
+    if (stepIndex <= 0) return
+    const prev = stepKeys[stepIndex - 1]
+    // when going back to datetime, clear the selected time so it does not auto-advance
+    if (prev === 'datetime') setSelectedTime('')
+    setStep(prev)
+  }
 
   const handleConfirm = async () => {
     if (!selectedService || submitting) return

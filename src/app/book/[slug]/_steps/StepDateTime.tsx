@@ -62,8 +62,8 @@ export default function StepDateTime({
       ) : (
         <div
           ref={scrollRef}
-          className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6"
-          style={{ scrollSnapType: 'x mandatory' }}
+          className="flex gap-2 overflow-x-auto pb-2 mb-6 -mx-4 px-4 sm:-mx-6 sm:px-6"
+          style={{ scrollSnapType: 'x mandatory', msOverflowStyle: 'none', scrollbarWidth: 'none' }}
         >
           {availableDates.map(date => {
             const d = parseISO(date)
