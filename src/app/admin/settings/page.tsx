@@ -23,12 +23,13 @@ function isValidHex(v: string) {
 }
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<Settings | null>(null)
-  const [loading, setLoading]   = useState(true)
-  const [saving, setSaving]     = useState(false)
-  const [saved, setSaved]       = useState(false)
-  const [error, setError]       = useState('')
-  const [hexInput, setHexInput] = useState('')
+  const [settings, setSettings]         = useState<Settings | null>(null)
+  const [loading, setLoading]           = useState(true)
+  const [saving, setSaving]             = useState(false)
+  const [saved, setSaved]               = useState(false)
+  const [dirty, setDirty]               = useState(false)
+  const [error, setError]               = useState('')
+  const [hexInput, setHexInput]         = useState('')
   const [slugStatus, setSlugStatus]     = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
   const [originalSlug, setOriginalSlug] = useState('')
   const slugTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -69,6 +70,7 @@ export default function SettingsPage() {
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Failed to save')
       setSaved(true)
+      setDirty(false)
       setOriginalSlug(settings.slug)
       setSlugStatus('idle')
       setTimeout(() => setSaved(false), 3000)
@@ -79,8 +81,11 @@ export default function SettingsPage() {
     }
   }
 
-  const set = (field: string, value: unknown) =>
+  const set = (field: string, value: unknown) => {
     setSettings(p => p ? { ...p, [field]: value } : p)
+    setDirty(true)
+    setSaved(false)
+  }
 
   const toggleDay = (day: number) =>
     setSettings(p => {
@@ -88,6 +93,8 @@ export default function SettingsPage() {
       const days = p.open_days.includes(day)
         ? p.open_days.filter(d => d !== day)
         : [...p.open_days, day].sort((a, b) => a - b)
+      setDirty(true)
+      setSaved(false)
       return { ...p, open_days: days }
     })
 
@@ -99,7 +106,7 @@ export default function SettingsPage() {
   if (!settings) return (
     <div className="p-8">
       <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-6 py-5">
-        <p className="font-semibold mb-1">&#9888; Could not load settings</p>
+        <p className="font-semibold mb-1">⚠️ Could not load settings</p>
         <p className="text-sm">{error}</p>
       </div>
     </div>
@@ -112,9 +119,24 @@ export default function SettingsPage() {
         <p className="text-gray-400 mt-1">Your business identity and booking rules</p>
       </div>
 
+      {/* Unsaved changes banner */}
+      {dirty && !saved && (
+        <div className="mb-5 flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3">
+          <span>🟡 You have unsaved changes &mdash; don&apos;t forget to save.</span>
+          <button
+            onClick={handleSave}
+            disabled={saving || slugStatus === 'taken'}
+            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+            Save now
+          </button>
+        </div>
+      )}
+
       {error && (
         <div className="mb-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">
-          &#9888; {error}
+          ⚠️ {error}
         </div>
       )}
 
@@ -171,7 +193,7 @@ export default function SettingsPage() {
           disabled={saving || slugStatus === 'taken'}
           className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
           {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-          {saved ? '&#10003; Saved!' : slugStatus === 'taken' ? 'Fix URL to save' : 'Save settings'}
+          {saved ? '✓ Saved!' : slugStatus === 'taken' ? 'Fix URL to save' : 'Save settings'}
         </button>
       </div>
     </div>
