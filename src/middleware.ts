@@ -3,7 +3,7 @@ import { updateSession } from '@/lib/supabase/middleware'
 import { locales, defaultLocale, type Locale } from '@/i18n/index'
 
 const BYPASS = [
-  '/admin', '/api', '/auth', '/book',
+  '/admin', '/api', '/auth', '/book', '/cancel',
   '/forgot-password', '/reset-password', '/verify-email',
   '/privacy', '/terms', '/_next', '/favicon',
 ]
