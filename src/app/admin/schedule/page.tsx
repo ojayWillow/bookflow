@@ -15,6 +15,17 @@ type Settings = {
   instagram_url: string; facebook_url: string; tiktok_url: string; website_url: string
 }
 
+function normalise(data: Settings): Settings {
+  return {
+    ...data,
+    open_days:                Array.isArray(data.open_days) ? data.open_days : [1, 2, 3, 4, 5],
+    slot_interval:            data.slot_interval            ?? 30,
+    lead_time_hours:          data.lead_time_hours          ?? 2,
+    max_advance_days:         data.max_advance_days         ?? 30,
+    cancellation_window_hours: data.cancellation_window_hours ?? 24,
+  }
+}
+
 export default function SchedulePage() {
   const { t } = useAdminLang()
   const [settings, setSettings] = useState<Settings | null>(null)
@@ -27,7 +38,7 @@ export default function SchedulePage() {
   useEffect(() => {
     fetch('/api/settings')
       .then(async res => { const j = await res.json(); if (!res.ok) throw new Error(j.error); return j })
-      .then(data => setSettings(data as Settings))
+      .then(data => setSettings(normalise(data as Settings)))
       .catch(e => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false))
   }, [])
@@ -62,9 +73,10 @@ export default function SchedulePage() {
   const toggleDay = (day: number) =>
     setSettings(p => {
       if (!p) return p
-      const days = p.open_days.includes(day)
-        ? p.open_days.filter(d => d !== day)
-        : [...p.open_days, day].sort((a, b) => a - b)
+      const current = Array.isArray(p.open_days) ? p.open_days : []
+      const days = current.includes(day)
+        ? current.filter(d => d !== day)
+        : [...current, day].sort((a, b) => a - b)
       setDirty(true)
       setSaved(false)
       return { ...p, open_days: days }
