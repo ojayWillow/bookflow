@@ -26,13 +26,15 @@ export default function ScheduleSection({
 }: Props) {
   const { t } = useAdminLang()
 
+  const timeInputCls = 'w-full block border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors bg-white'
+
   return (
     <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
       <h2 className="font-semibold text-gray-900 mb-5">📅 {t.schedule.sectionTitle}</h2>
 
       <div className="space-y-5">
 
-        {/* Open days — always 7 columns, never wraps */}
+        {/* Open days — always 7 columns */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.openDays}</label>
           <div className="grid grid-cols-7 gap-1.5">
@@ -53,45 +55,46 @@ export default function ScheduleSection({
           </div>
         </div>
 
-        {/* Hours + slot interval: stack on mobile */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Start & end time — stacked to prevent iOS overflow */}
+        <div className="grid grid-cols-1 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.hours}</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="time"
-                value={openTime}
-                onChange={e => onChange('open_time', e.target.value)}
-                className="flex-1 border-2 border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
-              />
-              <span className="text-gray-300 font-medium">–</span>
-              <input
-                type="time"
-                value={closeTime}
-                onChange={e => onChange('close_time', e.target.value)}
-                className="flex-1 border-2 border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
-              />
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.startTime}</label>
+            <input
+              type="time"
+              value={openTime}
+              onChange={e => onChange('open_time', e.target.value)}
+              className={timeInputCls}
+            />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.slotInterval}</label>
-            <div className="flex gap-1.5 flex-wrap">
-              {INTERVALS.map(i => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => onChange('slot_interval', i)}
-                  className={`px-3 py-2 rounded-xl text-xs font-medium border-2 transition-all ${
-                    slotInterval === i
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'border-gray-100 text-gray-500 hover:border-indigo-300'
-                  }`}
-                >
-                  {i}m
-                </button>
-              ))}
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.endTime}</label>
+            <input
+              type="time"
+              value={closeTime}
+              onChange={e => onChange('close_time', e.target.value)}
+              className={timeInputCls}
+            />
+          </div>
+        </div>
+
+        {/* Slot interval */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.slotInterval}</label>
+          <div className="flex gap-1.5 flex-wrap">
+            {INTERVALS.map(i => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onChange('slot_interval', i)}
+                className={`px-3 py-2 rounded-xl text-xs font-medium border-2 transition-all ${
+                  slotInterval === i
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'border-gray-100 text-gray-500 hover:border-indigo-300'
+                }`}
+              >
+                {i}m
+              </button>
+            ))}
           </div>
         </div>
 
