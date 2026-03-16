@@ -26,9 +26,10 @@ export async function GET(req: NextRequest) {
 
   const supabase = adminClient()
 
+  // Fetch business settings AND user_id so we can scope staff to this business only
   const { data: biz, error: bizErr } = await supabase
     .from('business_settings')
-    .select('open_days,open_time,close_time,slot_interval,lead_time_hours,max_advance_days')
+    .select('user_id,open_days,open_time,close_time,slot_interval,lead_time_hours,max_advance_days')
     .eq('id', businessId)
     .single()
 
@@ -60,10 +61,12 @@ export async function GET(req: NextRequest) {
   const booked = (bookings ?? []) as BookedSlotRaw[]
 
   if (staffId !== 'any') {
+    // Specific staff member — also scope to this business via user_id
     const { data: staffRow, error: staffErr } = await supabase
       .from('staff')
       .select('id,name,role,bio,service_ids,work_days,work_start,work_end,active,color')
       .eq('id', staffId)
+      .eq('user_id', biz.user_id)
       .single()
 
     if (staffErr || !staffRow) {
@@ -91,9 +94,11 @@ export async function GET(req: NextRequest) {
     })
   }
 
+  // Anyone path — scope staff to THIS business only via user_id
   const { data: staffRows, error: staffListErr } = await supabase
     .from('staff')
     .select('id,name,role,bio,service_ids,work_days,work_start,work_end,active,color')
+    .eq('user_id', biz.user_id)
     .eq('active', true)
     .contains('service_ids', [serviceId])
 
