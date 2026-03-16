@@ -41,6 +41,13 @@ function toHHMM(mins: number): string {
   return `${Math.floor(mins / 60).toString().padStart(2, '0')}:${(mins % 60).toString().padStart(2, '0')}`
 }
 
+/**
+ * Returns true if the proposed slot [slotStart, slotStart+durationMins)
+ * overlaps or touches any existing booking.
+ *
+ * Using >= on the right boundary ensures that a slot ending exactly
+ * when a booking starts is treated as blocked (no zero-gap back-to-back).
+ */
 function isBlocked(
   slotStart: number,
   durationMins: number,
@@ -50,7 +57,9 @@ function isBlocked(
   return booked.some(b => {
     const bStart = toMins(b.time)
     const bEnd   = bStart + b.service_duration
-    return slotStart < bEnd && slotEnd > bStart
+    // slotEnd >= bStart catches the case where our slot ends exactly
+    // when the next booking starts (was previously > which missed it)
+    return slotStart < bEnd && slotEnd >= bStart
   })
 }
 
