@@ -3,16 +3,14 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import BookingWizard from './BookingWizard'
 
+// Always fetch fresh from Supabase — business settings and staff hours
+// must reflect instantly when the owner makes changes.
+export const dynamic = 'force-dynamic'
+
 interface Props {
   params: Promise<{ slug: string }>
 }
 
-/**
- * Dynamic metadata for the booking page.
- * Gives each business a proper <title>, meta description, and Open Graph
- * tags so links shared on WhatsApp, Instagram, etc. show the business name,
- * tagline and cover/logo image.
- */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const supabase = await createClient()
@@ -53,11 +51,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-/**
- * Server Component — resolves the business slug from Supabase.
- * Returns a 404 for unknown slugs.
- * Passes the resolved business data down to the client-side BookingWizard.
- */
 export default async function BookingPage({ params }: Props) {
   const { slug } = await params
   const supabase = await createClient()
