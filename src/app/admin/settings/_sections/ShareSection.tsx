@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { Copy, Check, ExternalLink, QrCode, MessageCircle, MapPin } from 'lucide-react'
+import { Copy, Check, ExternalLink, QrCode } from 'lucide-react'
 
 function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false)
@@ -16,6 +16,14 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
   )
 }
 
+const PLATFORMS = [
+  { icon: '📸', label: 'Instagram' },
+  { icon: '💬', label: 'WhatsApp' },
+  { icon: '📍', label: 'Google' },
+  { icon: '✉️',  label: 'Email' },
+  { icon: '🌐', label: 'Website' },
+]
+
 interface Props {
   bookingUrl: string
   iframeCode: string
@@ -23,23 +31,22 @@ interface Props {
   qrUrl: string
 }
 
-export default function ShareSection({ bookingUrl, whatsappLink, qrUrl }: Props) {
+export default function ShareSection({ bookingUrl, qrUrl }: Props) {
   const [btnLabel, setBtnLabel] = useState('Book now')
   const [btnColor, setBtnColor] = useState('#4f46e5')
+  const [showQr, setShowQr]     = useState(false)
 
   const buttonCode = `<a href="${bookingUrl}" target="_blank" style="display:inline-block;background:${btnColor};color:#fff;font-family:sans-serif;font-size:15px;font-weight:600;padding:12px 28px;border-radius:10px;text-decoration:none;">${btnLabel}</a>`
 
   return (
     <div className="space-y-4">
 
-      {/* ── Booking link ── */}
-      <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
-        <p className="text-sm font-semibold text-indigo-900 mb-1">Your booking link</p>
-        <p className="text-xs text-indigo-600 mb-3 leading-relaxed">
-          Share it anywhere — Instagram bio, WhatsApp, email signature, Google Business.
-        </p>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs font-mono text-indigo-600 truncate">
+      {/* ── Main link card ── */}
+      <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5">
+
+        {/* Link row */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex-1 bg-white border border-indigo-200 rounded-xl px-3 py-2.5 text-xs font-mono text-indigo-600 truncate">
             {bookingUrl}
           </div>
           <CopyButton text={bookingUrl} label="Copy" />
@@ -47,77 +54,57 @@ export default function ShareSection({ bookingUrl, whatsappLink, qrUrl }: Props)
             className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex-shrink-0">
             <ExternalLink className="w-3.5 h-3.5" /> Open
           </a>
+          <button
+            type="button"
+            onClick={() => setShowQr(v => !v)}
+            title="Show QR code"
+            className={`flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors flex-shrink-0 ${
+              showQr
+                ? 'bg-indigo-100 border-indigo-300 text-indigo-700'
+                : 'bg-white border-indigo-200 text-indigo-500 hover:bg-indigo-100'
+            }`}>
+            <QrCode className="w-3.5 h-3.5" />
+          </button>
         </div>
-      </div>
 
-      {/* ── QR + Where to share (side by side) ── */}
-      <div className="grid grid-cols-2 gap-4">
+        {/* Platform hint pills */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs text-indigo-400 mr-0.5">Works on</span>
+          {PLATFORMS.map(p => (
+            <span key={p.label}
+              className="flex items-center gap-1 text-xs text-indigo-600 bg-white border border-indigo-100 rounded-lg px-2 py-0.5">
+              <span>{p.icon}</span> {p.label}
+            </span>
+          ))}
+        </div>
 
-        {/* QR code */}
-        <div className="bg-white border-2 border-gray-100 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <QrCode className="w-4 h-4 text-indigo-500" />
-            <span className="text-sm font-semibold text-gray-900">QR code</span>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="border-2 border-gray-100 rounded-xl p-2 bg-white flex-shrink-0">
+        {/* QR panel — toggled */}
+        {showQr && (
+          <div className="mt-4 pt-4 border-t border-indigo-100 flex items-center gap-4">
+            <div className="border-2 border-indigo-100 rounded-xl p-2 bg-white flex-shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrUrl} alt="QR code" width={80} height={80} className="rounded-lg" />
+              <img src={qrUrl} alt="QR code" width={80} height={80} className="rounded-lg block" />
             </div>
-            <div className="space-y-2">
-              <p className="text-xs text-gray-500 leading-relaxed">Print on a card, flyer or table stand. Customers scan → booking page.</p>
+            <div>
+              <p className="text-xs font-semibold text-indigo-900 mb-1">QR code</p>
+              <p className="text-xs text-indigo-600 leading-relaxed mb-2">
+                Print on a card, flyer or table stand. Customers scan → your booking page.
+              </p>
               <a href={qrUrl} download="bookflow-qr.png"
-                className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
-                ⬇ Download
+                className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-100 transition-colors">
+                ⬇ Download QR
               </a>
             </div>
           </div>
-        </div>
-
-        {/* Where to share */}
-        <div className="bg-white border-2 border-gray-100 rounded-2xl p-4">
-          <p className="text-sm font-semibold text-gray-900 mb-3">Where to share</p>
-          <div className="space-y-2">
-            <div className="flex items-start gap-2 p-2 bg-green-50 rounded-xl">
-              <MessageCircle className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-xs font-semibold text-gray-800">WhatsApp</p>
-                <p className="text-xs text-gray-500 mt-0.5 mb-1.5">Add to your Business profile or send directly.</p>
-                <CopyButton text={whatsappLink} label="WhatsApp link" />
-              </div>
-            </div>
-            <div className="flex items-start gap-2 p-2 bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl">
-              <span className="text-sm mt-0.5">📸</span>
-              <div>
-                <p className="text-xs font-semibold text-gray-800">Instagram</p>
-                <p className="text-xs text-gray-500 mt-0.5 mb-1.5">Paste in bio. Add &ldquo;Book here&rdquo; to posts.</p>
-                <CopyButton text={bookingUrl} label="Copy link" />
-              </div>
-            </div>
-            <div className="flex items-start gap-2 p-2 bg-red-50 rounded-xl">
-              <MapPin className="w-3.5 h-3.5 text-red-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-xs font-semibold text-gray-800">Google Business</p>
-                <p className="text-xs text-gray-500 mt-0.5 mb-1.5">Add under Booking → &ldquo;Book online&rdquo; appears on Maps.</p>
-                <CopyButton text={bookingUrl} label="Copy link" />
-              </div>
-            </div>
-            <div className="flex items-start gap-2 p-2 bg-blue-50 rounded-xl">
-              <span className="text-sm mt-0.5">✉️</span>
-              <div>
-                <p className="text-xs font-semibold text-gray-800">Email signature</p>
-                <p className="text-xs text-gray-500 mt-0.5 mb-1.5">Customers book directly from every email you send.</p>
-                <CopyButton text={bookingUrl} label="Copy link" />
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* ── Website button generator ── */}
       <div className="bg-white border-2 border-gray-100 rounded-2xl p-4">
         <p className="text-sm font-semibold text-gray-900 mb-1">Add a booking button to your website</p>
-        <p className="text-xs text-gray-400 mb-4 leading-relaxed">Customise the label and colour, then paste the snippet anywhere on your site.</p>
+        <p className="text-xs text-gray-400 mb-4 leading-relaxed">
+          Customise the label and colour, then paste the snippet anywhere on your site.
+        </p>
 
         <div className="flex gap-3 mb-4">
           <div className="flex-1">
