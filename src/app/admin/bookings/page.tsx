@@ -25,7 +25,6 @@ const STATUS_STYLE: Record<string, string> = {
 
 const FILTERS = ['All', 'confirmed', 'pending', 'cancelled', 'completed']
 
-// ─── Reschedule Modal ───────────────────────────────────────────────────
 function RescheduleModal({
   booking, onClose, onSaved,
 }: {
@@ -33,10 +32,10 @@ function RescheduleModal({
   onClose: () => void
   onSaved: () => void
 }) {
-  const [date, setDate]   = useState(booking.date)
-  const [time, setTime]   = useState(booking.time.slice(0, 5))
+  const [date, setDate]     = useState(booking.date)
+  const [time, setTime]     = useState(booking.time.slice(0, 5))
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError]   = useState('')
 
   const handleSave = async () => {
     if (!date || !time) { setError('Please fill in both date and time'); return }
@@ -82,7 +81,7 @@ function RescheduleModal({
               className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors" />
           </div>
           {error && (
-            <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">&#9888; {error}</p>
+            <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">⚠ {error}</p>
           )}
         </div>
         <div className="flex gap-3 mt-6">
@@ -101,7 +100,6 @@ function RescheduleModal({
   )
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────
 export default function BookingsPage() {
   const [bookings, setBookings]         = useState<Booking[]>([])
   const [loading, setLoading]           = useState(true)
@@ -224,7 +222,7 @@ export default function BookingsPage() {
             <p className="text-gray-400">{activeCount} confirmed</p>
             {pendingCount > 0 && (
               <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-                &#9200; {pendingCount} awaiting approval
+                ⏰ {pendingCount} awaiting approval
               </span>
             )}
           </div>
@@ -236,7 +234,7 @@ export default function BookingsPage() {
       </div>
 
       {error && (
-        <div className="mb-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">&#9888; {error}</div>
+        <div className="mb-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">⚠ {error}</div>
       )}
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -264,14 +262,14 @@ export default function BookingsPage() {
         <div className="space-y-3">
           {bookings.length === 0 && (
             <div className="text-center py-16 text-gray-400">
-              <p className="text-4xl mb-3">&#128236;</p>
+              <p className="text-4xl mb-3">📬</p>
               <p className="font-medium">No bookings yet</p>
               <p className="text-sm mt-1">Bookings will appear here once customers book through your booking page.</p>
             </div>
           )}
           {bookings.length > 0 && filtered.length === 0 && (
             <div className="text-center py-16 text-gray-400">
-              <p className="text-4xl mb-2">&#128269;</p>
+              <p className="text-4xl mb-2">🔍</p>
               <p>No bookings match your search</p>
             </div>
           )}
@@ -300,11 +298,11 @@ export default function BookingsPage() {
                     <p className="text-sm font-medium text-indigo-600 mt-0.5">{b.service_name}</p>
                     <div className="flex items-center gap-4 mt-1.5 flex-wrap">
                       <span className="text-xs text-gray-400">{format(parseISO(b.date), 'EEE d MMM')} · {b.time}</span>
-                      <span className="text-xs text-gray-400">{b.service_duration} min · &#8364;{b.service_price}</span>
+                      <span className="text-xs text-gray-400">{b.service_duration} min · €{b.service_price}</span>
                       {b.staff_name && <span className="text-xs text-gray-400">{b.staff_name}</span>}
                     </div>
                     {b.customer_notes && (
-                      <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-lg mt-2 inline-block">&#128221; {b.customer_notes}</p>
+                      <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-lg mt-2 inline-block">📝 {b.customer_notes}</p>
                     )}
                   </div>
                 </div>
@@ -316,7 +314,6 @@ export default function BookingsPage() {
                     <Phone className="w-3.5 h-3.5" /> {b.customer_phone}
                   </div>
 
-                  {/* ── Pending: Approve / Decline ── */}
                   {b.status === 'pending' && (
                     <div className="flex gap-2 mt-1">
                       <button
@@ -324,23 +321,18 @@ export default function BookingsPage() {
                         disabled={approvalLoadingId === b.id}
                         className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
                       >
-                        {approvalLoadingId === b.id
-                          ? <Loader2 className="w-3 h-3 animate-spin" />
-                          : '&#10003;'} Approve
+                        {approvalLoadingId === b.id ? <Loader2 className="w-3 h-3 animate-spin" /> : '✓'} Approve
                       </button>
                       <button
                         onClick={() => handleDecline(b.id)}
                         disabled={approvalLoadingId === b.id}
                         className="flex items-center gap-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
                       >
-                        {approvalLoadingId === b.id
-                          ? <Loader2 className="w-3 h-3 animate-spin" />
-                          : '&#10005;'} Decline
+                        {approvalLoadingId === b.id ? <Loader2 className="w-3 h-3 animate-spin" /> : '✕'} Decline
                       </button>
                     </div>
                   )}
 
-                  {/* ── Confirmed: Reschedule / Complete / Cancel ── */}
                   {b.status === 'confirmed' && (
                     <div className="flex gap-2 mt-1 flex-wrap justify-end">
                       <button onClick={() => setRescheduling(b)}
@@ -359,7 +351,7 @@ export default function BookingsPage() {
                   )}
 
                   {b.status === 'completed' && (
-                    <span className="text-xs text-gray-400 italic mt-1">Completed &#10003;</span>
+                    <span className="text-xs text-gray-400 italic mt-1">Completed ✓</span>
                   )}
                   {b.status === 'cancelled' && (
                     <button onClick={() => handleStatus(b.id, 'confirmed')}
