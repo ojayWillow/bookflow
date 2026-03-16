@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Loader2 } from 'lucide-react'
 import BusinessInfoSection from './_sections/BusinessInfoSection'
-import ScheduleSection     from './_sections/ScheduleSection'
 import { useAdminLang } from '@/hooks/useAdminLang'
 
 type Settings = {
@@ -80,14 +79,6 @@ export default function SettingsPage() {
     setSaved(false)
   }
 
-  const toggleDay = (day: number) => {
-    if (!settings) return
-    const days = settings.open_days.includes(day)
-      ? settings.open_days.filter(d => d !== day)
-      : [...settings.open_days, day].sort()
-    set('open_days', days)
-  }
-
   if (loading) return (
     <div className="flex items-center justify-center py-32 text-gray-400">
       <Loader2 className="w-6 h-6 animate-spin mr-2" /> {t.common.loading}
@@ -141,20 +132,6 @@ export default function SettingsPage() {
           slugStatus={slugStatus}
           onChange={set}
           onSlugChange={v => { set('slug', v); checkSlug(v) }}
-        />
-
-        <ScheduleSection
-          openDays={settings.open_days}
-          openTime={settings.open_time}
-          closeTime={settings.close_time}
-          slotInterval={settings.slot_interval}
-          leadTimeHours={settings.lead_time_hours}
-          maxAdvanceDays={settings.max_advance_days}
-          cancellationWindowHours={settings.cancellation_window_hours}
-          cancellationPolicy={settings.cancellation_policy}
-          requireApproval={settings.require_approval}
-          onToggleDay={toggleDay}
-          onChange={set}
         />
 
         <button

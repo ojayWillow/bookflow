@@ -1,8 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
-import ScheduleSection     from '../settings/_sections/ScheduleSection'
-import BookingRulesSection from '../settings/_sections/BookingRulesSection'
+import ScheduleSection from '../settings/_sections/ScheduleSection'
+import { useAdminLang } from '@/hooks/useAdminLang'
 
 type Settings = {
   id: string; name: string; tagline: string; address: string
@@ -16,6 +16,7 @@ type Settings = {
 }
 
 export default function SchedulePage() {
+  const { t } = useAdminLang()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading]   = useState(true)
   const [saving, setSaving]     = useState(false)
@@ -71,13 +72,13 @@ export default function SchedulePage() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-32 text-gray-400">
-      <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading…
+      <Loader2 className="w-6 h-6 animate-spin mr-2" /> {t.common.loading}
     </div>
   )
   if (!settings) return (
     <div className="p-8">
       <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-6 py-5">
-        <p className="font-semibold mb-1">⚠️ Could not load schedule</p>
+        <p className="font-semibold mb-1">⚠️ {t.schedule.loadFail ?? 'Could not load schedule'}</p>
         <p className="text-sm">{error}</p>
       </div>
     </div>
@@ -86,20 +87,20 @@ export default function SchedulePage() {
   return (
     <div className="p-6 md:p-8 max-w-2xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Schedule</h1>
-        <p className="text-gray-400 mt-1">Set your working hours and booking rules</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t.schedule.title}</h1>
+        <p className="text-gray-400 mt-1">{t.schedule.sub}</p>
       </div>
 
       {dirty && !saved && (
         <div className="mb-5 flex items-center justify-between gap-3 bg-orange-400 text-white text-sm font-medium rounded-xl px-4 py-3 shadow-md">
-          <span>⚠️ Unsaved changes — don&apos;t forget to save!</span>
+          <span>⚠️ {t.settings.unsaved}</span>
           <button
             onClick={handleSave}
             disabled={saving}
             className="flex items-center gap-1.5 bg-white text-orange-500 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-orange-50 transition-colors disabled:opacity-50 whitespace-nowrap"
           >
             {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-            Save now
+            {t.settings.save}
           </button>
         </div>
       )}
@@ -116,16 +117,12 @@ export default function SchedulePage() {
           openTime={settings.open_time}
           closeTime={settings.close_time}
           slotInterval={settings.slot_interval}
-          onToggleDay={toggleDay}
-          onChange={set}
-        />
-
-        <BookingRulesSection
           leadTimeHours={settings.lead_time_hours}
           maxAdvanceDays={settings.max_advance_days}
           cancellationWindowHours={settings.cancellation_window_hours ?? 24}
           cancellationPolicy={settings.cancellation_policy}
           requireApproval={settings.require_approval ?? false}
+          onToggleDay={toggleDay}
           onChange={set}
         />
 
@@ -134,7 +131,7 @@ export default function SchedulePage() {
           disabled={saving}
           className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
           {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-          {saved ? '✓ Saved!' : 'Save schedule'}
+          {saved ? `✓ ${t.settings.saved}` : t.schedule.save ?? 'Save schedule'}
         </button>
       </div>
     </div>
