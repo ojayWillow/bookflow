@@ -1,10 +1,9 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Loader2 } from 'lucide-react'
-import BusinessInfoSection   from './_sections/BusinessInfoSection'
-import BookingRulesSection   from './_sections/BookingRulesSection'
-import ScheduleSection       from './_sections/ScheduleSection'
-import OnlinePresenceSection from './_sections/OnlinePresenceSection'
+import BusinessInfoSection from './_sections/BusinessInfoSection'
+import BookingRulesSection from './_sections/BookingRulesSection'
+import ScheduleSection     from './_sections/ScheduleSection'
 import { useAdminLang } from '@/hooks/useAdminLang'
 
 type Settings = {
@@ -160,14 +159,6 @@ export default function SettingsPage() {
           cancellationWindowHours={settings.cancellation_window_hours}
           cancellationPolicy={settings.cancellation_policy}
           requireApproval={settings.require_approval}
-          onChange={set}
-        />
-
-        <OnlinePresenceSection
-          websiteUrl={settings.website_url}
-          instagramUrl={settings.instagram_url}
-          facebookUrl={settings.facebook_url}
-          tiktokUrl={settings.tiktok_url}
           onChange={set}
         />
 
