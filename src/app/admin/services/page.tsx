@@ -104,21 +104,23 @@ export default function ServicesPage() {
       ) : (
         <div className="grid gap-4">
           {services.map((s, i) => (
-            <div key={s.id} className="bg-white border-2 border-gray-100 rounded-2xl p-5 flex items-center justify-between hover:border-indigo-100 transition-all shadow-soft">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-xl font-bold text-indigo-600">
+            <div key={s.id} className="bg-white border-2 border-gray-100 rounded-2xl p-5 hover:border-indigo-100 transition-all shadow-soft">
+              {/* top row: number + info */}
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-xl font-bold text-indigo-600 flex-shrink-0">
                   {i + 1}
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-900">{s.name}</p>
-                  <p className="text-sm text-gray-400 mt-0.5">{s.description}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 truncate">{s.name}</p>
+                  <p className="text-sm text-gray-400 mt-0.5 line-clamp-2">{s.description}</p>
                   <div className="flex items-center gap-4 mt-1.5">
                     <span className="flex items-center gap-1 text-xs text-gray-400"><Clock className="w-3.5 h-3.5" /> {s.duration} min</span>
                     <span className="flex items-center gap-1 text-xs font-semibold text-indigo-600">€{s.price}</span>
                   </div>
                 </div>
               </div>
-              <div className="flex gap-2">
+              {/* bottom row: actions — always visible, aligned right */}
+              <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-50">
                 <button onClick={() => openEdit(s)} className="text-sm text-indigo-600 px-3 py-1.5 rounded-xl hover:bg-indigo-50 font-medium transition-colors">{t.services.edit}</button>
                 <button onClick={() => handleDelete(s.id)} className="text-sm text-red-400 px-3 py-1.5 rounded-xl hover:bg-red-50 font-medium transition-colors">{t.services.delete}</button>
               </div>

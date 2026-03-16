@@ -36,7 +36,6 @@ const emptyForm = {
   break_end: '' as string,
 }
 
-/** Resize + compress any image to max 400×400 JPEG at 80% quality */
 function resizeImage(file: File, maxPx = 400, quality = 0.8): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new window.Image()
@@ -227,67 +226,65 @@ export default function StaffPage() {
               <div key={m.id} className={`bg-white border-2 rounded-2xl p-5 transition-all shadow-soft ${
                 m.active ? 'border-gray-100 hover:border-indigo-100' : 'border-gray-100 opacity-60'
               }`}>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-4">
-                    {m.avatar_url ? (
-                      <Image src={m.avatar_url} alt={m.name} width={56} height={56}
-                        className="w-14 h-14 rounded-2xl object-cover flex-shrink-0" />
-                    ) : (
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0"
-                        style={{ backgroundColor: m.color }}>
-                        {m.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                      </div>
-                    )}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-bold text-gray-900">{m.name}</p>
-                        {!m.active && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{t.staff.inactive}</span>}
-                      </div>
-                      <p className="text-sm text-indigo-600 font-medium">{m.role}</p>
-                      {m.bio && <p className="text-xs text-gray-400 mt-1 max-w-sm leading-relaxed">{m.bio}</p>}
-                      <div className="flex flex-wrap gap-1.5 mt-2.5">
-                        {memberServices.map(s => (
-                          <span key={s.id} className="text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg font-medium">{s.name}</span>
+                {/* Avatar + info */}
+                <div className="flex items-start gap-4">
+                  {m.avatar_url ? (
+                    <Image src={m.avatar_url} alt={m.name} width={56} height={56}
+                      className="w-14 h-14 rounded-2xl object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0"
+                      style={{ backgroundColor: m.color }}>
+                      {m.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-bold text-gray-900">{m.name}</p>
+                      {!m.active && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{t.staff.inactive}</span>}
+                    </div>
+                    <p className="text-sm text-indigo-600 font-medium">{m.role}</p>
+                    {m.bio && <p className="text-xs text-gray-400 mt-1 leading-relaxed">{m.bio}</p>}
+                    <div className="flex flex-wrap gap-1.5 mt-2.5">
+                      {memberServices.map(s => (
+                        <span key={s.id} className="text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg font-medium">{s.name}</span>
+                      ))}
+                      {memberServices.length === 0 && (
+                        <span className="text-xs text-gray-300">{t.staff.noServices}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 mt-2.5 flex-wrap">
+                      <div className="flex flex-wrap gap-1">
+                        {['S','M','T','W','T','F','S'].map((d, i) => (
+                          <span key={i} className={`w-5 h-5 rounded-md text-xs flex items-center justify-center font-medium ${
+                            m.work_days.includes(i) ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-50 text-gray-300'
+                          }`}>{d}</span>
                         ))}
-                        {memberServices.length === 0 && (
-                          <span className="text-xs text-gray-300">{t.staff.noServices}</span>
-                        )}
                       </div>
-                      <div className="flex items-center gap-3 mt-2.5 flex-wrap">
-                        <div className="flex gap-1">
-                          {['S','M','T','W','T','F','S'].map((d, i) => (
-                            <span key={i} className={`w-5 h-5 rounded-md text-xs flex items-center justify-center font-medium ${
-                              m.work_days.includes(i) ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-50 text-gray-300'
-                            }`}>{d}</span>
-                          ))}
-                        </div>
-                        <span className="flex items-center gap-1 text-xs text-gray-400">
-                          <Clock className="w-3 h-3" />{m.work_start}–{m.work_end}
+                      <span className="flex items-center gap-1 text-xs text-gray-400">
+                        <Clock className="w-3 h-3" />{m.work_start}–{m.work_end}
+                      </span>
+                      {m.break_start && m.break_end && (
+                        <span className="flex items-center gap-1 text-xs text-amber-500">
+                          <Coffee className="w-3 h-3" />{m.break_start}–{m.break_end}
                         </span>
-                        {m.break_start && m.break_end && (
-                          <span className="flex items-center gap-1 text-xs text-amber-500">
-                            <Coffee className="w-3 h-3" />{m.break_start}–{m.break_end}
-                          </span>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                    <div className="flex gap-2">
-                      <button onClick={() => openEdit(m)}
-                        className="text-sm text-indigo-600 px-3 py-1.5 rounded-xl hover:bg-indigo-50 font-medium transition-colors">{t.staff.edit}</button>
-                      <button onClick={() => handleDelete(m.id)}
-                        className="text-sm text-red-400 px-3 py-1.5 rounded-xl hover:bg-red-50 font-medium transition-colors">{t.staff.remove}</button>
-                    </div>
-                    <button onClick={() => handleToggleActive(m)}
-                      className={`text-xs px-3 py-1.5 rounded-xl font-medium border-2 transition-all ${
-                        m.active
-                          ? 'border-gray-100 text-gray-500 hover:border-red-200 hover:text-red-500'
-                          : 'border-green-200 text-green-600 hover:bg-green-50'
-                      }`}>
-                      {m.active ? t.staff.setInactive : t.staff.setActive}
-                    </button>
-                  </div>
+                </div>
+                {/* Action buttons — below info on mobile, right-aligned */}
+                <div className="flex items-center justify-end gap-2 flex-wrap mt-3 pt-3 border-t border-gray-50">
+                  <button onClick={() => handleToggleActive(m)}
+                    className={`text-xs px-3 py-1.5 rounded-xl font-medium border-2 transition-all ${
+                      m.active
+                        ? 'border-gray-100 text-gray-500 hover:border-red-200 hover:text-red-500'
+                        : 'border-green-200 text-green-600 hover:bg-green-50'
+                    }`}>
+                    {m.active ? t.staff.setInactive : t.staff.setActive}
+                  </button>
+                  <button onClick={() => openEdit(m)}
+                    className="text-sm text-indigo-600 px-3 py-1.5 rounded-xl hover:bg-indigo-50 font-medium transition-colors">{t.staff.edit}</button>
+                  <button onClick={() => handleDelete(m.id)}
+                    className="text-sm text-red-400 px-3 py-1.5 rounded-xl hover:bg-red-50 font-medium transition-colors">{t.staff.remove}</button>
                 </div>
               </div>
             )
@@ -356,7 +353,7 @@ export default function StaffPage() {
               {!form.avatar_url && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.staff.avatarColour}</label>
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center flex-wrap">
                     {COLORS.map(c => (
                       <button key={c} type="button" onClick={() => setForm(p => ({ ...p, color: c }))}
                         style={{ backgroundColor: c }}
@@ -368,7 +365,8 @@ export default function StaffPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Name + Role: stack on mobile */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.fullName}</label>
                   <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
@@ -443,7 +441,7 @@ export default function StaffPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.staff.workingDays}</label>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {DAYS.map((day, i) => (
                     <button key={day} type="button" onClick={() => toggleDay(i)}
                       className={`w-10 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all ${
@@ -457,7 +455,8 @@ export default function StaffPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Work hours: stack on mobile */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.startTime}</label>
                   <input type="time" value={form.work_start}
@@ -476,9 +475,10 @@ export default function StaffPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <Coffee className="w-4 h-4 text-amber-500" />
                   <label className="text-sm font-medium text-gray-700">Lunch break</label>
-                  <span className="text-xs text-gray-400 font-normal">(optional — blocks bookings during this window)</span>
+                  <span className="text-xs text-gray-400 font-normal">(optional)</span>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                {/* Break times: stack on mobile */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1.5">Break starts</label>
                     <input type="time" value={form.break_start}
