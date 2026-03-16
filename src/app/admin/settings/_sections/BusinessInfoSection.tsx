@@ -48,7 +48,7 @@ export default function BusinessInfoSection({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Short description
-              <span className="ml-1.5 text-xs font-normal text-gray-400">shown on your booking page</span>
+              <span className="block text-xs font-normal text-gray-400 leading-none mt-0.5">shown on your booking page</span>
             </label>
             <input
               value={tagline}
@@ -59,7 +59,7 @@ export default function BusinessInfoSection({
           </div>
         </div>
 
-        {/* Row 2: Address full-width */}
+        {/* Row 2: Address */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Address</label>
           <input
