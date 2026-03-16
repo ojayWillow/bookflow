@@ -82,6 +82,76 @@ Time gutter labels were positioned at `absolute -top-2` (−8px above the row), 
 
 ---
 
+## 🌍 Internationalisation (i18n)
+
+The app has **two separate translation systems** — one for the public booking pages, one for the admin panel. Do not mix them up.
+
+### System 1 — Public booking pages
+
+**Supported locales:** `lv` (default) · `en` · `ru`
+
+**Files:**
+```
+src/i18n/
+├── en.ts       ← English (PublicDict type is defined here)
+├── lv.ts       ← Latvian
+└── ru.ts       ← Russian
+```
+
+**How it works:** Server Components call `getDictionary(locale)` from `src/i18n/index.ts`. The locale comes from the URL segment (`/[locale]/...`). Each file is code-split and only loaded when needed.
+
+**To update a public page translation:** Open the relevant locale file (e.g. `src/i18n/lv.ts`) and update the key. The `PublicDict` type in `en.ts` is the source of truth — TypeScript will error if a key is missing in `lv.ts` or `ru.ts`.
+
+---
+
+### System 2 — Admin panel
+
+**Supported locales:** `lv` · `en` · `ru`
+
+**How it works:** The admin panel uses a `useAdminLang()` hook (client-side, localStorage-based). The hook reads the saved locale from `localStorage` and returns a `t` object. Usage in any component:
+
+```ts
+const { t } = useAdminLang()
+// then use t.staff.title, t.settings.save, etc.
+```
+
+**File structure — per-section (as of 16 Mar 2026):**
+```
+src/i18n/admin/
+├── en.ts                        ← barrel file — assembles all sections into AdminDict
+├── lv.ts                        ← barrel file — Latvian
+├── ru.ts                        ← barrel file — Russian
+└── sections/
+    ├── nav/          en.ts · lv.ts · ru.ts
+    ├── overview/     en.ts · lv.ts · ru.ts
+    ├── bookings/     en.ts · lv.ts · ru.ts
+    ├── services/     en.ts · lv.ts · ru.ts
+    ├── staff/        en.ts · lv.ts · ru.ts
+    ├── schedule/     en.ts · lv.ts · ru.ts
+    ├── branding/     en.ts · lv.ts · ru.ts
+    ├── share/        en.ts · lv.ts · ru.ts
+    ├── settings/     en.ts · lv.ts · ru.ts
+    └── common/       en.ts · lv.ts · ru.ts
+```
+
+**To update an admin translation:** Open only the section file you need, e.g.:
+- Fixing a Staff page label → `src/i18n/admin/sections/staff/lv.ts`
+- Fixing a Settings page label → `src/i18n/admin/sections/settings/lv.ts`
+- Fixing a nav item → `src/i18n/admin/sections/nav/ru.ts`
+
+**To add a new admin page:**
+1. Create a new folder under `src/i18n/admin/sections/your-page/`
+2. Add `en.ts`, `lv.ts`, `ru.ts` with your strings
+3. Import and add to the barrel files `admin/en.ts`, `admin/lv.ts`, `admin/ru.ts`
+4. The `AdminDict` type updates automatically — TypeScript will catch any missing keys in `lv` or `ru`
+
+**Known issues / still to do:**
+- [ ] Day name abbreviations in `ScheduleSection` (`Sun Mon Tue...`) are hardcoded in English — needs locale-aware day names
+- [ ] `nav.share` in Latvian was `'Dalītājs'` (wrong — means "divider") — **fixed to `'Kopīgot'`** in the 16 Mar restructure
+- [ ] Public booking pages (`src/i18n/lv.ts`, `ru.ts`) have not been audited for completeness since the Settings page was expanded — worth a pass before launch
+
+---
+
 ## 🏗️ Architecture — business isolation rules
 
 Every query **must** be scoped to a single business. Here's how each layer enforces isolation:
