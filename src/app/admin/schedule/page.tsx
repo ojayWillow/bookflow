@@ -12,6 +12,7 @@ type Settings = {
   cancellation_window_hours: number
   cancellation_policy: string; primary_color: string
   logo_url: string; cover_url: string
+  require_approval: boolean
   instagram_url: string; facebook_url: string; tiktok_url: string; website_url: string
 }
 
@@ -105,6 +106,7 @@ export default function SchedulePage() {
           maxAdvanceDays={settings.max_advance_days}
           cancellationWindowHours={settings.cancellation_window_hours ?? 24}
           cancellationPolicy={settings.cancellation_policy}
+          requireApproval={settings.require_approval ?? false}
           onChange={set}
         />
 
