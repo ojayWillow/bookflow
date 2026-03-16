@@ -28,19 +28,17 @@ const timeString = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid time f
 const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD expected)')
 
 const BookingSchema = z.object({
-  business_id:      uuid,
-  service_id:       uuid,
-  service_name:     z.string().min(1).max(200),
-  service_duration: z.number().int().min(5).max(480),
-  service_price:    z.number().min(0).max(100_000),
-  staff_id:         uuid.nullable().optional(),
-  staff_name:       z.string().min(1).max(200),
-  date:             dateString,
-  time:             timeString,
-  customer_name:    z.string().min(1).max(200).trim(),
-  customer_email:   z.string().email(),
-  customer_phone:   z.string().min(1).max(50),
-  customer_notes:   z.string().max(1000).optional().default(''),
+  business_id:   uuid,
+  service_id:    uuid,
+  service_name:  z.string().min(1).max(200),
+  staff_id:      uuid.nullable().optional(),
+  staff_name:    z.string().min(1).max(200),
+  date:          dateString,
+  time:          timeString,
+  customer_name:  z.string().min(1).max(200).trim(),
+  customer_email: z.string().email(),
+  customer_phone: z.string().min(1).max(50),
+  customer_notes: z.string().max(1000).optional().default(''),
 })
 
 type BookingBody = z.infer<typeof BookingSchema>
@@ -97,6 +95,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
+    // Fetch authoritative service data server-side — never trust client-supplied price/duration
+    const { data: service, error: serviceError } = await supabase
+      .from('services')
+      .select('id, name, duration, price, user_id')
+      .eq('id', body.service_id)
+      .single()
+
+    if (serviceError || !service) {
+      return NextResponse.json({ error: 'Service not found' }, { status: 404 })
+    }
+
+    // Verify the service belongs to this business's owner
+    const { data: bizOwner } = await supabase
+      .from('business_settings')
+      .select('user_id')
+      .eq('id', body.business_id)
+      .single()
+
+    if (!bizOwner || bizOwner.user_id !== service.user_id) {
+      return NextResponse.json({ error: 'Service does not belong to this business' }, { status: 403 })
+    }
+
+    // Use server-fetched values — client values are ignored
+    const servicePrice    = Number(service.price)
+    const serviceDuration = Number(service.duration)
+
     const { data: existingBookings } = await supabase
       .from('bookings')
       .select('time, service_duration, staff_id')
@@ -108,7 +132,7 @@ export async function POST(req: NextRequest) {
       const slotStart = toMins(body.time)
       const conflict  = hasConflict(
         slotStart,
-        body.service_duration,
+        serviceDuration,
         existingBookings as { time: string; service_duration: number; staff_id: string | null }[],
         body.staff_id ?? null
       )
@@ -143,9 +167,9 @@ export async function POST(req: NextRequest) {
         business_id:      body.business_id,
         ref,
         service_id:       body.service_id,
-        service_name:     body.service_name,
-        service_duration: body.service_duration,
-        service_price:    body.service_price,
+        service_name:     service.name,
+        service_duration: serviceDuration,
+        service_price:    servicePrice,
         staff_id:         body.staff_id ?? null,
         staff_name:       body.staff_name,
         date:             body.date,
@@ -181,19 +205,19 @@ export async function POST(req: NextRequest) {
         from:    `BookFlow <${fromEmail}>`,
         to:      body.customer_email,
         subject: isPending
-          ? `Booking request received \u2014 ${body.service_name} on ${body.date}`
-          : `Booking confirmed \u2014 ${body.service_name} on ${body.date}`,
+          ? `Booking request received \u2014 ${service.name} on ${body.date}`
+          : `Booking confirmed \u2014 ${service.name} on ${body.date}`,
         html: isPending
           ? pendingCustomerEmailHtml({
               businessName,
               businessPhone,
               customerName:  body.customer_name,
-              serviceName:   body.service_name,
+              serviceName:   service.name,
               staffName:     body.staff_name,
               date:          body.date,
               time:          body.time,
-              duration:      body.service_duration,
-              price:         body.service_price,
+              duration:      serviceDuration,
+              price:         servicePrice,
               ref:           booking.ref,
               logoUrl,
             })
@@ -203,12 +227,12 @@ export async function POST(req: NextRequest) {
               businessPhone,
               businessEmail,
               customerName:       body.customer_name,
-              serviceName:        body.service_name,
+              serviceName:        service.name,
               staffName:          body.staff_name,
               date:               body.date,
               time:               body.time,
-              duration:           body.service_duration,
-              price:              body.service_price,
+              duration:           serviceDuration,
+              price:              servicePrice,
               ref:                booking.ref,
               cancellationPolicy: cancelPolicy,
               cancelUrl,
@@ -219,20 +243,20 @@ export async function POST(req: NextRequest) {
         from:    `BookFlow <${fromEmail}>`,
         to:      adminEmail,
         subject: isPending
-          ? `Booking REQUEST: ${body.customer_name} \u2014 ${body.service_name} on ${body.date}`
-          : `New booking: ${body.customer_name} \u2014 ${body.service_name} on ${body.date}`,
+          ? `Booking REQUEST: ${body.customer_name} \u2014 ${service.name} on ${body.date}`
+          : `New booking: ${body.customer_name} \u2014 ${service.name} on ${body.date}`,
         html: adminEmailHtml({
           businessName,
           customerName:  body.customer_name,
           customerEmail: body.customer_email,
           customerPhone: body.customer_phone,
           customerNotes: body.customer_notes,
-          serviceName:   body.service_name,
+          serviceName:   service.name,
           staffName:     body.staff_name,
           date:          body.date,
           time:          body.time,
-          duration:      body.service_duration,
-          price:         body.service_price,
+          duration:      serviceDuration,
+          price:         servicePrice,
           ref:           booking.ref,
           isPending,
         }),
