@@ -13,6 +13,8 @@ import { useAdminLang } from '@/hooks/useAdminLang'
 
 const DAYS   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444']
+const HOURS  = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
+const MINS   = ['00', '15', '30', '45']
 
 type DBService = { id: string; name: string; duration: number; price: number }
 type DBStaff = {
@@ -34,6 +36,35 @@ const emptyForm = {
   avatar_url: null as string | null,
   break_start: '' as string,
   break_end: '' as string,
+}
+
+/** Renders two <select> dropdowns (HH / MM) that together equal a "HH:MM" string */
+function TimePicker({
+  value, onChange, label, sublabel,
+}: {
+  value: string
+  onChange: (v: string) => void
+  label: string
+  sublabel?: string
+}) {
+  const [hh, mm] = value ? value.split(':') : ['09', '00']
+  const selectCls = 'flex-1 border-2 border-gray-100 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-indigo-400 transition-colors appearance-none text-center font-medium text-gray-800'
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        {label}{sublabel && <span className="text-xs text-gray-400 font-normal ml-1">{sublabel}</span>}
+      </label>
+      <div className="flex items-center gap-2">
+        <select value={hh} onChange={e => onChange(`${e.target.value}:${mm}`)} className={selectCls}>
+          {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
+        </select>
+        <span className="text-gray-400 font-bold text-lg">:</span>
+        <select value={mm} onChange={e => onChange(`${hh}:${e.target.value}`)} className={selectCls}>
+          {MINS.map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
+      </div>
+    </div>
+  )
 }
 
 function resizeImage(file: File, maxPx = 400, quality = 0.8): Promise<Blob> {
@@ -202,9 +233,6 @@ export default function StaffPage() {
   const filteredServices = services.filter(s =>
     s.name.toLowerCase().includes(skillSearch.toLowerCase())
   )
-
-  // Shared class for time inputs — max-w-full prevents iOS overflow
-  const timeInputCls = 'w-full max-w-full block border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors bg-white'
 
   return (
     <div className="p-4 md:p-8">
@@ -450,7 +478,7 @@ export default function StaffPage() {
                 <p className="text-xs text-gray-400 mt-1.5">{t.staff.skillsHint}</p>
               </div>
 
-              {/* Working days — always 7 columns */}
+              {/* Working days */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.staff.workingDays}</label>
                 <div className="grid grid-cols-7 gap-1.5">
@@ -467,20 +495,18 @@ export default function StaffPage() {
                 </div>
               </div>
 
-              {/* Work hours — always stacked to prevent iOS time input overflow */}
+              {/* Work hours — select dropdowns, always fit on iOS */}
               <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.startTime}</label>
-                  <input type="time" value={form.work_start}
-                    onChange={e => setForm(p => ({ ...p, work_start: e.target.value }))}
-                    className={timeInputCls} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.endTime}</label>
-                  <input type="time" value={form.work_end}
-                    onChange={e => setForm(p => ({ ...p, work_end: e.target.value }))}
-                    className={timeInputCls} />
-                </div>
+                <TimePicker
+                  label={t.staff.startTime}
+                  value={form.work_start}
+                  onChange={v => setForm(p => ({ ...p, work_start: v }))}
+                />
+                <TimePicker
+                  label={t.staff.endTime}
+                  value={form.work_end}
+                  onChange={v => setForm(p => ({ ...p, work_end: v }))}
+                />
               </div>
 
               {/* Lunch break */}
@@ -499,6 +525,7 @@ export default function StaffPage() {
                         setForm(p => ({ ...p, break_start: '', break_end: '' }))
                       } else {
                         setShowBreak(true)
+                        setForm(p => ({ ...p, break_start: p.break_start || '12:00', break_end: p.break_end || '13:00' }))
                       }
                     }}
                     className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${
@@ -513,18 +540,16 @@ export default function StaffPage() {
 
                 {showBreak && (
                   <div className="mt-4 grid grid-cols-1 gap-3">
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1.5">Break starts</label>
-                      <input type="time" value={form.break_start}
-                        onChange={e => setForm(p => ({ ...p, break_start: e.target.value }))}
-                        className={timeInputCls} />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1.5">Break ends</label>
-                      <input type="time" value={form.break_end}
-                        onChange={e => setForm(p => ({ ...p, break_end: e.target.value }))}
-                        className={timeInputCls} />
-                    </div>
+                    <TimePicker
+                      label="Break starts"
+                      value={form.break_start || '12:00'}
+                      onChange={v => setForm(p => ({ ...p, break_start: v }))}
+                    />
+                    <TimePicker
+                      label="Break ends"
+                      value={form.break_end || '13:00'}
+                      onChange={v => setForm(p => ({ ...p, break_end: v }))}
+                    />
                     {form.break_start && form.break_end && (
                       <p className="text-xs text-amber-600">
                         ☕ Slots from {form.break_start} to {form.break_end} will be blocked.
