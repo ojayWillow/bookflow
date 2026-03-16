@@ -51,6 +51,14 @@ export default function AdminOverview() {
   const settingsOpen  = parseInt(settings.open_time.split(':')[0])
   const settingsClose = parseInt(settings.close_time.split(':')[0])
 
+  // Derive the earliest start and latest end across all active staff
+  const staffOpenHour  = staff.length
+    ? Math.min(...staff.map(m => parseInt(m.work_start.split(':')[0])))
+    : settingsOpen
+  const staffCloseHour = staff.length
+    ? Math.max(...staff.map(m => parseInt(m.work_end.split(':')[0])))
+    : settingsClose
+
   const visibleDates = (() => {
     if (view === 'day') return [currentDate]
     const weekStart = startOfWeek(parseISO(currentDate), { weekStartsOn: 1 })
@@ -63,13 +71,15 @@ export default function AdminOverview() {
 
   const bookingHours = visibleBookings.map(b => parseInt(b.time.split(':')[0]))
 
+  // openHour  = earliest of: staff work_start, business open_time, any booking
+  // closeHour = latest of:   staff work_end,   business close_time, any booking
   const openHour  = bookingHours.length
-    ? Math.min(settingsOpen, ...bookingHours)
-    : settingsOpen
+    ? Math.min(staffOpenHour,  settingsOpen,  ...bookingHours)
+    : Math.min(staffOpenHour,  settingsOpen)
 
   const closeHour = bookingHours.length
-    ? Math.max(settingsClose, ...bookingHours.map(h => h + 1))
-    : settingsClose
+    ? Math.max(staffCloseHour, settingsClose, ...bookingHours.map(h => h + 1))
+    : Math.max(staffCloseHour, settingsClose)
 
   const hours = Array.from({ length: closeHour - openHour }, (_, i) => openHour + i)
 
@@ -139,7 +149,7 @@ export default function AdminOverview() {
         </span>
       </div>
 
-      {/* Views — horizontally scrollable on mobile */}
+      {/* Views */}
       <div className="flex-1 overflow-auto px-4 md:px-8 pb-6 md:pb-8">
         {view === 'day' && (
           <DayView
