@@ -38,7 +38,6 @@ const emptyForm = {
   break_end: '' as string,
 }
 
-/** Renders two <select> dropdowns (HH / MM) that together equal a "HH:MM" string */
 function TimePicker({
   value, onChange, label, sublabel,
 }: {
