@@ -128,15 +128,9 @@ const lv: PublicDict = {
     cancellationPolicy:  'Atcelšanas nosacījumi',
     confirmBooking:      'Apstiprināt rezervāciju',
     confirming:          'Apstiprina…',
-    // confirmed success screen
     successTitle:        'Rezervācija apstiprināta!',
     successEmailSent:    'Apstiprinājums nosūtīts uz {{email}}',
     successSaveRef:      'Saglabā rezervācijas numuru — tas var noderēt.',
-    // pending success screen
-    pendingTitle:        'Pieteikums saņemts!',
-    pendingSubtitle:     'Mēs izskatīsim tavu pieteikumu un drīzumā apstiprināsim vizīti.',
-    pendingEmailSent:    'Mēs nosūtījām apstiprinājumu uz {{email}}',
-    pendingNote:         'Tu saņemsi vēl vienu e-pastu, tiklīdz tava rezervācija tiks apstiprināta.',
     bookingRef:          'Rezervācijas numurs',
     at:                  'plkst.',
     followUs:            'Seko mums',
