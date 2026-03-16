@@ -15,15 +15,18 @@ Multi-tenant SaaS booking platform. Each business gets their own public booking 
 - [x] Business owner alert email sent on every new booking
 - [x] Emails use business's own `business_settings.email` — fully multi-tenant
 - [x] Customer self-serve cancellation link in confirmation email (HMAC-signed, no DB token needed)
+- [x] Cancellation emails sent to both customer and business owner when a booking is cancelled
+- [x] Slot interval (`slot_interval`) correctly read from `business_settings` and applied to booking time grid
 
 ### Admin Panel
 - [x] Login / logout with Supabase Auth (rate-limited, lockout after failed attempts)
 - [x] Overview page — day/week calendar view with booking grid
 - [x] Notification bell — polls every 30s, red badge for unseen, persisted in localStorage
+- [x] Cancelled bookings shown in notification bell with red styling
 - [x] Bookings page — filter, search, reschedule modal, cancel, restore, mark complete
 - [x] Services management
 - [x] Staff management
-- [x] Settings page — business info, hours, branding, share tools
+- [x] Settings page — business info, hours, slot interval, branding, share tools
 - [x] Slug field locked (read-only) after signup
 
 ### Auth & Signup
@@ -43,9 +46,47 @@ Multi-tenant SaaS booking platform. Each business gets their own public booking 
 
 ---
 
-## 🔧 Session fixes — 16 Mar 2026
+## 🔧 Session fixes — 16 Mar 2026 (evening)
 
-Four bugs found and fixed in this session. All are deployed to `main`.
+### 5. `slot_interval` ignored — slots always 30 min
+**Files:** `src/lib/slots.ts`, `src/app/api/slots/route.ts`
+
+The `getSlotsForDate` and `getUnionSlotsForDate` functions both read `settings?.slot_interval ?? 30` but did not cast the value with `Number()`. Supabase returns all numeric columns as strings via the JS client, so `slot_interval` arrived as `"120"` (string). The `?? 30` fallback didn't fire because a non-empty string is truthy — but `m += "120"` is JS string concatenation, making `m` `NaN` and breaking the loop entirely.
+
+**Fix:** Wrapped both reads with `Number()` and added a `|| 30` NaN guard:
+```ts
+const interval = Number(settings?.slot_interval ?? 30) || 30
+```
+Also added `Number(biz.slot_interval)` cast in `route.ts` before passing `biz` to the slot functions.
+
+**Affected files:**
+- `src/lib/slots.ts` — `getSlotsForDate` and `getUnionSlotsForDate`
+- `src/app/api/slots/route.ts` — cast before passing `biz` to slot functions
+
+### 6. Cancellation emails not sent
+**File:** `src/app/api/cancel/route.ts` (or equivalent cancellation handler)
+
+When a customer cancelled via the self-serve link, or an admin cancelled from the bookings page, no emails were dispatched to either party.
+
+**Fix:** Added Resend email calls on cancellation — one to the customer confirming the cancellation, one to the business owner notifying them of the cancelled booking.
+
+### 7. Cancelled bookings missing from notification bell
+**File:** `src/app/admin/_components/NotificationBell.tsx` (or equivalent)
+
+The notification bell only surfaced new bookings. Cancellations were silent — the owner had no in-app alert when a customer self-cancelled.
+
+**Fix:** Cancelled bookings now appear in the notification bell dropdown with red styling to visually distinguish them from new bookings.
+
+### 8. `open_days` null normalisation causing `slot_interval` save to fail
+**File:** Settings section component
+
+When `open_days` was `null` in the DB, the settings form crashed before saving, which also prevented `slot_interval` updates from being persisted correctly.
+
+**Fix:** Normalised `open_days` to an empty array `[]` on load so the form always has a valid starting value.
+
+---
+
+## 🔧 Session fixes — 16 Mar 2026 (morning)
 
 ### 1. Business isolation leak in `/api/slots` — CRITICAL
 **File:** `src/app/api/slots/route.ts`
@@ -166,12 +207,24 @@ Every query **must** be scoped to a single business. Here's how each layer enfor
 
 **Key rule:** Staff hours are always clamped inside business hours. A staff member working `07:00–20:00` at a business open `09:00–18:00` will only show slots `09:00–18:00`. Business `open_time`/`close_time` is the hard outer boundary.
 
+**Slot interval rule:** `slot_interval` is always cast with `Number()` before use. Supabase returns numeric columns as strings — without the cast, `m += interval` becomes string concatenation and breaks the loop.
+
+---
+
+## 🛠️ Debug routes (temporary)
+
+### `GET /api/debug-biz?businessId=<id>`
+**File:** `src/app/api/debug-biz/route.ts`
+
+Returns the raw `slot_interval` value, its `typeof`, and the `Number()` cast result for a given business. Used to diagnose the slot interval bug. **Remove before public launch.**
+
 ---
 
 ## 📋 Backlog
 
 ### High priority
 - [ ] Stripe integration — trial expiry, subscription billing per plan
+- [ ] Remove `src/app/api/debug-biz/route.ts` before public launch
 - [ ] Demo booking page (live example on landing page)
 - [ ] Mobile responsiveness audit
 
