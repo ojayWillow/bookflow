@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { getBookings, getStaff, getSettings } from '@/lib/supabase/queries'
 import { format, addDays, parseISO, startOfWeek } from 'date-fns'
 import StatsBar       from './_components/StatsBar'
@@ -7,8 +7,6 @@ import DayView        from './_components/DayView'
 import WeekView       from './_components/WeekView'
 import BookingPopover from './_components/BookingPopover'
 import { useAdminLang } from '@/hooks/useAdminLang'
-
-const TODAY = format(new Date(), 'yyyy-MM-dd')
 
 type Booking = {
   id: string; ref: string
@@ -32,8 +30,12 @@ type Settings = {
 
 export default function AdminOverview() {
   const { t } = useAdminLang()
+
+  // Computed at render time — never stale from a warm serverless instance
+  const TODAY = useMemo(() => format(new Date(), 'yyyy-MM-dd'), [])
+
   const [view, setView]                       = useState<'day' | 'week'>('day')
-  const [currentDate, setCurrentDate]         = useState(TODAY)
+  const [currentDate, setCurrentDate]         = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [bookings, setBookings]               = useState<Booking[]>([])
   const [staff, setStaff]                     = useState<StaffMember[]>([])
