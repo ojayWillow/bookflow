@@ -35,10 +35,13 @@ export default function BusinessInfoSection({
 
       <div className="space-y-3">
 
-        {/* Row 1: Name + Short description */}
+        {/* Row 1: Name + Short description — labels forced to same height */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Business name</label>
+            {/* h-9 matches the two-line label height on the right */}
+            <div className="flex items-end h-9 mb-1.5">
+              <label className="text-sm font-medium text-gray-700">Business name</label>
+            </div>
             <input
               value={name}
               onChange={e => onChange('name', e.target.value)}
@@ -46,10 +49,10 @@ export default function BusinessInfoSection({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Short description
-              <span className="block text-xs font-normal text-gray-400 leading-none mt-0.5">shown on your booking page</span>
-            </label>
+            <div className="h-9 mb-1.5">
+              <label className="block text-sm font-medium text-gray-700 leading-tight">Short description</label>
+              <span className="text-xs text-gray-400 leading-tight">shown on your booking page</span>
+            </div>
             <input
               value={tagline}
               onChange={e => onChange('tagline', e.target.value)}
