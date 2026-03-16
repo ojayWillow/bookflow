@@ -43,9 +43,9 @@ export default function AdminOverview() {
   const [loading, setLoading]                 = useState(true)
 
   useEffect(() => {
-    Promise.all([getBookings(), getStaff(), getSettings()])
-      .then(([bData, sData, stData]) => {
-        setBookings((bData ?? []) as Booking[])
+    Promise.all([getBookings(0), getStaff(), getSettings()])
+      .then(([bResult, sData, stData]) => {
+        setBookings((bResult.data ?? []) as Booking[])
         setStaff(((sData ?? []) as StaffMember[]).filter(m => m.active))
         setSettings(stData as Settings)
       })
@@ -182,7 +182,7 @@ export default function AdminOverview() {
         <BookingPopover
           booking={selectedBooking}
           staff={staff}
-          onClose={() => setSelectedBooking(null)}
+          onClose={() => setSelectedBooking(null)
         />
       )}
 
