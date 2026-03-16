@@ -91,12 +91,12 @@ export default function SchedulePage() {
       </div>
 
       {dirty && !saved && (
-        <div className="mb-5 flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3">
-          <span>🟡 You have unsaved changes — don&apos;t forget to save.</span>
+        <div className="mb-5 flex items-center justify-between gap-3 bg-orange-400 text-white text-sm font-medium rounded-xl px-4 py-3 shadow-md">
+          <span>⚠️ Unsaved changes — don&apos;t forget to save!</span>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 bg-white text-orange-500 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-orange-50 transition-colors disabled:opacity-50 whitespace-nowrap"
           >
             {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
             Save now
