@@ -53,6 +53,7 @@ export default function BookingWizard({ business }: { business: Business }) {
   const [form, setForm]                           = useState<BookingForm>({ name: '', email: '', phone: '', notes: '' })
   const [touched, setTouched]                     = useState({ name: false, email: false, phone: false })
   const [bookingRef, setBookingRef]               = useState('')
+  const [isPending, setIsPending]                 = useState(false)
   const [services, setServices]                   = useState<DBService[]>([])
   const [staffMembers, setStaffMembers]           = useState<DBStaffMember[]>([])
   const [slots, setSlots]                         = useState<{ time: string; available: boolean }[]>([])
@@ -94,7 +95,6 @@ export default function BookingWizard({ business }: { business: Business }) {
     }).finally(() => setLoadingData(false))
   }, [business.id])
 
-  // Fetch slots from server API whenever date, staff, or service changes
   useEffect(() => {
     if (!selectedDate || !selectedService) {
       setSlots([])
@@ -181,6 +181,7 @@ export default function BookingWizard({ business }: { business: Business }) {
       if (!res.ok) throw new Error(data?.error ?? (t?.errorGeneric ?? 'Booking failed'))
       setBookingRef(data.booking.ref)
       setEmailSent(data.emailsSent === true)
+      setIsPending(data.booking.status === 'pending')
       setStep('success')
     } catch (err) {
       console.error(err)
@@ -204,11 +205,8 @@ export default function BookingWizard({ business }: { business: Business }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
-      {/* ── Header ── */}
       <header className="bg-white border-b border-gray-100">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
-
           <div className="flex items-center gap-3 min-w-0">
             {business.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -224,7 +222,6 @@ export default function BookingWizard({ business }: { business: Business }) {
               {business.tagline && <p className="text-xs text-gray-400 truncate">{business.tagline}</p>}
             </div>
           </div>
-
           <div className="flex items-center gap-2 flex-shrink-0">
             {hasSocial && (
               <div className="hidden sm:flex items-center gap-1.5">
@@ -256,7 +253,6 @@ export default function BookingWizard({ business }: { business: Business }) {
             )}
             <LanguageSwitcher />
           </div>
-
         </div>
       </header>
 
@@ -298,7 +294,7 @@ export default function BookingWizard({ business }: { business: Business }) {
         {step === 'datetime' && selectedService && <StepDateTime service={selectedService} selectedStaffMember={selectedStaffMember ?? null} availableDates={availableDates} selectedDate={selectedDate} selectedTime={selectedTime} slots={slots} loadingSlots={loadingSlots} dict={t} onSelectDate={date => { setSelectedDate(date); setSelectedTime('') }} onSelectTime={time => { setSelectedTime(time); setStep('details') }} />}
         {step === 'details'  && <StepDetails form={form} errors={errors} touched={touched} dict={t} onChange={(field, value) => setForm(p => ({ ...p, [field]: value }))} onBlur={field => setTouched(p => ({ ...p, [field]: true }))} onNext={() => { setTouched({ name: true, email: true, phone: true }); if (formValid) setStep('confirm') }} />}
         {step === 'confirm'  && selectedService && <StepConfirm business={business} service={selectedService} staffMember={selectedStaffMember ?? null} date={selectedDate} time={selectedTime} form={form} submitting={submitting} submitError={submitError} dict={t} onConfirm={handleConfirm} />}
-        {step === 'success'  && selectedService && <StepSuccess business={business} service={selectedService} staffMember={selectedStaffMember ?? null} date={selectedDate} time={selectedTime} form={form} bookingRef={bookingRef} emailSent={emailSent} dict={t} />}
+        {step === 'success'  && selectedService && <StepSuccess business={business} service={selectedService} staffMember={selectedStaffMember ?? null} date={selectedDate} time={selectedTime} form={form} bookingRef={bookingRef} emailSent={emailSent} isPending={isPending} dict={t} />}
       </main>
     </div>
   )
