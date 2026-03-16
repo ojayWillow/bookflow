@@ -1,6 +1,7 @@
 'use client'
 import { Palette, Globe, Instagram, Facebook } from 'lucide-react'
 import ImageUpload from '../ImageUpload'
+import { useAdminLang } from '@/hooks/useAdminLang'
 
 const BRAND_COLORS = [
   { label: 'Indigo',  value: '#6366f1' },
@@ -47,26 +48,30 @@ interface Props {
 export default function BrandingSection({
   settings, hexInput, onHexInput, onColorChange, onLogoUploaded
 }: Props) {
+  const t = useAdminLang()
+
   return (
     <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
       <div className="flex items-center gap-2 mb-1">
         <Palette className="w-4 h-4 text-indigo-500" />
-        <h2 className="font-semibold text-gray-900">Branding</h2>
+        <h2 className="font-semibold text-gray-900">{t.branding.sectionTitle}</h2>
       </div>
-      <p className="text-sm text-gray-400 mb-5">Customise how your booking page looks to customers</p>
+      <p className="text-sm text-gray-400 mb-5">{t.branding.sectionSub}</p>
 
       <div className="space-y-6">
 
         {/* Logo upload */}
         <ImageUpload
-          label="Logo" hint="Square image shown in the booking page header"
-          field="logo_url" currentUrl={settings.logo_url}
+          label={t.branding.logoLabel}
+          hint={t.branding.logoHint}
+          field="logo_url"
+          currentUrl={settings.logo_url}
           onUploaded={onLogoUploaded}
         />
 
         {/* Brand colour */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">Brand colour</label>
+          <label className="block text-sm font-medium text-gray-700 mb-3">{t.branding.brandColour}</label>
           <div className="flex items-center gap-2 flex-wrap mb-3">
             {BRAND_COLORS.map(c => (
               <button key={c.value} type="button" title={c.label} onClick={() => onColorChange(c.value)}
@@ -92,14 +97,14 @@ export default function BrandingSection({
                 className="px-3 py-2 text-sm font-mono w-28 focus:outline-none" />
             </div>
             {!isValidHex(hexInput) && hexInput.length > 0 && (
-              <p className="text-xs text-red-500">Invalid hex</p>
+              <p className="text-xs text-red-500">{t.branding.invalidHex}</p>
             )}
           </div>
         </div>
 
         {/* Live preview */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">Live preview</label>
+          <label className="block text-sm font-medium text-gray-700 mb-3">{t.branding.livePreview}</label>
           <div className="rounded-2xl overflow-hidden border-2 border-gray-100 shadow-sm">
 
             {/* Header bar */}
@@ -150,7 +155,7 @@ export default function BrandingSection({
               </div>
               <button className="w-full py-2.5 rounded-xl text-white text-sm font-semibold"
                 style={{ backgroundColor: settings.primary_color }}>
-                Confirm booking ✓
+                {t.branding.confirmBooking}
               </button>
             </div>
           </div>
