@@ -41,11 +41,6 @@ function toHHMM(mins: number): string {
   return `${Math.floor(mins / 60).toString().padStart(2, '0')}:${(mins % 60).toString().padStart(2, '0')}`
 }
 
-/**
- * Returns true if [slotStart, slotStart+durationMins) overlaps or
- * touches any existing booking. >= on the right boundary ensures a
- * slot ending exactly when a booking starts is treated as blocked.
- */
 function isBlocked(
   slotStart: number,
   durationMins: number,
@@ -79,21 +74,20 @@ export function getAvailableDates(settings: Settings): string[] {
 }
 
 /**
- * Slots for a specific staff member (or no staff / anyone).
+ * Slots for a specific staff member on a given date.
  *
- * When a staffMember is provided, their work_start/work_end are used
- * directly as the slot window — NOT clamped to business hours. This
- * allows each staff member to have independent working hours (e.g.
- * one person working 09:00-20:00 while another works 09:00-18:00).
+ * Staff hours are ALWAYS clamped to business open/close:
+ *   effectiveOpen  = max(staff.workStart, biz.open_time)
+ *   effectiveClose = min(staff.workEnd,   biz.close_time)
  *
- * Business open_time/close_time are only used as the fallback window
- * when no specific staff member is selected (the "Anyone" path).
+ * This guarantees a staff member can never be bookable outside
+ * the business window, regardless of their personal work_start/work_end.
  *
- * bookedSlots contains ALL bookings for the day.
- * When a staffMember is given we only block using:
- *   - bookings for that staff member
- *   - bookings with null staff_id (anyone — blocks the whole schedule)
- * When no staffMember, ALL bookings block slots.
+ * Examples:
+ *   biz 09:00–18:00, staff 03:00–23:00 → slots 09:00–18:00
+ *   biz 09:00–18:00, staff 09:00–20:00 → slots 09:00–18:00
+ *   biz 09:00–18:00, staff 10:00–16:00 → slots 10:00–16:00
+ *   biz 09:00–18:00, staff 08:00–15:00 → slots 09:00–15:00
  */
 export function getSlotsForDate(
   date: string,
@@ -105,19 +99,24 @@ export function getSlotsForDate(
   const interval  = settings?.slot_interval  ?? 30
   const leadHours = settings?.lead_time_hours ?? 2
 
+  const bizStart = toMins(settings?.open_time  ?? '09:00')
+  const bizEnd   = toMins(settings?.close_time ?? '18:00')
+
   if (staffMember) {
     const dow = new Date(date + 'T12:00:00').getDay()
     if (!staffMember.workDays.includes(dow)) return []
   }
 
-  // When a specific staff member is selected, use their hours directly.
-  // When no staff (Anyone), fall back to business hours.
-  const openMins  = staffMember
-    ? toMins(staffMember.workStart)
-    : toMins(settings?.open_time  ?? '09:00')
+  // Clamp staff hours to business hours — staff can never exceed biz window
+  const openMins = staffMember
+    ? Math.max(toMins(staffMember.workStart), bizStart)
+    : bizStart
   const closeMins = staffMember
-    ? toMins(staffMember.workEnd)
-    : toMins(settings?.close_time ?? '18:00')
+    ? Math.min(toMins(staffMember.workEnd), bizEnd)
+    : bizEnd
+
+  // If after clamping there's no valid window, return no slots
+  if (openMins >= closeMins) return []
 
   const leadCutoffMs = Date.now() + leadHours * 3_600_000
 
@@ -152,8 +151,7 @@ export function getSlotsForDate(
  * Union slots when "Anyone" is selected AND staff exist.
  *
  * A slot is available if AT LEAST ONE staff member is free.
- * Each staff member's window is clamped to business hours so that
- * the overall visible range stays within business open/close times.
+ * Each staff member's window is clamped to business hours.
  */
 export function getUnionSlotsForDate(
   date: string,
