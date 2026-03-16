@@ -117,13 +117,16 @@ export default function DayView({
         <div className="flex" style={{ minHeight: `${totalHeight}px` }}>
 
           {/* Time gutter */}
-          <div className="w-14 flex-shrink-0 border-r border-gray-100 relative">
+          <div className="w-14 flex-shrink-0 border-r border-gray-100">
             {hours.map(h => (
-              <div key={h} style={{ height: SLOT_HEIGHT }} className="relative">
-                <span className="absolute -top-2 right-2 text-[10px] text-gray-300 font-medium select-none">
-                  {h}:00
+              <div key={h} style={{ height: SLOT_HEIGHT }} className="relative border-b border-gray-50">
+                {/* Hour label — sits at top-1 (inside the row) so it's never clipped */}
+                <span className="absolute top-1 right-2 text-[10px] text-gray-400 font-medium select-none leading-none">
+                  {String(h).padStart(2, '0')}:00
                 </span>
-                <span className="absolute right-3 text-[9px] text-gray-200 select-none" style={{ top: SLOT_HEIGHT / 2 }}>
+                {/* Half-hour tick */}
+                <span className="absolute right-3 text-[9px] text-gray-200 select-none leading-none"
+                  style={{ top: SLOT_HEIGHT / 2 + 2 }}>
                   –
                 </span>
               </div>
