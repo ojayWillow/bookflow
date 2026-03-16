@@ -35,7 +35,7 @@ export default function StepDateTime({
       <h2 className="text-xl font-bold text-gray-900 mb-1">{t.stepDateTimeTitle}</h2>
       <div className="flex items-center gap-2 mb-6 flex-wrap">
         <span className="text-sm text-gray-400">{service.name}</span>
-        <span className="text-gray-300">·</span>
+        <span className="text-gray-300">&middot;</span>
         {selectedStaffMember ? (
           <div className="flex items-center gap-1.5">
             <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold"
