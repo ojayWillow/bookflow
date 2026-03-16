@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Loader2 } from 'lucide-react'
 import BusinessInfoSection from './_sections/BusinessInfoSection'
-import BookingRulesSection from './_sections/BookingRulesSection'
 import ScheduleSection     from './_sections/ScheduleSection'
 import { useAdminLang } from '@/hooks/useAdminLang'
 
@@ -149,16 +148,12 @@ export default function SettingsPage() {
           openTime={settings.open_time}
           closeTime={settings.close_time}
           slotInterval={settings.slot_interval}
-          onToggleDay={toggleDay}
-          onChange={set}
-        />
-
-        <BookingRulesSection
           leadTimeHours={settings.lead_time_hours}
           maxAdvanceDays={settings.max_advance_days}
           cancellationWindowHours={settings.cancellation_window_hours}
           cancellationPolicy={settings.cancellation_policy}
           requireApproval={settings.require_approval}
+          onToggleDay={toggleDay}
           onChange={set}
         />
 
