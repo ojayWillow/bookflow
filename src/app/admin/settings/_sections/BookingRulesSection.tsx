@@ -1,4 +1,5 @@
 'use client'
+import { useAdminLang } from '@/hooks/useAdminLang'
 
 interface Props {
   leadTimeHours: number
@@ -17,17 +18,16 @@ export default function BookingRulesSection({
   requireApproval,
   onChange,
 }: Props) {
+  const { t } = useAdminLang()
+
   return (
     <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
-      <h2 className="font-semibold text-gray-900 mb-4">&#9881;&#65039; Booking rules</h2>
+      <h2 className="font-semibold text-gray-900 mb-4">&#9881;&#65039; {t.settings.bookingRules}</h2>
 
-      {/* Manual approval toggle */}
       <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl mb-5 border-2 border-gray-100">
         <div>
-          <p className="font-medium text-gray-900 text-sm">Manual booking approval</p>
-          <p className="text-xs text-gray-400 mt-0.5">
-            When enabled, new bookings require your approval before being confirmed.
-          </p>
+          <p className="font-medium text-gray-900 text-sm">{t.settings.manualApproval}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{t.settings.manualApprovalDesc}</p>
         </div>
         <button
           type="button"
@@ -46,7 +46,7 @@ export default function BookingRulesSection({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Lead time (hours)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.settings.leadTime}</label>
           <input
             type="number"
             value={leadTimeHours}
@@ -54,10 +54,10 @@ export default function BookingRulesSection({
             className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
             min={0}
           />
-          <p className="text-xs text-gray-400 mt-1">Min. hours before a booking can be made</p>
+          <p className="text-xs text-gray-400 mt-1">{t.settings.leadTimeSub}</p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Max advance (days)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.settings.maxAdvance}</label>
           <input
             type="number"
             value={maxAdvanceDays}
@@ -65,10 +65,10 @@ export default function BookingRulesSection({
             className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
             min={1}
           />
-          <p className="text-xs text-gray-400 mt-1">How far ahead clients can book</p>
+          <p className="text-xs text-gray-400 mt-1">{t.settings.maxAdvanceSub}</p>
         </div>
         <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Cancellation window (hours)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.settings.cancellationWindow}</label>
           <input
             type="number"
             value={cancellationWindowHours}
@@ -76,18 +76,18 @@ export default function BookingRulesSection({
             className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
             min={0}
           />
-          <p className="text-xs text-gray-400 mt-1">How many hours before the appointment customers can still cancel online. Set to 0 to always allow cancellation.</p>
+          <p className="text-xs text-gray-400 mt-1">{t.settings.cancellationWindowSub}</p>
         </div>
       </div>
       <div className="mt-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">Cancellation policy</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.settings.cancellationPolicy}</label>
         <textarea
           value={cancellationPolicy}
           onChange={e => onChange('cancellation_policy', e.target.value)}
           className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors resize-none"
           rows={2}
         />
-        <p className="text-xs text-gray-400 mt-1">This text is shown to customers in their confirmation email.</p>
+        <p className="text-xs text-gray-400 mt-1">{t.settings.cancellationPolicySub}</p>
       </div>
     </section>
   )

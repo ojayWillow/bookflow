@@ -1,0 +1,22 @@
+const brandingLv = {
+  title:             'Dizains',
+  sub:               'Kā izskatās tava rezervācijas lapa un kur tevi var atrast tiešsaistē',
+  sectionTitle:      'Dizains',
+  sectionSub:        'Pielago rezervācijas lapas izskatu klientiem',
+  logoLabel:         'Logotips',
+  logoHint:          'Kvadrātveida attēls, kas rādīts rezervācijas lapas galvenē',
+  brandColour:       'Zīmola krāsa',
+  livePreview:       'Priekšskatījums',
+  confirmBooking:    'Apstiprināt rezervāciju',
+  invalidHex:        'Nederīgs hex kods',
+  onlinePresence:    'Tiešsaistes klātbūtne',
+  onlinePresenceSub: 'Tās parādās kā ikonas tavā rezervācijas lapā. Vari ielīmēt domēnu vai pilnu URL.',
+  save:              'Saglabāt dizainu',
+  saving:            'Saglabā…',
+  saved:             'Saglabāts!',
+  saveFail:          'Neizdevās saglabāt dizainu',
+  loadFail:          'Neizdevās ielādēt dizainu',
+  unsaved:           'Nesaglabātas izmaiņas — neaizmirsti saglabāt!',
+  saveNow:           'Saglabāt tagad',
+}
+export default brandingLv

@@ -1,7 +1,10 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Loader2 } from 'lucide-react'
-import BusinessInfoSection from './_sections/BusinessInfoSection'
+import BusinessInfoSection   from './_sections/BusinessInfoSection'
+import BookingRulesSection   from './_sections/BookingRulesSection'
+import ScheduleSection       from './_sections/ScheduleSection'
+import OnlinePresenceSection from './_sections/OnlinePresenceSection'
 import { useAdminLang } from '@/hooks/useAdminLang'
 
 type Settings = {
@@ -34,9 +37,9 @@ export default function SettingsPage() {
         setSettings(data as Settings)
         setOriginalSlug((data as Settings).slug)
       })
-      .catch(e => setError(e instanceof Error ? e.message : 'Failed to load settings'))
+      .catch(e => setError(e instanceof Error ? e.message : t.settings.loadFail))
       .finally(() => setLoading(false))
-  }, [])
+  }, [t.settings.loadFail])
 
   const checkSlug = useCallback((slug: string) => {
     if (slug === originalSlug) { setSlugStatus('idle'); return }
@@ -60,7 +63,7 @@ export default function SettingsPage() {
         body: JSON.stringify(settings),
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Failed to save')
+      if (!res.ok) throw new Error(json.error || t.settings.saveFail)
       setSaved(true)
       setDirty(false)
       setOriginalSlug(settings.slug)
@@ -79,6 +82,14 @@ export default function SettingsPage() {
     setSaved(false)
   }
 
+  const toggleDay = (day: number) => {
+    if (!settings) return
+    const days = settings.open_days.includes(day)
+      ? settings.open_days.filter(d => d !== day)
+      : [...settings.open_days, day].sort()
+    set('open_days', days)
+  }
+
   if (loading) return (
     <div className="flex items-center justify-center py-32 text-gray-400">
       <Loader2 className="w-6 h-6 animate-spin mr-2" /> {t.common.loading}
@@ -87,7 +98,7 @@ export default function SettingsPage() {
   if (!settings) return (
     <div className="p-8">
       <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-6 py-5">
-        <p className="font-semibold mb-1">⚠️ Could not load settings</p>
+        <p className="font-semibold mb-1">⚠️ {t.settings.loadFail}</p>
         <p className="text-sm">{error}</p>
       </div>
     </div>
@@ -97,12 +108,12 @@ export default function SettingsPage() {
     <div className="p-6 md:p-8 max-w-2xl">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">{t.settings.title}</h1>
-        <p className="text-gray-400 mt-1">Your business identity and contact details</p>
+        <p className="text-gray-400 mt-1">{t.settings.sub}</p>
       </div>
 
       {dirty && !saved && (
         <div className="mb-5 flex items-center justify-between gap-3 bg-orange-400 text-white text-sm font-medium rounded-xl px-4 py-3 shadow-md">
-          <span>⚠️ Unsaved changes — don&apos;t forget to save!</span>
+          <span>⚠️ {t.settings.unsaved}</span>
           <button
             onClick={handleSave}
             disabled={saving || slugStatus === 'taken'}
@@ -134,12 +145,38 @@ export default function SettingsPage() {
           onSlugChange={v => { set('slug', v); checkSlug(v) }}
         />
 
+        <ScheduleSection
+          openDays={settings.open_days}
+          openTime={settings.open_time}
+          closeTime={settings.close_time}
+          slotInterval={settings.slot_interval}
+          onToggleDay={toggleDay}
+          onChange={set}
+        />
+
+        <BookingRulesSection
+          leadTimeHours={settings.lead_time_hours}
+          maxAdvanceDays={settings.max_advance_days}
+          cancellationWindowHours={settings.cancellation_window_hours}
+          cancellationPolicy={settings.cancellation_policy}
+          requireApproval={settings.require_approval}
+          onChange={set}
+        />
+
+        <OnlinePresenceSection
+          websiteUrl={settings.website_url}
+          instagramUrl={settings.instagram_url}
+          facebookUrl={settings.facebook_url}
+          tiktokUrl={settings.tiktok_url}
+          onChange={set}
+        />
+
         <button
           onClick={handleSave}
           disabled={saving || slugStatus === 'taken'}
           className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
           {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-          {saved ? `✓ ${t.settings.saved}` : slugStatus === 'taken' ? 'Fix URL to save' : t.settings.save}
+          {saved ? `✓ ${t.settings.saved}` : slugStatus === 'taken' ? t.settings.fixUrl : t.settings.save}
         </button>
       </div>
     </div>

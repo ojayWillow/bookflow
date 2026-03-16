@@ -1,0 +1,22 @@
+const brandingEn = {
+  title:             'Branding',
+  sub:               "How your booking page looks and where you're found online",
+  sectionTitle:      'Branding',
+  sectionSub:        'Customise how your booking page looks to customers',
+  logoLabel:         'Logo',
+  logoHint:          'Square image shown in the booking page header',
+  brandColour:       'Brand colour',
+  livePreview:       'Live preview',
+  confirmBooking:    'Confirm booking',
+  invalidHex:        'Invalid hex',
+  onlinePresence:    'Online presence',
+  onlinePresenceSub: 'These appear as icons on your booking page. You can paste just the domain or a full URL.',
+  save:              'Save branding',
+  saving:            'Saving…',
+  saved:             'Saved!',
+  saveFail:          'Failed to save branding',
+  loadFail:          'Could not load branding',
+  unsaved:           "Unsaved changes — don't forget to save!",
+  saveNow:           'Save now',
+}
+export default brandingEn

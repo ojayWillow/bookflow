@@ -1,6 +1,7 @@
 'use client'
 import { Lock, Copy, Check } from 'lucide-react'
 import { useState } from 'react'
+import { useAdminLang } from '@/hooks/useAdminLang'
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow.app'
 
@@ -20,6 +21,7 @@ interface Props {
 export default function BusinessInfoSection({
   name, tagline, address, phone, email, slug, onChange
 }: Props) {
+  const { t } = useAdminLang()
   const [copied, setCopied] = useState(false)
   const bookingUrl = `${BASE}/book/${slug}`
 
@@ -31,16 +33,14 @@ export default function BusinessInfoSection({
 
   return (
     <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
-      <h2 className="font-semibold text-gray-900 mb-4">🏢 Business information</h2>
+      <h2 className="font-semibold text-gray-900 mb-4">🏢 {t.settings.businessInfo}</h2>
 
       <div className="space-y-3">
 
-        {/* Row 1: Name + Short description — labels forced to same height */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            {/* h-9 matches the two-line label height on the right */}
             <div className="flex items-end h-9 mb-1.5">
-              <label className="text-sm font-medium text-gray-700">Business name</label>
+              <label className="text-sm font-medium text-gray-700">{t.settings.businessName}</label>
             </div>
             <input
               value={name}
@@ -50,8 +50,8 @@ export default function BusinessInfoSection({
           </div>
           <div>
             <div className="h-9 mb-1.5">
-              <label className="block text-sm font-medium text-gray-700 leading-tight">Short description</label>
-              <span className="text-xs text-gray-400 leading-tight">shown on your booking page</span>
+              <label className="block text-sm font-medium text-gray-700 leading-tight">{t.settings.shortDesc}</label>
+              <span className="text-xs text-gray-400 leading-tight">{t.settings.shortDescHint}</span>
             </div>
             <input
               value={tagline}
@@ -62,9 +62,8 @@ export default function BusinessInfoSection({
           </div>
         </div>
 
-        {/* Row 2: Address */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Address</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.settings.address}</label>
           <input
             value={address}
             onChange={e => onChange('address', e.target.value)}
@@ -72,10 +71,9 @@ export default function BusinessInfoSection({
           />
         </div>
 
-        {/* Row 3: Phone + Email */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.settings.phone}</label>
             <input
               value={phone}
               onChange={e => onChange('phone', e.target.value)}
@@ -83,7 +81,7 @@ export default function BusinessInfoSection({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.settings.contactEmail}</label>
             <input
               value={email}
               onChange={e => onChange('email', e.target.value)}
@@ -92,10 +90,9 @@ export default function BusinessInfoSection({
           </div>
         </div>
 
-        {/* Row 4: Booking URL — compact read-only banner */}
         <div className="flex items-center gap-2 bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-2.5">
           <Lock className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-          <span className="text-xs text-gray-400 shrink-0">Booking link</span>
+          <span className="text-xs text-gray-400 shrink-0">{t.settings.bookingLink}</span>
           <span className="flex-1 text-xs font-mono text-gray-500 truncate">{bookingUrl}</span>
           <button
             type="button"
@@ -103,8 +100,8 @@ export default function BusinessInfoSection({
             className="shrink-0 flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-700 transition-colors"
           >
             {copied
-              ? <><Check className="w-3.5 h-3.5" /> Copied</>
-              : <><Copy className="w-3.5 h-3.5" /> Copy</>
+              ? <><Check className="w-3.5 h-3.5" /> {t.settings.copied}</>
+              : <><Copy className="w-3.5 h-3.5" /> {t.settings.copy}</>
             }
           </button>
         </div>

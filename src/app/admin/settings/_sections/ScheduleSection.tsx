@@ -1,4 +1,5 @@
 'use client'
+import { useAdminLang } from '@/hooks/useAdminLang'
 
 const DAYS      = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const INTERVALS = [15, 30, 45, 60, 90, 120]
@@ -13,15 +14,16 @@ interface Props {
 }
 
 export default function ScheduleSection({ openDays, openTime, closeTime, slotInterval, onToggleDay, onChange }: Props) {
+  const { t } = useAdminLang()
+
   return (
     <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
-      <h2 className="font-semibold text-gray-900 mb-5">📅 Schedule</h2>
+      <h2 className="font-semibold text-gray-900 mb-5">📅 {t.settings.sectionTitle ?? t.schedule.sectionTitle}</h2>
 
       <div className="space-y-5">
 
-        {/* Open days */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Open days</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.openDays}</label>
           <div className="flex gap-2">
             {DAYS.map((day, i) => (
               <button
@@ -40,11 +42,9 @@ export default function ScheduleSection({ openDays, openTime, closeTime, slotInt
           </div>
         </div>
 
-        {/* Hours + Slot interval side by side */}
         <div className="grid grid-cols-2 gap-4">
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Hours</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.hours}</label>
             <div className="flex items-center gap-2">
               <input
                 type="time"
@@ -63,7 +63,7 @@ export default function ScheduleSection({ openDays, openTime, closeTime, slotInt
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Slot interval</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.slotInterval}</label>
             <div className="flex gap-1.5 flex-wrap">
               {INTERVALS.map(i => (
                 <button
@@ -81,7 +81,6 @@ export default function ScheduleSection({ openDays, openTime, closeTime, slotInt
               ))}
             </div>
           </div>
-
         </div>
 
       </div>
