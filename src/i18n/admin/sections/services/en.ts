@@ -1,7 +1,7 @@
 const servicesEn = {
   title:           'Services',
   sub:             'Manage what you offer and your pricing',
-  addService:      '+ Add service',
+  addService:      'Add service',
   noServices:      'No services yet',
   noServicesSub:   'Add your first service to start taking bookings.',
   editService:     'Edit service',

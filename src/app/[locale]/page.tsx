@@ -38,12 +38,11 @@ export default async function LandingPage({
 
           {/* Right side */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Language switcher — slightly scaled down on mobile */}
             <div className="scale-90 sm:scale-100 origin-right">
               <LanguageSwitcher />
             </div>
-            {/* Sign in — desktop only */}
-            <Link href="/admin/login" className="hidden md:block text-sm text-gray-600 hover:text-gray-900 transition-colors">
+            {/* Sign in — visible on all screen sizes */}
+            <Link href="/admin/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors font-medium">
               {t.nav.signIn}
             </Link>
             {/* CTA — desktop only; mobile uses sticky bottom bar */}
@@ -68,13 +67,11 @@ export default async function LandingPage({
             {t.hero.subheadline}
           </p>
 
-          {/* Email form — desktop only; mobile uses sticky bottom bar */}
           <div className="hidden md:flex justify-center">
             <HeroSignupForm locale={locale} emailPlaceholder={t.hero.emailPlaceholder} cta={t.hero.cta} />
           </div>
           <p className="hidden md:block text-sm text-gray-400 mt-4">{t.hero.trialNote}</p>
 
-          {/* Trust row */}
           <div className="mt-5 sm:mt-8 flex items-center justify-center gap-2 sm:gap-3">
             <div className="flex -space-x-1.5">
               {['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981'].map((color, i) => (

@@ -1,7 +1,7 @@
 const servicesLv = {
   title:           'Pakalpojumi',
   sub:             'Pārvaldi piedāvātos pakalpojumus un cenas',
-  addService:      '+ Pievienot pakalpojumu',
+  addService:      'Pievienot pakalpojumu',
   noServices:      'Pakalpojumu vēl nav',
   noServicesSub:   'Pievieno pirmo pakalpojumu, lai sāktu pieņemt rezervācijas.',
   editService:     'Rediģēt pakalpojumu',
