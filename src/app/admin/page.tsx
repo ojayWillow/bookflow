@@ -31,7 +31,6 @@ type Settings = {
 export default function AdminOverview() {
   const { t } = useAdminLang()
 
-  // Computed at render time — never stale from a warm serverless instance
   const TODAY = useMemo(() => format(new Date(), 'yyyy-MM-dd'), [])
 
   const [view, setView]                       = useState<'day' | 'week'>('day')
@@ -182,7 +181,7 @@ export default function AdminOverview() {
         <BookingPopover
           booking={selectedBooking}
           staff={staff}
-          onClose={() => setSelectedBooking(null)
+          onClose={() => setSelectedBooking(null)}
         />
       )}
 
