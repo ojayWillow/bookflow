@@ -26,9 +26,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/bookings',  label: t.nav.bookings,  icon: BookOpen },
     { href: '/admin/services',  label: t.nav.services,  icon: Calendar },
     { href: '/admin/staff',     label: t.nav.staff,     icon: Users },
-    { href: '/admin/schedule',  label: 'Schedule',      icon: Clock },
-    { href: '/admin/branding',  label: 'Branding',      icon: Palette },
-    { href: '/admin/share',     label: 'Share',         icon: Share2 },
+    { href: '/admin/schedule',  label: t.nav.schedule,  icon: Clock },
+    { href: '/admin/branding',  label: t.nav.branding,  icon: Palette },
+    { href: '/admin/share',     label: t.nav.share,     icon: Share2 },
     { href: '/admin/settings',  label: t.nav.settings,  icon: Settings },
   ]
 
