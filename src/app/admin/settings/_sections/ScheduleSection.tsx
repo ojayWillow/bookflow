@@ -35,13 +35,13 @@ export default function ScheduleSection({
         {/* Open days */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.openDays}</label>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {DAYS.map((day, i) => (
               <button
                 key={day}
                 type="button"
                 onClick={() => onToggleDay(i)}
-                className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-all ${
+                className={`flex-1 min-w-[2.5rem] py-2 rounded-xl text-xs font-semibold border-2 transition-all ${
                   openDays.includes(i)
                     ? 'bg-indigo-600 text-white border-indigo-600'
                     : 'border-gray-100 text-gray-400 hover:border-indigo-300'
@@ -53,8 +53,8 @@ export default function ScheduleSection({
           </div>
         </div>
 
-        {/* Hours + slot interval */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Hours + slot interval: stack on mobile */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.hours}</label>
             <div className="flex items-center gap-2">
@@ -95,7 +95,7 @@ export default function ScheduleSection({
           </div>
         </div>
 
-        {/* Booking rules divider */}
+        {/* Booking rules */}
         <div className="border-t-2 border-gray-100 pt-5">
           <h3 className="font-semibold text-gray-900 mb-4">⚙️ {t.settings.bookingRules}</h3>
 
@@ -120,8 +120,8 @@ export default function ScheduleSection({
             </button>
           </div>
 
-          {/* Lead time + max advance */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Lead time + max advance: stack on mobile */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.settings.leadTime}</label>
               <input
@@ -146,7 +146,7 @@ export default function ScheduleSection({
             </div>
 
             {/* Cancellation window */}
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.settings.cancellationWindow}</label>
               <input
                 type="number"

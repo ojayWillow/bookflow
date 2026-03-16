@@ -37,7 +37,8 @@ export default function BusinessInfoSection({
 
       <div className="space-y-3">
 
-        <div className="grid grid-cols-2 gap-3">
+        {/* Business name + tagline: stack on mobile */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <div className="flex items-end h-9 mb-1.5">
               <label className="text-sm font-medium text-gray-700">{t.settings.businessName}</label>
@@ -71,7 +72,8 @@ export default function BusinessInfoSection({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {/* Phone + email: stack on mobile */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.settings.phone}</label>
             <input

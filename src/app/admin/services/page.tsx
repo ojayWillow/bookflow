@@ -84,14 +84,16 @@ export default function ServicesPage() {
     <div className="p-4 md:p-8">
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
 
-      <div className="flex items-center justify-between mb-8">
+      {/* Header — button shrinks, never wraps into title */}
+      <div className="flex items-start justify-between gap-3 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{t.services.title}</h1>
-          <p className="text-gray-400 mt-1">{t.services.sub}</p>
+          <p className="text-gray-400 mt-1 text-sm">{t.services.sub}</p>
         </div>
         <button onClick={openCreate}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-indigo-700 transition-colors text-sm">
-          {t.services.addService}
+          className="shrink-0 flex items-center gap-2 bg-indigo-600 text-white px-3 py-2.5 sm:px-4 rounded-xl font-medium hover:bg-indigo-700 transition-colors text-sm whitespace-nowrap">
+          + <span className="hidden sm:inline">{t.services.addService}</span>
+          <span className="sm:hidden">{t.services.addService}</span>
         </button>
       </div>
 
@@ -105,7 +107,6 @@ export default function ServicesPage() {
         <div className="grid gap-4">
           {services.map((s, i) => (
             <div key={s.id} className="bg-white border-2 border-gray-100 rounded-2xl p-5 hover:border-indigo-100 transition-all shadow-soft">
-              {/* top row: number + info */}
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-xl font-bold text-indigo-600 flex-shrink-0">
                   {i + 1}
@@ -119,7 +120,6 @@ export default function ServicesPage() {
                   </div>
                 </div>
               </div>
-              {/* bottom row: actions — always visible, aligned right */}
               <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-50">
                 <button onClick={() => openEdit(s)} className="text-sm text-indigo-600 px-3 py-1.5 rounded-xl hover:bg-indigo-50 font-medium transition-colors">{t.services.edit}</button>
                 <button onClick={() => handleDelete(s.id)} className="text-sm text-red-400 px-3 py-1.5 rounded-xl hover:bg-red-50 font-medium transition-colors">{t.services.delete}</button>
