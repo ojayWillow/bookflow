@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Clock, Loader2, Plus } from 'lucide-react'
+import { Clock, Loader2 } from 'lucide-react'
 import { getServices, upsertService, deleteService } from '@/lib/supabase/queries'
 import AdminSkeleton  from '../_components/AdminSkeleton'
 import ToastContainer from '../_components/Toast'
@@ -90,8 +90,8 @@ export default function ServicesPage() {
           <p className="text-gray-400 mt-1 text-sm">{t.services.sub}</p>
         </div>
         <button onClick={openCreate}
-          className="shrink-0 flex items-center gap-2 bg-indigo-600 text-white px-3 py-2.5 sm:px-4 rounded-xl font-medium hover:bg-indigo-700 transition-colors text-sm whitespace-nowrap">
-          <Plus className="w-4 h-4" />{t.services.addService}
+          className="shrink-0 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-indigo-700 transition-colors text-sm whitespace-nowrap">
+          {t.services.addService}
         </button>
       </div>
 
