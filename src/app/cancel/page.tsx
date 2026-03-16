@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Loader2, CalendarX, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
@@ -21,17 +21,17 @@ type BookingData = {
   }
 }
 
-export default function CancelPage() {
+function CancelPageInner() {
   const params = useSearchParams()
   const id     = params.get('id')
   const token  = params.get('token')
   const error  = params.get('error')
 
-  const [data, setData]         = useState<BookingData | null>(null)
-  const [loading, setLoading]   = useState(true)
+  const [data, setData]             = useState<BookingData | null>(null)
+  const [loading, setLoading]       = useState(true)
   const [cancelling, setCancelling] = useState(false)
-  const [state, setState]       = useState<'idle' | 'done' | 'error' | 'already' | 'window'>('idle')
-  const [errMsg, setErrMsg]     = useState('')
+  const [state, setState]           = useState<'idle' | 'done' | 'error' | 'already' | 'window'>('idle')
+  const [errMsg, setErrMsg]         = useState('')
 
   useEffect(() => {
     if (error || !id || !token) { setLoading(false); setState('error'); return }
@@ -43,12 +43,17 @@ export default function CancelPage() {
       })
       .then(json => {
         if (json.booking.status === 'cancelled') { setState('already'); setLoading(false); return }
-        if (json.booking.status === 'completed') { setState('error'); setErrMsg('This appointment has already been completed.'); setLoading(false); return }
+        if (json.booking.status === 'completed') {
+          setErrMsg('This appointment has already been completed.')
+          setState('error')
+          setLoading(false)
+          return
+        }
         setData(json)
         setLoading(false)
       })
-      .catch(e => {
-        setErrMsg(e.message ?? 'Could not load booking')
+      .catch((e: unknown) => {
+        setErrMsg(e instanceof Error ? e.message : 'Could not load booking')
         setState('error')
         setLoading(false)
       })
@@ -86,7 +91,6 @@ export default function CancelPage() {
     </div>
   )
 
-  // ─ Done state
   if (state === 'done') return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-sm border-2 border-gray-100 p-8 max-w-md w-full text-center">
@@ -104,7 +108,6 @@ export default function CancelPage() {
     </div>
   )
 
-  // ─ Already cancelled
   if (state === 'already') return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-sm border-2 border-gray-100 p-8 max-w-md w-full text-center">
@@ -117,7 +120,6 @@ export default function CancelPage() {
     </div>
   )
 
-  // ─ Window passed
   if (state === 'window') return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-sm border-2 border-amber-200 p-8 max-w-md w-full text-center">
@@ -132,7 +134,6 @@ export default function CancelPage() {
     </div>
   )
 
-  // ─ Error / invalid link
   if (state === 'error') return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-sm border-2 border-red-100 p-8 max-w-md w-full text-center">
@@ -160,8 +161,10 @@ export default function CancelPage() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={business.logo_url} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
           ) : (
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-              style={{ backgroundColor: color }}>
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+              style={{ backgroundColor: color }}
+            >
               {business.name[0]}
             </div>
           )}
@@ -189,7 +192,7 @@ export default function CancelPage() {
                 <p className="text-sm font-semibold text-amber-800">Late cancellation</p>
                 <p className="text-xs text-amber-700 mt-0.5">
                   This appointment is within the {policy.windowHours}-hour cancellation window.
-                  You may not be able to cancel online.
+                  Cancellation may no longer be possible.
                 </p>
               </div>
             </div>
@@ -205,14 +208,19 @@ export default function CancelPage() {
 
           {/* Actions */}
           <div className="flex gap-3 pt-1">
-            <a href="javascript:history.back()"
-              className="flex-1 border-2 border-gray-100 text-gray-500 py-3 rounded-xl text-sm font-medium hover:border-gray-200 transition-colors text-center">
-              Keep booking
-            </a>
             <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="flex-1 border-2 border-gray-100 text-gray-500 py-3 rounded-xl text-sm font-medium hover:border-gray-200 transition-colors"
+            >
+              Keep booking
+            </button>
+            <button
+              type="button"
               onClick={handleCancel}
               disabled={cancelling}
-              className="flex-1 bg-red-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+              className="flex-1 bg-red-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+            >
               {cancelling && <Loader2 className="w-4 h-4 animate-spin" />}
               {cancelling ? 'Cancelling…' : 'Yes, cancel'}
             </button>
@@ -221,5 +229,17 @@ export default function CancelPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CancelPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+      </div>
+    }>
+      <CancelPageInner />
+    </Suspense>
   )
 }
