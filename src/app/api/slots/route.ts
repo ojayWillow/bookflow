@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getSlotsForDate, getUnionSlotsForDate } from '@/lib/slots'
 import type { BookedSlotRaw, SlotStaffMember } from '@/lib/slots'
 
+// v2 — slot_interval is read from business_settings and passed to getSlotsForDate
 export const dynamic = 'force-dynamic'
 
 function adminClient() {
@@ -87,7 +88,10 @@ export async function GET(req: NextRequest) {
     }
 
     const relevant = booked.filter(b => b.staff_id === staffId || b.staff_id === null)
-    const slots = getSlotsForDate(date, service.duration, relevant, staffMember, biz)
+    const slots = getSlotsForDate(date, service.duration, relevant, staffMember, {
+      ...biz,
+      slot_interval: Number(biz.slot_interval),
+    })
 
     return NextResponse.json({ slots }, {
       headers: { 'Cache-Control': 'no-store' },
@@ -120,7 +124,10 @@ export async function GET(req: NextRequest) {
     breakEnd:   s.break_end   ?? null,
   }))
 
-  const slots = getUnionSlotsForDate(date, service.duration, booked, staffList, biz)
+  const slots = getUnionSlotsForDate(date, service.duration, booked, staffList, {
+    ...biz,
+    slot_interval: Number(biz.slot_interval),
+  })
 
   return NextResponse.json({ slots }, {
     headers: { 'Cache-Control': 'no-store' },
