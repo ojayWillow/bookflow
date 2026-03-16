@@ -16,7 +16,7 @@ type Settings = {
 }
 
 export default function SharePage() {
-  const t = useAdminLang()
+  const { t } = useAdminLang()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState('')
