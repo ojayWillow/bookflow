@@ -1,7 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
-import ShareSection from '../settings/_sections/ShareSection'
+import ShareSection    from '../settings/_sections/ShareSection'
+import { useAdminLang } from '@/hooks/useAdminLang'
 
 type Settings = {
   id: string; name: string; tagline: string; address: string
@@ -15,6 +16,7 @@ type Settings = {
 }
 
 export default function SharePage() {
+  const t = useAdminLang()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState('')
@@ -23,26 +25,26 @@ export default function SharePage() {
     fetch('/api/settings')
       .then(async res => { const j = await res.json(); if (!res.ok) throw new Error(j.error); return j })
       .then(data => setSettings(data as Settings))
-      .catch(e => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .catch(e => setError(e instanceof Error ? e.message : t.share.loadFail))
       .finally(() => setLoading(false))
-  }, [])
+  }, [t.share.loadFail])
 
   if (loading) return (
     <div className="flex items-center justify-center py-32 text-gray-400">
-      <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading…
+      <Loader2 className="w-6 h-6 animate-spin mr-2" /> {t.common.loading}
     </div>
   )
   if (!settings) return (
     <div className="p-8">
       <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-6 py-5">
-        <p className="font-semibold mb-1">⚠ Could not load share info</p>
+        <p className="font-semibold mb-1">⚠ {t.share.loadFail}</p>
         <p className="text-sm">{error}</p>
       </div>
     </div>
   )
 
-  const bookingUrl   = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow.app'}/book/${settings.slug}`
-  const iframeCode   = `<iframe src="${bookingUrl}" width="100%" height="700" frameborder="0" style="border-radius:16px"></iframe>`
+  const bookingUrl    = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow.app'}/book/${settings.slug}`
+  const iframeCode    = `<iframe src="${bookingUrl}" width="100%" height="700" frameborder="0" style="border-radius:16px"></iframe>`
   const whatsappPhone = settings.phone.replace(/[^0-9]/g, '')
   const whatsappLink  = `https://wa.me/${whatsappPhone}?text=Hi%2C+I'd+like+to+make+a+booking+at+${encodeURIComponent(settings.name)}`
   const qrUrl         = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(bookingUrl)}`
@@ -50,8 +52,8 @@ export default function SharePage() {
   return (
     <div className="p-6 md:p-8 max-w-2xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Share</h1>
-        <p className="text-gray-400 mt-1">Share your booking page with customers</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t.share.title}</h1>
+        <p className="text-gray-400 mt-1">{t.share.sub}</p>
       </div>
 
       <ShareSection
