@@ -12,42 +12,27 @@ function verifyCancelToken(bookingId: string, token: string): boolean {
   return diff === 0
 }
 
-const html = (title: string, message: string, isError = false) => `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${title}</title>
-</head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px">
-    <div style="background:#fff;border-radius:16px;padding:40px;max-width:420px;width:100%;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
-      <div style="width:64px;height:64px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;background:${isError ? '#fee2e2' : '#dcfce7'}">
-        <span style="font-size:28px">${isError ? '&#9888;&#65039;' : '&#10003;'}</span>
-      </div>
-      <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111827">${title}</h1>
-      <p style="margin:0;color:#6b7280;font-size:15px;line-height:1.6">${message}</p>
-    </div>
-  </div>
-</body>
-</html>`
-
+// GET — redirect to the confirmation page (no longer cancels directly)
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const id    = searchParams.get('id')
   const token = searchParams.get('token')
+  if (!id || !token) {
+    return NextResponse.redirect(new URL(`/cancel?error=invalid`, req.url))
+  }
+  return NextResponse.redirect(new URL(`/cancel?id=${id}&token=${token}`, req.url))
+}
+
+// POST — called by the confirmation page after user clicks "Yes, cancel"
+export async function POST(req: NextRequest) {
+  const { id, token } = await req.json()
 
   if (!id || !token) {
-    return new NextResponse(
-      html('Invalid link', 'This cancellation link is missing required information.', true),
-      { status: 400, headers: { 'Content-Type': 'text/html' } }
-    )
+    return NextResponse.json({ error: 'Missing parameters' }, { status: 400 })
   }
 
   if (!verifyCancelToken(id, token)) {
-    return new NextResponse(
-      html('Invalid link', 'This cancellation link is invalid or has been tampered with.', true),
-      { status: 400, headers: { 'Content-Type': 'text/html' } }
-    )
+    return NextResponse.json({ error: 'Invalid cancellation token' }, { status: 403 })
   }
 
   const supabase = await createClient()
@@ -59,27 +44,18 @@ export async function GET(req: NextRequest) {
     .single()
 
   if (fetchError || !booking) {
-    return new NextResponse(
-      html('Booking not found', 'We could not find this booking. It may have already been removed.', true),
-      { status: 404, headers: { 'Content-Type': 'text/html' } }
-    )
+    return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
   }
 
   if (booking.status === 'cancelled') {
-    return new NextResponse(
-      html('Already cancelled', `Your booking for ${booking.service_name} on ${booking.date} at ${booking.time} was already cancelled.`),
-      { status: 200, headers: { 'Content-Type': 'text/html' } }
-    )
+    return NextResponse.json({ error: 'already_cancelled' }, { status: 409 })
   }
 
   if (booking.status === 'completed') {
-    return new NextResponse(
-      html('Booking completed', 'This appointment has already been completed and cannot be cancelled.', true),
-      { status: 400, headers: { 'Content-Type': 'text/html' } }
-    )
+    return NextResponse.json({ error: 'already_completed' }, { status: 409 })
   }
 
-  // ── Cancellation window check ──────────────────────────────────────────────
+  // Cancellation window check
   const { data: biz } = await supabase
     .from('business_settings')
     .select('cancellation_window_hours')
@@ -89,24 +65,10 @@ export async function GET(req: NextRequest) {
   const windowHours = biz?.cancellation_window_hours ?? 24
 
   if (windowHours > 0) {
-    // Parse appointment datetime (date = 'YYYY-MM-DD', time = 'HH:MM')
     const appointmentAt = new Date(`${booking.date}T${booking.time}:00`)
     const deadlineAt    = new Date(appointmentAt.getTime() - windowHours * 60 * 60 * 1000)
-    const now           = new Date()
-
-    if (now >= deadlineAt) {
-      const deadlineStr = deadlineAt.toLocaleString('en-GB', {
-        day: 'numeric', month: 'long', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      })
-      return new NextResponse(
-        html(
-          'Cancellation deadline passed',
-          `This booking can no longer be cancelled online. The cancellation deadline was ${deadlineStr} (${windowHours} hour${windowHours === 1 ? '' : 's'} before your appointment). Please contact us directly if you need assistance.`,
-          true
-        ),
-        { status: 400, headers: { 'Content-Type': 'text/html' } }
-      )
+    if (new Date() >= deadlineAt) {
+      return NextResponse.json({ error: 'window_passed', windowHours }, { status: 409 })
     }
   }
 
@@ -116,17 +78,8 @@ export async function GET(req: NextRequest) {
     .eq('id', id)
 
   if (updateError) {
-    return new NextResponse(
-      html('Something went wrong', 'We could not cancel your booking right now. Please contact us directly.', true),
-      { status: 500, headers: { 'Content-Type': 'text/html' } }
-    )
+    return NextResponse.json({ error: 'Failed to cancel booking' }, { status: 500 })
   }
 
-  return new NextResponse(
-    html(
-      'Booking cancelled',
-      `Your ${booking.service_name} appointment on ${booking.date} at ${booking.time} has been successfully cancelled. We hope to see you again soon.`
-    ),
-    { status: 200, headers: { 'Content-Type': 'text/html' } }
-  )
+  return NextResponse.json({ success: true })
 }
