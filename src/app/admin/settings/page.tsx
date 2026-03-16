@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Loader2 } from 'lucide-react'
 import BusinessInfoSection from './_sections/BusinessInfoSection'
+import { useAdminLang } from '@/hooks/useAdminLang'
 
 type Settings = {
   id: string; name: string; tagline: string; address: string
@@ -15,6 +16,7 @@ type Settings = {
 }
 
 export default function SettingsPage() {
+  const { t } = useAdminLang()
   const [settings, setSettings]         = useState<Settings | null>(null)
   const [loading, setLoading]           = useState(true)
   const [saving, setSaving]             = useState(false)
@@ -65,7 +67,7 @@ export default function SettingsPage() {
       setSlugStatus('idle')
       setTimeout(() => setSaved(false), 3000)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to save settings')
+      setError(e instanceof Error ? e.message : t.settings.saveFail)
     } finally {
       setSaving(false)
     }
@@ -79,7 +81,7 @@ export default function SettingsPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-32 text-gray-400">
-      <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading…
+      <Loader2 className="w-6 h-6 animate-spin mr-2" /> {t.common.loading}
     </div>
   )
   if (!settings) return (
@@ -94,7 +96,7 @@ export default function SettingsPage() {
   return (
     <div className="p-6 md:p-8 max-w-2xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t.settings.title}</h1>
         <p className="text-gray-400 mt-1">Your business identity and contact details</p>
       </div>
 
@@ -107,7 +109,7 @@ export default function SettingsPage() {
             className="flex items-center gap-1.5 bg-white text-orange-500 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-orange-50 transition-colors disabled:opacity-50 whitespace-nowrap"
           >
             {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-            Save now
+            {t.settings.save}
           </button>
         </div>
       )}
@@ -137,7 +139,7 @@ export default function SettingsPage() {
           disabled={saving || slugStatus === 'taken'}
           className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
           {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-          {saved ? '✓ Saved!' : slugStatus === 'taken' ? 'Fix URL to save' : 'Save settings'}
+          {saved ? `✓ ${t.settings.saved}` : slugStatus === 'taken' ? 'Fix URL to save' : t.settings.save}
         </button>
       </div>
     </div>

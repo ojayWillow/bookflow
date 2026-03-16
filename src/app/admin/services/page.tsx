@@ -5,6 +5,7 @@ import { getServices, upsertService, deleteService } from '@/lib/supabase/querie
 import AdminSkeleton  from '../_components/AdminSkeleton'
 import ToastContainer from '../_components/Toast'
 import { useToast }   from '@/hooks/useToast'
+import { useAdminLang } from '@/hooks/useAdminLang'
 
 type Service = {
   id: string; name: string; description: string
@@ -19,6 +20,7 @@ const toForm = (s?: Service) => ({
 })
 
 export default function ServicesPage() {
+  const { t } = useAdminLang()
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading]   = useState(true)
   const [saving, setSaving]     = useState(false)
@@ -57,24 +59,24 @@ export default function ServicesPage() {
       })
       await load()
       setShowModal(false)
-      toast.success(editing ? 'Service updated' : 'Service created')
+      toast.success(editing ? t.services.toastUpdated : t.services.toastCreated)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to save service')
-      toast.error('Failed to save service')
+      toast.error(t.services.toastSaveFail)
     } finally {
       setSaving(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this service?')) return
+    if (!confirm(t.services.deleteConfirm)) return
     try {
       await deleteService(id)
       await load()
-      toast.success('Service deleted')
+      toast.success(t.services.toastDeleted)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to delete service')
-      toast.error('Failed to delete service')
+      toast.error(t.services.toastDeleteFail)
     }
   }
 
@@ -84,12 +86,12 @@ export default function ServicesPage() {
 
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Services</h1>
-          <p className="text-gray-400 mt-1">Manage what you offer and your pricing</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t.services.title}</h1>
+          <p className="text-gray-400 mt-1">{t.services.sub}</p>
         </div>
         <button onClick={openCreate}
           className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-indigo-700 transition-colors text-sm">
-          + Add service
+          {t.services.addService}
         </button>
       </div>
 
@@ -117,16 +119,16 @@ export default function ServicesPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => openEdit(s)} className="text-sm text-indigo-600 px-3 py-1.5 rounded-xl hover:bg-indigo-50 font-medium transition-colors">Edit</button>
-                <button onClick={() => handleDelete(s.id)} className="text-sm text-red-400 px-3 py-1.5 rounded-xl hover:bg-red-50 font-medium transition-colors">Delete</button>
+                <button onClick={() => openEdit(s)} className="text-sm text-indigo-600 px-3 py-1.5 rounded-xl hover:bg-indigo-50 font-medium transition-colors">{t.services.edit}</button>
+                <button onClick={() => handleDelete(s.id)} className="text-sm text-red-400 px-3 py-1.5 rounded-xl hover:bg-red-50 font-medium transition-colors">{t.services.delete}</button>
               </div>
             </div>
           ))}
           {services.length === 0 && (
             <div className="text-center py-16 text-gray-400">
               <p className="text-4xl mb-3">✨</p>
-              <p className="font-medium">No services yet</p>
-              <p className="text-sm mt-1">Add your first service to start taking bookings.</p>
+              <p className="font-medium">{t.services.noServices}</p>
+              <p className="text-sm mt-1">{t.services.noServicesSub}</p>
             </div>
           )}
         </div>
@@ -135,30 +137,32 @@ export default function ServicesPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-5">{editing ? 'Edit service' : 'New service'}</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-5">
+              {editing ? t.services.editService : t.services.newService}
+            </h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Service name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.services.nameLabel}</label>
                 <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                   className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
-                  placeholder="e.g. Deep Tissue Massage" />
+                  placeholder={t.services.namePlaceholder} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.services.descLabel}</label>
                 <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                   className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors resize-none"
-                  rows={2} placeholder="Short description shown to clients" />
+                  rows={2} placeholder={t.services.descPlaceholder} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Duration (minutes)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.services.durationLabel}</label>
                   <input type="number" value={form.duration} onChange={e => setForm(p => ({ ...p, duration: e.target.value }))}
                     onFocus={e => e.target.select()}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
                     min={5} step={5} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Price (€)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.services.priceLabel}</label>
                   <input type="number" value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))}
                     onFocus={e => e.target.select()}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
@@ -170,10 +174,12 @@ export default function ServicesPage() {
               <button onClick={handleSave} disabled={!form.name || saving}
                 className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                Save service
+                {t.services.save}
               </button>
               <button onClick={() => setShowModal(false)}
-                className="px-5 py-2.5 border-2 border-gray-100 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
+                className="px-5 py-2.5 border-2 border-gray-100 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">
+                {t.common.cancel}
+              </button>
             </div>
           </div>
         </div>

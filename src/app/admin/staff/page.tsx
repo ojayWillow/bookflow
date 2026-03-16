@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import AdminSkeleton  from '../_components/AdminSkeleton'
 import ToastContainer from '../_components/Toast'
 import { useToast }   from '@/hooks/useToast'
+import { useAdminLang } from '@/hooks/useAdminLang'
 
 const DAYS   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444']
@@ -59,6 +60,7 @@ function resizeImage(file: File, maxPx = 400, quality = 0.8): Promise<Blob> {
 }
 
 export default function StaffPage() {
+  const { t } = useAdminLang()
   const [members, setMembers]     = useState<DBStaff[]>([])
   const [services, setServices]   = useState<DBService[]>([])
   const [loading, setLoading]     = useState(true)
@@ -103,16 +105,13 @@ export default function StaffPage() {
   }
 
   const handleAvatarUpload = async (file: File) => {
-    // Validate type & raw size before even touching canvas
     const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
     if (!ALLOWED.includes(file.type)) { toast.error('Only JPEG, PNG, WebP or GIF allowed'); return }
     if (file.size > 10 * 1024 * 1024)  { toast.error('File must be under 10 MB'); return }
 
     setAvatarUploading(true)
     try {
-      // Resize + compress to max 400×400 JPEG before upload
       const resized = await resizeImage(file)
-
       const supabase = createClient()
       const path = `staff-avatars/${Date.now()}.jpg`
       const { error: upErr } = await supabase.storage
@@ -156,24 +155,24 @@ export default function StaffPage() {
       })
       await loadAll()
       setShowModal(false)
-      toast.success(editing ? 'Staff member updated' : 'Staff member added')
+      toast.success(editing ? t.staff.toastUpdated : t.staff.toastAdded)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to save staff member')
-      toast.error('Failed to save staff member')
+      toast.error(t.staff.toastSaveFail)
     } finally {
       setSaving(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Remove this staff member?')) return
+    if (!confirm(t.staff.removeConfirm)) return
     try {
       await deleteStaffMember(id)
       await loadAll()
-      toast.success('Staff member removed')
+      toast.success(t.staff.toastRemoved)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to delete staff member')
-      toast.error('Failed to remove staff member')
+      toast.error(t.staff.toastRemoveFail)
     }
   }
 
@@ -181,10 +180,13 @@ export default function StaffPage() {
     try {
       await upsertStaffMember({ ...m, active: !m.active })
       await loadAll()
-      toast.success(m.active ? `${m.name} set to inactive` : `${m.name} set to active`)
+      toast.success(m.active
+        ? t.staff.toastDeactivated.replace('{{name}}', m.name)
+        : t.staff.toastActivated.replace('{{name}}', m.name)
+      )
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to update staff member')
-      toast.error('Failed to update staff member')
+      toast.error(t.staff.toastToggleFail)
     }
   }
 
@@ -198,14 +200,16 @@ export default function StaffPage() {
 
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Staff</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t.staff.title}</h1>
           <p className="text-gray-400 mt-1">
-            {members.filter(m => m.active).length} active · {members.length} total
+            {t.staff.activeSub
+              .replace('{{active}}', String(members.filter(m => m.active).length))
+              .replace('{{total}}', String(members.length))}
           </p>
         </div>
         <button onClick={openCreate}
           className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-indigo-700 transition-colors text-sm">
-          <Plus className="w-4 h-4" /> Add staff member
+          <Plus className="w-4 h-4" /> {t.staff.addMember}
         </button>
       </div>
 
@@ -225,14 +229,9 @@ export default function StaffPage() {
               }`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
-                    {/* Avatar */}
                     {m.avatar_url ? (
-                      <Image
-                        src={m.avatar_url}
-                        alt={m.name}
-                        width={56} height={56}
-                        className="w-14 h-14 rounded-2xl object-cover flex-shrink-0"
-                      />
+                      <Image src={m.avatar_url} alt={m.name} width={56} height={56}
+                        className="w-14 h-14 rounded-2xl object-cover flex-shrink-0" />
                     ) : (
                       <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0"
                         style={{ backgroundColor: m.color }}>
@@ -242,7 +241,7 @@ export default function StaffPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-bold text-gray-900">{m.name}</p>
-                        {!m.active && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Inactive</span>}
+                        {!m.active && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{t.staff.inactive}</span>}
                       </div>
                       <p className="text-sm text-indigo-600 font-medium">{m.role}</p>
                       {m.bio && <p className="text-xs text-gray-400 mt-1 max-w-sm leading-relaxed">{m.bio}</p>}
@@ -251,7 +250,7 @@ export default function StaffPage() {
                           <span key={s.id} className="text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg font-medium">{s.name}</span>
                         ))}
                         {memberServices.length === 0 && (
-                          <span className="text-xs text-gray-300">No services assigned</span>
+                          <span className="text-xs text-gray-300">{t.staff.noServices}</span>
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-2.5 flex-wrap">
@@ -276,9 +275,9 @@ export default function StaffPage() {
                   <div className="flex flex-col items-end gap-2 flex-shrink-0">
                     <div className="flex gap-2">
                       <button onClick={() => openEdit(m)}
-                        className="text-sm text-indigo-600 px-3 py-1.5 rounded-xl hover:bg-indigo-50 font-medium transition-colors">Edit</button>
+                        className="text-sm text-indigo-600 px-3 py-1.5 rounded-xl hover:bg-indigo-50 font-medium transition-colors">{t.staff.edit}</button>
                       <button onClick={() => handleDelete(m.id)}
-                        className="text-sm text-red-400 px-3 py-1.5 rounded-xl hover:bg-red-50 font-medium transition-colors">Remove</button>
+                        className="text-sm text-red-400 px-3 py-1.5 rounded-xl hover:bg-red-50 font-medium transition-colors">{t.staff.remove}</button>
                     </div>
                     <button onClick={() => handleToggleActive(m)}
                       className={`text-xs px-3 py-1.5 rounded-xl font-medium border-2 transition-all ${
@@ -286,7 +285,7 @@ export default function StaffPage() {
                           ? 'border-gray-100 text-gray-500 hover:border-red-200 hover:text-red-500'
                           : 'border-green-200 text-green-600 hover:bg-green-50'
                       }`}>
-                      {m.active ? 'Set inactive' : 'Set active'}
+                      {m.active ? t.staff.setInactive : t.staff.setActive}
                     </button>
                   </div>
                 </div>
@@ -296,8 +295,8 @@ export default function StaffPage() {
           {members.length === 0 && !loading && (
             <div className="text-center py-16 text-gray-400">
               <p className="text-4xl mb-3">👥</p>
-              <p className="font-medium">No staff members yet</p>
-              <p className="text-sm mt-1">Add your first team member to get started.</p>
+              <p className="font-medium">{t.staff.noStaff}</p>
+              <p className="text-sm mt-1">{t.staff.noStaffSub}</p>
             </div>
           )}
         </div>
@@ -308,7 +307,7 @@ export default function StaffPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 my-8">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-gray-900">
-                {editing ? 'Edit staff member' : 'New staff member'}
+                {editing ? t.staff.editTitle : t.staff.newTitle}
               </h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-700">
                 <X className="w-5 h-5" />
@@ -316,7 +315,6 @@ export default function StaffPage() {
             </div>
 
             <div className="space-y-5">
-
               {/* Profile photo */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Profile photo</label>
@@ -337,39 +335,27 @@ export default function StaffPage() {
                     )}
                   </div>
                   <div className="flex flex-col gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={avatarUploading}
-                      className="flex items-center gap-2 text-sm text-indigo-600 border-2 border-indigo-100 px-3 py-2 rounded-xl hover:bg-indigo-50 transition-colors font-medium disabled:opacity-50"
-                    >
+                    <button type="button" onClick={() => fileInputRef.current?.click()} disabled={avatarUploading}
+                      className="flex items-center gap-2 text-sm text-indigo-600 border-2 border-indigo-100 px-3 py-2 rounded-xl hover:bg-indigo-50 transition-colors font-medium disabled:opacity-50">
                       <Camera className="w-4 h-4" />
                       {form.avatar_url ? 'Change photo' : 'Upload photo'}
                     </button>
                     {form.avatar_url && (
-                      <button
-                        type="button"
-                        onClick={() => setForm(p => ({ ...p, avatar_url: null }))}
-                        className="text-xs text-gray-400 hover:text-red-400 transition-colors text-left"
-                      >
+                      <button type="button" onClick={() => setForm(p => ({ ...p, avatar_url: null }))}
+                        className="text-xs text-gray-400 hover:text-red-400 transition-colors text-left">
                         Remove photo
                       </button>
                     )}
                   </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
+                  <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
                     className="hidden"
-                    onChange={e => { const f = e.target.files?.[0]; if (f) handleAvatarUpload(f) }}
-                  />
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleAvatarUpload(f) }} />
                 </div>
               </div>
 
-              {/* Avatar colour (shown only when no photo) */}
               {!form.avatar_url && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Avatar colour</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.staff.avatarColour}</label>
                   <div className="flex gap-2 items-center">
                     {COLORS.map(c => (
                       <button key={c} type="button" onClick={() => setForm(p => ({ ...p, color: c }))}
@@ -384,35 +370,37 @@ export default function StaffPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Full name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.fullName}</label>
                   <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
-                    placeholder="e.g. Laura Bērziņa" />
+                    placeholder={t.staff.namePlaceholder} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Role / title</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.roleLabel}</label>
                   <input value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
-                    placeholder="e.g. Senior Therapist" />
+                    placeholder={t.staff.rolePlaceholder} />
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Bio <span className="text-gray-400 font-normal">(optional)</span>
+                  {t.staff.bioLabel} <span className="text-gray-400 font-normal">{t.staff.bioOptional}</span>
                 </label>
                 <textarea value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))}
                   className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors resize-none"
-                  rows={2} placeholder="Short description shown to customers" />
+                  rows={2} placeholder={t.staff.bioPlaceholder} />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium text-gray-700">
-                    Skills <span className="text-gray-400 font-normal text-xs">(services from your catalogue)</span>
+                    {t.staff.skillsLabel} <span className="text-gray-400 font-normal text-xs">{t.staff.skillsSub}</span>
                   </label>
                   {form.service_ids.length > 0 && (
-                    <span className="text-xs text-indigo-600 font-medium">{form.service_ids.length} selected</span>
+                    <span className="text-xs text-indigo-600 font-medium">
+                      {t.staff.selected.replace('{{count}}', String(form.service_ids.length))}
+                    </span>
                   )}
                 </div>
                 {form.service_ids.length > 0 && (
@@ -434,7 +422,7 @@ export default function StaffPage() {
                   <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-50">
                     <Search className="w-3.5 h-3.5 text-gray-300" />
                     <input value={skillSearch} onChange={e => setSkillSearch(e.target.value)}
-                      placeholder="Search services..."
+                      placeholder={t.staff.skillsSearch}
                       className="flex-1 text-sm outline-none text-gray-700 placeholder-gray-300 bg-transparent" />
                   </div>
                   <div className="max-h-36 overflow-y-auto">
@@ -446,17 +434,15 @@ export default function StaffPage() {
                       </button>
                     ))}
                     {filteredServices.filter(s => !form.service_ids.includes(s.id)).length === 0 && (
-                      <p className="text-xs text-gray-300 text-center py-3">All services assigned</p>
+                      <p className="text-xs text-gray-300 text-center py-3">{t.staff.allAssigned}</p>
                     )}
                   </div>
                 </div>
-                <p className="text-xs text-gray-400 mt-1.5">
-                  Services are pulled from your Services page — add new ones there first.
-                </p>
+                <p className="text-xs text-gray-400 mt-1.5">{t.staff.skillsHint}</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Working days</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.staff.workingDays}</label>
                 <div className="flex gap-2">
                   {DAYS.map((day, i) => (
                     <button key={day} type="button" onClick={() => toggleDay(i)}
@@ -473,20 +459,19 @@ export default function StaffPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Start time</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.startTime}</label>
                   <input type="time" value={form.work_start}
                     onChange={e => setForm(p => ({ ...p, work_start: e.target.value }))}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">End time</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.endTime}</label>
                   <input type="time" value={form.work_end}
                     onChange={e => setForm(p => ({ ...p, work_end: e.target.value }))}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors" />
                 </div>
               </div>
 
-              {/* Lunch break */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Coffee className="w-4 h-4 text-amber-500" />
@@ -513,29 +498,25 @@ export default function StaffPage() {
                   </p>
                 )}
                 {form.break_start && form.break_end && (
-                  <button
-                    type="button"
+                  <button type="button"
                     onClick={() => setForm(p => ({ ...p, break_start: '', break_end: '' }))}
-                    className="text-xs text-gray-400 hover:text-red-400 mt-1 transition-colors"
-                  >
+                    className="text-xs text-gray-400 hover:text-red-400 mt-1 transition-colors">
                     Clear break
                   </button>
                 )}
               </div>
-
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button
-                onClick={handleSave}
+              <button onClick={handleSave}
                 disabled={!form.name || !form.role || form.service_ids.length === 0 || saving || avatarUploading}
                 className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                Save
+                {t.staff.save}
               </button>
               <button onClick={() => setShowModal(false)}
                 className="px-5 py-2.5 border-2 border-gray-100 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">
-                Cancel
+                {t.staff.cancel}
               </button>
             </div>
           </div>

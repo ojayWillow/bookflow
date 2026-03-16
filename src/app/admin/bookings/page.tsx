@@ -7,6 +7,7 @@ import { format, parseISO } from 'date-fns'
 import AdminSkeleton  from '../_components/AdminSkeleton'
 import ToastContainer from '../_components/Toast'
 import { useToast }   from '@/hooks/useToast'
+import { useAdminLang } from '@/hooks/useAdminLang'
 
 type Booking = {
   id: string; ref: string; service_name: string; service_duration: number
@@ -23,14 +24,13 @@ const STATUS_STYLE: Record<string, string> = {
   pending:   'bg-amber-100 text-amber-700',
 }
 
-const FILTERS = ['All', 'confirmed', 'pending', 'cancelled', 'completed']
-
 function RescheduleModal({
-  booking, onClose, onSaved,
+  booking, onClose, onSaved, t,
 }: {
   booking: Booking
   onClose: () => void
   onSaved: () => void
+  t: ReturnType<typeof useAdminLang>['t']
 }) {
   const [date, setDate]     = useState(booking.date)
   const [time, setTime]     = useState(booking.time.slice(0, 5))
@@ -47,7 +47,7 @@ function RescheduleModal({
       body: JSON.stringify({ id: booking.id, date, time }),
     })
     const json = await res.json()
-    if (!res.ok) { setError(json.error ?? 'Failed to reschedule'); setSaving(false); return }
+    if (!res.ok) { setError(json.error ?? t.bookings.toastRescheduleFail); setSaving(false); return }
     onSaved()
     onClose()
   }
@@ -57,7 +57,7 @@ function RescheduleModal({
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h2 className="font-bold text-gray-900">Reschedule booking</h2>
+            <h2 className="font-bold text-gray-900">{t.bookings.rescheduleTitle}</h2>
             <p className="text-xs text-gray-400 mt-0.5">{booking.customer_name} · {booking.service_name}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors">
@@ -67,7 +67,7 @@ function RescheduleModal({
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              <Calendar className="w-3.5 h-3.5 inline mr-1" />New date
+              <Calendar className="w-3.5 h-3.5 inline mr-1" />{t.bookings.newDate}
             </label>
             <input type="date" value={date} min={format(new Date(), 'yyyy-MM-dd')}
               onChange={e => setDate(e.target.value)}
@@ -75,7 +75,7 @@ function RescheduleModal({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              <Clock className="w-3.5 h-3.5 inline mr-1" />New time
+              <Clock className="w-3.5 h-3.5 inline mr-1" />{t.bookings.newTime}
             </label>
             <input type="time" value={time} onChange={e => setTime(e.target.value)}
               className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors" />
@@ -87,12 +87,12 @@ function RescheduleModal({
         <div className="flex gap-3 mt-6">
           <button onClick={onClose}
             className="flex-1 border-2 border-gray-100 text-gray-500 py-2.5 rounded-xl text-sm font-medium hover:border-gray-200 transition-colors">
-            Cancel
+            {t.common.cancel}
           </button>
           <button onClick={handleSave} disabled={saving}
             className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            {saving ? 'Saving…' : 'Save changes'}
+            {saving ? t.bookings.saving : t.bookings.saveChanges}
           </button>
         </div>
       </div>
@@ -101,6 +101,7 @@ function RescheduleModal({
 }
 
 export default function BookingsPage() {
+  const { t } = useAdminLang()
   const [bookings, setBookings]         = useState<Booking[]>([])
   const [loading, setLoading]           = useState(true)
   const [filter, setFilter]             = useState('All')
@@ -109,6 +110,14 @@ export default function BookingsPage() {
   const [rescheduling, setRescheduling] = useState<Booking | null>(null)
   const [approvalLoadingId, setApprovalLoadingId] = useState<string | null>(null)
   const { toasts, toast, dismiss }      = useToast()
+
+  const FILTERS = [
+    { key: 'All',       label: t.bookings.filterAll },
+    { key: 'confirmed', label: 'confirmed' },
+    { key: 'pending',   label: 'pending'   },
+    { key: 'cancelled', label: 'cancelled' },
+    { key: 'completed', label: 'completed' },
+  ]
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -129,11 +138,7 @@ export default function BookingsPage() {
     const supabase = createClient()
     const channel = supabase
       .channel('bookings-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'bookings' },
-        () => { load() }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => { load() })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [load])
@@ -157,13 +162,13 @@ export default function BookingsPage() {
       await updateBookingStatus(id, status)
       await load()
       const labels: Record<string, string> = {
-        confirmed: 'Booking restored',
-        completed: 'Marked as complete',
-        cancelled: 'Booking cancelled',
+        confirmed: t.bookings.toastRestored,
+        completed: t.bookings.toastCompleted,
+        cancelled: t.bookings.toastCancelled,
       }
       toast.success(labels[status] ?? 'Status updated')
     } catch {
-      toast.error('Failed to update booking status')
+      toast.error(t.bookings.toastStatusFail)
     }
   }
 
@@ -197,7 +202,7 @@ export default function BookingsPage() {
 
   const handleRescheduleSaved = async () => {
     await load()
-    toast.success('Booking rescheduled')
+    toast.success(t.bookings.toastRescheduled)
   }
 
   const pendingCount = bookings.filter(b => b.status === 'pending').length
@@ -212,24 +217,25 @@ export default function BookingsPage() {
           booking={rescheduling}
           onClose={() => setRescheduling(null)}
           onSaved={handleRescheduleSaved}
+          t={t}
         />
       )}
 
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t.bookings.title}</h1>
           <div className="flex items-center gap-3 mt-1">
-            <p className="text-gray-400">{activeCount} confirmed</p>
+            <p className="text-gray-400">{activeCount} {t.bookings.filterAll === 'All' ? 'confirmed' : 'apstiprinātas'}</p>
             {pendingCount > 0 && (
               <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-                ⏰ {pendingCount} awaiting approval
+                ⏰ {pendingCount} {t.bookings.statsPending ?? 'awaiting approval'}
               </span>
             )}
           </div>
         </div>
         <button onClick={load}
           className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-indigo-600 border-2 border-gray-100 hover:border-indigo-300 px-3 py-2 rounded-xl transition-all">
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh
+          <RefreshCw className="w-3.5 h-3.5" /> {t.bookings.refresh}
         </button>
       </div>
 
@@ -242,15 +248,15 @@ export default function BookingsPage() {
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <input value={search} onChange={e => setSearch(e.target.value)}
             className="w-full border-2 border-gray-100 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
-            placeholder="Search by name, email, service or ref..." />
+            placeholder={t.bookings.searchPlaceholder} />
         </div>
         <div className="flex gap-2 flex-wrap">
           {FILTERS.map(f => (
-            <button key={f} onClick={() => setFilter(f)}
+            <button key={f.key} onClick={() => setFilter(f.key)}
               className={`px-4 py-2.5 rounded-xl text-sm font-medium border-2 transition-all ${
-                filter === f ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-100 text-gray-500 hover:border-indigo-300'
+                filter === f.key ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-100 text-gray-500 hover:border-indigo-300'
               }`}>
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {f.label.charAt(0).toUpperCase() + f.label.slice(1)}
             </button>
           ))}
         </div>
@@ -263,14 +269,14 @@ export default function BookingsPage() {
           {bookings.length === 0 && (
             <div className="text-center py-16 text-gray-400">
               <p className="text-4xl mb-3">📬</p>
-              <p className="font-medium">No bookings yet</p>
-              <p className="text-sm mt-1">Bookings will appear here once customers book through your booking page.</p>
+              <p className="font-medium">{t.bookings.noBookings}</p>
+              <p className="text-sm mt-1">{t.bookings.noBookingsSub}</p>
             </div>
           )}
           {bookings.length > 0 && filtered.length === 0 && (
             <div className="text-center py-16 text-gray-400">
               <p className="text-4xl mb-2">🔍</p>
-              <p>No bookings match your search</p>
+              <p>{t.bookings.noResults}</p>
             </div>
           )}
           {filtered.map(b => (
@@ -337,26 +343,26 @@ export default function BookingsPage() {
                     <div className="flex gap-2 mt-1 flex-wrap justify-end">
                       <button onClick={() => setRescheduling(b)}
                         className="border-2 border-indigo-200 text-indigo-600 text-xs px-3 py-1.5 rounded-lg hover:bg-indigo-50 font-medium transition-colors">
-                        Reschedule
+                        {t.bookings.reschedule}
                       </button>
                       <button onClick={() => handleStatus(b.id, 'completed')}
                         className="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-medium transition-colors">
-                        Mark complete
+                        {t.bookings.markComplete}
                       </button>
                       <button onClick={() => handleStatus(b.id, 'cancelled')}
                         className="border border-red-200 text-red-500 text-xs px-3 py-1.5 rounded-lg hover:bg-red-50 font-medium transition-colors">
-                        Cancel
+                        {t.bookings.cancel}
                       </button>
                     </div>
                   )}
 
                   {b.status === 'completed' && (
-                    <span className="text-xs text-gray-400 italic mt-1">Completed ✓</span>
+                    <span className="text-xs text-gray-400 italic mt-1">{t.bookings.completed}</span>
                   )}
                   {b.status === 'cancelled' && (
                     <button onClick={() => handleStatus(b.id, 'confirmed')}
                       className="border border-gray-200 text-gray-500 text-xs px-3 py-1.5 rounded-lg hover:bg-gray-50 font-medium transition-colors mt-1">
-                      Restore
+                      {t.bookings.restore}
                     </button>
                   )}
                 </div>
