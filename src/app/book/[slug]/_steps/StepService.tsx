@@ -47,7 +47,7 @@ export default function StepService({ services, loading, dict: t, onSelect }: Pr
                     </span>
                   </div>
                   {s.description && (
-                    <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{s.description}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 truncate">{s.description}</p>
                   )}
                 </div>
                 <p className="text-base font-bold text-indigo-600 flex-shrink-0">€{s.price}</p>
