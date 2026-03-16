@@ -76,6 +76,13 @@ export function getAvailableDates(settings: Settings): string[] {
 /**
  * Slots for a specific staff member (or no staff / anyone).
  *
+ * The effective window is the INTERSECTION of business hours and staff
+ * hours — i.e. the later of the two starts, and the earlier of the two
+ * ends. This means a staff member whose work_start is 03:00 will never
+ * produce slots before the business open_time of 09:00, and a staff
+ * member whose work_end is 20:00 will never produce slots after the
+ * business close_time of 18:00.
+ *
  * bookedSlots contains ALL bookings for the day.
  * When a staffMember is given we only block using:
  *   - bookings for that staff member
@@ -89,8 +96,6 @@ export function getSlotsForDate(
   staffMember?: SlotStaffMember | null,
   settings?: Settings | null
 ): { time: string; available: boolean }[] {
-  const startTime = staffMember?.workStart ?? settings?.open_time  ?? '09:00'
-  const endTime   = staffMember?.workEnd   ?? settings?.close_time ?? '18:00'
   const interval  = settings?.slot_interval  ?? 30
   const leadHours = settings?.lead_time_hours ?? 2
 
@@ -99,8 +104,18 @@ export function getSlotsForDate(
     if (!staffMember.workDays.includes(dow)) return []
   }
 
-  const openMins     = toMins(startTime)
-  const closeMins    = toMins(endTime)
+  // Business hours bounds
+  const bizStart = toMins(settings?.open_time  ?? '09:00')
+  const bizEnd   = toMins(settings?.close_time ?? '18:00')
+
+  // Staff hours bounds — clamped to never exceed business hours
+  const staffStart = staffMember ? Math.max(toMins(staffMember.workStart), bizStart) : bizStart
+  const staffEnd   = staffMember ? Math.min(toMins(staffMember.workEnd),   bizEnd)   : bizEnd
+
+  // Effective window: intersection of business and staff hours
+  const openMins  = staffStart
+  const closeMins = staffEnd
+
   const leadCutoffMs = Date.now() + leadHours * 3_600_000
 
   const allBooked: BookedSlotRaw[] = (bookedSlots as Array<string | BookedSlotRaw>).map(b =>
@@ -109,30 +124,20 @@ export function getSlotsForDate(
       : b
   )
 
-  // Filter to only relevant bookings for this staff member
+  // Only bookings for this staff member (or null-staff) are relevant blockers
   const relevant = staffMember
     ? allBooked.filter(b => b.staff_id === staffMember.id || b.staff_id === null)
-    : allBooked // no staff = all bookings are relevant blockers
-
-  // Pre-compute staff bounds once (only meaningful when staffMember is provided)
-  const staffStart = staffMember ? toMins(staffMember.workStart) : openMins
-  const staffEnd   = staffMember ? toMins(staffMember.workEnd)   : closeMins
+    : allBooked
 
   const slots: { time: string; available: boolean }[] = []
 
+  // Loop from effective open to effective close, only emit slots where
+  // the full duration fits within the window.
   for (let m = openMins; m + durationMins <= closeMins; m += interval) {
     const time   = toHHMM(m)
     const slotMs = new Date(`${date}T${time}:00`).getTime()
 
     if (slotMs < leadCutoffMs) {
-      slots.push({ time, available: false })
-      continue
-    }
-
-    // FIX: ensure the entire slot duration fits within the staff member's
-    // working hours. Without this check a 60-min service would appear
-    // bookable even if the staff member only has a 30-min gap remaining.
-    if (m < staffStart || m + durationMins > staffEnd) {
       slots.push({ time, available: false })
       continue
     }
@@ -147,7 +152,7 @@ export function getSlotsForDate(
  * Union slots when "Anyone" is selected AND staff exist.
  *
  * A slot is available if AT LEAST ONE staff member is free.
- * Each staff member is blocked by their own bookings + null-staff bookings.
+ * Each staff member's effective window is clamped to business hours.
  */
 export function getUnionSlotsForDate(
   date: string,
@@ -156,25 +161,23 @@ export function getUnionSlotsForDate(
   staffList: SlotStaffMember[],
   settings: Settings
 ): { time: string; available: boolean }[] {
-  // If no staff configured, fall back to simple business-hours blocking
-  // using all bookings as blockers (treat as a single shared calendar)
   if (staffList.length === 0) {
     return getSlotsForDate(date, durationMins, allBooked, null, settings)
   }
 
   const interval     = settings.slot_interval  ?? 30
   const leadHours    = settings.lead_time_hours ?? 2
-  const openMins     = toMins(settings.open_time  ?? '09:00')
-  const closeMins    = toMins(settings.close_time ?? '18:00')
+  const bizStart     = toMins(settings.open_time  ?? '09:00')
+  const bizEnd       = toMins(settings.close_time ?? '18:00')
   const leadCutoffMs = Date.now() + leadHours * 3_600_000
   const dow          = new Date(date + 'T12:00:00').getDay()
 
-  // Null-staff bookings block every staff member
   const nullBooked = allBooked.filter(b => b.staff_id === null)
 
   const slots: { time: string; available: boolean }[] = []
 
-  for (let m = openMins; m + durationMins <= closeMins; m += interval) {
+  // Outer loop covers full business hours window
+  for (let m = bizStart; m + durationMins <= bizEnd; m += interval) {
     const time   = toHHMM(m)
     const slotMs = new Date(`${date}T${time}:00`).getTime()
 
@@ -185,11 +188,14 @@ export function getUnionSlotsForDate(
 
     const anyFree = staffList.some(staff => {
       if (!staff.workDays.includes(dow)) return false
-      const staffStart = toMins(staff.workStart)
-      const staffEnd   = toMins(staff.workEnd)
+
+      // Clamp staff hours to business hours
+      const staffStart = Math.max(toMins(staff.workStart), bizStart)
+      const staffEnd   = Math.min(toMins(staff.workEnd),   bizEnd)
+
+      // Full duration must fit within the clamped staff window
       if (m < staffStart || m + durationMins > staffEnd) return false
 
-      // Block this staff member with: their own bookings + null-staff bookings
       const staffBooked: BookedSlotRaw[] = [
         ...allBooked.filter(b => b.staff_id === staff.id),
         ...nullBooked,
