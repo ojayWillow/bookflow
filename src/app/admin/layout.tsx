@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { Calendar, BookOpen, Settings, Users, LayoutDashboard, LogOut, Loader2, Menu, X, Clock, Share2, Palette } from 'lucide-react'
 import NotificationBell from './_components/NotificationBell'
+import { AdminLangProvider } from '@/context/AdminLangContext'
 import { useAdminLang } from '@/hooks/useAdminLang'
 import type { Locale } from '@/i18n'
 
@@ -15,8 +16,8 @@ const LANGS: { code: Locale; label: string }[] = [
 
 const BARE_PATHS = ['/admin/login']
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const pathname  = usePathname()
+function AdminShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
   const [signingOut, setSigningOut] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const { lang, setLang, t } = useAdminLang()
@@ -122,7 +123,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
           <div className="hidden md:block" />
 
-          {/* Language switcher + notification bell */}
           <div className="flex items-center gap-3">
             <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-0.5">
               {LANGS.map(({ code, label }) => (
@@ -147,5 +147,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </main>
     </div>
+  )
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AdminLangProvider>
+      <AdminShell>{children}</AdminShell>
+    </AdminLangProvider>
   )
 }
