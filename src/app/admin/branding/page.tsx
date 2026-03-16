@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import BrandingSection       from '../settings/_sections/BrandingSection'
 import OnlinePresenceSection from '../settings/_sections/OnlinePresenceSection'
+import { useAdminLang }      from '@/hooks/useAdminLang'
 
 type Settings = {
   id: string; name: string; tagline: string; address: string
@@ -20,6 +21,7 @@ function isValidHex(v: string) {
 }
 
 export default function BrandingPage() {
+  const t = useAdminLang()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading]   = useState(true)
   const [saving, setSaving]     = useState(false)
@@ -35,9 +37,9 @@ export default function BrandingPage() {
         setSettings(data as Settings)
         setHexInput((data as Settings).primary_color)
       })
-      .catch(e => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .catch(e => setError(e instanceof Error ? e.message : t.branding.loadFail))
       .finally(() => setLoading(false))
-  }, [])
+  }, [t.branding.loadFail])
 
   const handleSave = async () => {
     if (!settings) return
@@ -49,12 +51,12 @@ export default function BrandingPage() {
         body: JSON.stringify(settings),
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Failed to save')
+      if (!res.ok) throw new Error(json.error || t.branding.saveFail)
       setSaved(true)
       setDirty(false)
       setTimeout(() => setSaved(false), 3000)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to save')
+      setError(e instanceof Error ? e.message : t.branding.saveFail)
     } finally {
       setSaving(false)
     }
@@ -68,13 +70,13 @@ export default function BrandingPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-32 text-gray-400">
-      <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading…
+      <Loader2 className="w-6 h-6 animate-spin mr-2" /> {t.common.loading}
     </div>
   )
   if (!settings) return (
     <div className="p-8">
       <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-6 py-5">
-        <p className="font-semibold mb-1">⚠️ Could not load branding</p>
+        <p className="font-semibold mb-1">⚠️ {t.branding.loadFail}</p>
         <p className="text-sm">{error}</p>
       </div>
     </div>
@@ -83,20 +85,20 @@ export default function BrandingPage() {
   return (
     <div className="p-6 md:p-8 max-w-2xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Branding</h1>
-        <p className="text-gray-400 mt-1">How your booking page looks and where you&apos;re found online</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t.branding.title}</h1>
+        <p className="text-gray-400 mt-1">{t.branding.sub}</p>
       </div>
 
       {dirty && !saved && (
         <div className="mb-5 flex items-center justify-between gap-3 bg-orange-400 text-white text-sm font-medium rounded-xl px-4 py-3 shadow-md">
-          <span>⚠️ Unsaved changes — don&apos;t forget to save!</span>
+          <span>{t.branding.unsaved}</span>
           <button
             onClick={handleSave}
             disabled={saving}
             className="flex items-center gap-1.5 bg-white text-orange-500 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-orange-50 transition-colors disabled:opacity-50 whitespace-nowrap"
           >
             {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-            Save now
+            {t.branding.saveNow}
           </button>
         </div>
       )}
@@ -129,7 +131,7 @@ export default function BrandingPage() {
           disabled={saving}
           className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
           {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-          {saved ? '✓ Saved!' : 'Save branding'}
+          {saved ? t.branding.saved : saving ? t.branding.saving : t.branding.save}
         </button>
       </div>
     </div>
