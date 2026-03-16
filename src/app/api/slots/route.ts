@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 import { getSlotsForDate, getUnionSlotsForDate } from '@/lib/slots'
 import type { BookedSlotRaw, SlotStaffMember } from '@/lib/slots'
 
-// Service-role client — bypasses RLS so we always get real booking data
+export const dynamic = 'force-dynamic'
+
 function adminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const businessId = searchParams.get('businessId')
   const date       = searchParams.get('date')
-  const staffId    = searchParams.get('staffId') // uuid or 'any'
+  const staffId    = searchParams.get('staffId')
   const serviceId  = searchParams.get('serviceId')
 
   if (!businessId || !date || !staffId || !serviceId) {
@@ -25,7 +26,6 @@ export async function GET(req: NextRequest) {
 
   const supabase = adminClient()
 
-  // 1. Load business settings
   const { data: biz, error: bizErr } = await supabase
     .from('business_settings')
     .select('open_days,open_time,close_time,slot_interval,lead_time_hours,max_advance_days')
@@ -36,7 +36,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Business not found' }, { status: 404 })
   }
 
-  // 2. Load the service duration
   const { data: service, error: svcErr } = await supabase
     .from('services')
     .select('duration')
@@ -47,7 +46,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Service not found' }, { status: 404 })
   }
 
-  // 3. Load ALL non-cancelled bookings for this date + business
   const { data: bookings, error: bookErr } = await supabase
     .from('bookings')
     .select('time, service_duration, staff_id')
@@ -61,7 +59,6 @@ export async function GET(req: NextRequest) {
 
   const booked = (bookings ?? []) as BookedSlotRaw[]
 
-  // 4. If a specific staff member — load their schedule
   if (staffId !== 'any') {
     const { data: staffRow, error: staffErr } = await supabase
       .from('staff')
@@ -86,14 +83,14 @@ export async function GET(req: NextRequest) {
       color:      staffRow.color,
     }
 
-    // Only this staff member's bookings + null-staff bookings
     const relevant = booked.filter(b => b.staff_id === staffId || b.staff_id === null)
-
     const slots = getSlotsForDate(date, service.duration, relevant, staffMember, biz)
-    return NextResponse.json({ slots })
+
+    return NextResponse.json({ slots }, {
+      headers: { 'Cache-Control': 'no-store' },
+    })
   }
 
-  // 5. "Anyone" — load all active staff for this service
   const { data: staffRows, error: staffListErr } = await supabase
     .from('staff')
     .select('id,name,role,bio,service_ids,work_days,work_start,work_end,active,color')
@@ -118,5 +115,8 @@ export async function GET(req: NextRequest) {
   }))
 
   const slots = getUnionSlotsForDate(date, service.duration, booked, staffList, biz)
-  return NextResponse.json({ slots })
+
+  return NextResponse.json({ slots }, {
+    headers: { 'Cache-Control': 'no-store' },
+  })
 }
