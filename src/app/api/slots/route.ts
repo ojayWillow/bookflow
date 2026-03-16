@@ -26,7 +26,6 @@ export async function GET(req: NextRequest) {
 
   const supabase = adminClient()
 
-  // Fetch business settings AND user_id so we can scope staff to this business only
   const { data: biz, error: bizErr } = await supabase
     .from('business_settings')
     .select('user_id,open_days,open_time,close_time,slot_interval,lead_time_hours,max_advance_days')
@@ -61,10 +60,9 @@ export async function GET(req: NextRequest) {
   const booked = (bookings ?? []) as BookedSlotRaw[]
 
   if (staffId !== 'any') {
-    // Specific staff member — also scope to this business via user_id
     const { data: staffRow, error: staffErr } = await supabase
       .from('staff')
-      .select('id,name,role,bio,service_ids,work_days,work_start,work_end,active,color')
+      .select('id,name,role,bio,service_ids,work_days,work_start,work_end,active,color,break_start,break_end')
       .eq('id', staffId)
       .eq('user_id', biz.user_id)
       .single()
@@ -84,6 +82,8 @@ export async function GET(req: NextRequest) {
       workEnd:    staffRow.work_end,
       active:     staffRow.active,
       color:      staffRow.color,
+      breakStart: staffRow.break_start ?? null,
+      breakEnd:   staffRow.break_end   ?? null,
     }
 
     const relevant = booked.filter(b => b.staff_id === staffId || b.staff_id === null)
@@ -94,10 +94,9 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  // Anyone path — scope staff to THIS business only via user_id
   const { data: staffRows, error: staffListErr } = await supabase
     .from('staff')
-    .select('id,name,role,bio,service_ids,work_days,work_start,work_end,active,color')
+    .select('id,name,role,bio,service_ids,work_days,work_start,work_end,active,color,break_start,break_end')
     .eq('user_id', biz.user_id)
     .eq('active', true)
     .contains('service_ids', [serviceId])
@@ -117,6 +116,8 @@ export async function GET(req: NextRequest) {
     workEnd:    s.work_end,
     active:     s.active,
     color:      s.color,
+    breakStart: s.break_start ?? null,
+    breakEnd:   s.break_end   ?? null,
   }))
 
   const slots = getUnionSlotsForDate(date, service.duration, booked, staffList, biz)

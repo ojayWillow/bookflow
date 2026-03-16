@@ -13,6 +13,8 @@ export type SlotStaffMember = {
   workEnd: string
   active: boolean
   color: string
+  breakStart?: string | null
+  breakEnd?: string | null
 }
 
 export type BookedSlotRaw = {
@@ -54,6 +56,24 @@ function isBlocked(
   })
 }
 
+/**
+ * Returns true if the slot overlaps with the staff member's lunch break.
+ * A slot is blocked if it starts inside the break, or if the service
+ * would run into the break (i.e. slot finishes after break starts).
+ */
+function isDuringBreak(
+  slotStart: number,
+  durationMins: number,
+  staff: SlotStaffMember
+): boolean {
+  if (!staff.breakStart || !staff.breakEnd) return false
+  const breakStart = toMins(staff.breakStart)
+  const breakEnd   = toMins(staff.breakEnd)
+  const slotEnd    = slotStart + durationMins
+  // Block if the slot overlaps the break window at all
+  return slotStart < breakEnd && slotEnd > breakStart
+}
+
 // ─── Public API ────────────────────────────────────────────
 
 export function getAvailableDates(settings: Settings): string[] {
@@ -73,22 +93,6 @@ export function getAvailableDates(settings: Settings): string[] {
   return dates
 }
 
-/**
- * Slots for a specific staff member on a given date.
- *
- * Staff hours are ALWAYS clamped to business open/close:
- *   effectiveOpen  = max(staff.workStart, biz.open_time)
- *   effectiveClose = min(staff.workEnd,   biz.close_time)
- *
- * This guarantees a staff member can never be bookable outside
- * the business window, regardless of their personal work_start/work_end.
- *
- * Examples:
- *   biz 09:00–18:00, staff 03:00–23:00 → slots 09:00–18:00
- *   biz 09:00–18:00, staff 09:00–20:00 → slots 09:00–18:00
- *   biz 09:00–18:00, staff 10:00–16:00 → slots 10:00–16:00
- *   biz 09:00–18:00, staff 08:00–15:00 → slots 09:00–15:00
- */
 export function getSlotsForDate(
   date: string,
   durationMins: number,
@@ -107,7 +111,6 @@ export function getSlotsForDate(
     if (!staffMember.workDays.includes(dow)) return []
   }
 
-  // Clamp staff hours to business hours — staff can never exceed biz window
   const openMins = staffMember
     ? Math.max(toMins(staffMember.workStart), bizStart)
     : bizStart
@@ -115,7 +118,6 @@ export function getSlotsForDate(
     ? Math.min(toMins(staffMember.workEnd), bizEnd)
     : bizEnd
 
-  // If after clamping there's no valid window, return no slots
   if (openMins >= closeMins) return []
 
   const leadCutoffMs = Date.now() + leadHours * 3_600_000
@@ -141,18 +143,17 @@ export function getSlotsForDate(
       continue
     }
 
+    if (staffMember && isDuringBreak(m, durationMins, staffMember)) {
+      slots.push({ time, available: false })
+      continue
+    }
+
     slots.push({ time, available: !isBlocked(m, durationMins, relevant) })
   }
 
   return slots
 }
 
-/**
- * Union slots when "Anyone" is selected AND staff exist.
- *
- * A slot is available if AT LEAST ONE staff member is free.
- * Each staff member's window is clamped to business hours.
- */
 export function getUnionSlotsForDate(
   date: string,
   durationMins: number,
@@ -189,6 +190,8 @@ export function getUnionSlotsForDate(
       const staffStart = Math.max(toMins(staff.workStart), bizStart)
       const staffEnd   = Math.min(toMins(staff.workEnd),   bizEnd)
       if (m < staffStart || m + durationMins > staffEnd) return false
+      // Block if the slot falls in this staff member's break
+      if (isDuringBreak(m, durationMins, staff)) return false
       const staffBooked: BookedSlotRaw[] = [
         ...allBooked.filter(b => b.staff_id === staff.id),
         ...nullBooked,
