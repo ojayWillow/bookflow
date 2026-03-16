@@ -82,7 +82,7 @@ function RescheduleModal({
               className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors" />
           </div>
           {error && (
-            <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">⚠ {error}</p>
+            <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">&#9888; {error}</p>
           )}
         </div>
         <div className="flex gap-3 mt-6">
@@ -109,6 +109,7 @@ export default function BookingsPage() {
   const [search, setSearch]             = useState('')
   const [error, setError]               = useState('')
   const [rescheduling, setRescheduling] = useState<Booking | null>(null)
+  const [approvalLoadingId, setApprovalLoadingId] = useState<string | null>(null)
   const { toasts, toast, dismiss }      = useToast()
 
   const load = useCallback(async () => {
@@ -124,10 +125,8 @@ export default function BookingsPage() {
     }
   }, [])
 
-  // Initial load
   useEffect(() => { load() }, [load])
 
-  // Real-time subscription — re-fetch whenever any booking row changes
   useEffect(() => {
     const supabase = createClient()
     const channel = supabase
@@ -138,7 +137,6 @@ export default function BookingsPage() {
         () => { load() }
       )
       .subscribe()
-
     return () => { supabase.removeChannel(channel) }
   }, [load])
 
@@ -171,12 +169,41 @@ export default function BookingsPage() {
     }
   }
 
+  const handleApprove = async (id: string) => {
+    setApprovalLoadingId(id)
+    try {
+      const res = await fetch(`/api/bookings/${id}/approve`, { method: 'PATCH' })
+      if (!res.ok) throw new Error('Failed to approve')
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'confirmed' } : b))
+      toast.success('Booking approved — confirmation email sent')
+    } catch {
+      toast.error('Failed to approve booking')
+    } finally {
+      setApprovalLoadingId(null)
+    }
+  }
+
+  const handleDecline = async (id: string) => {
+    setApprovalLoadingId(id)
+    try {
+      const res = await fetch(`/api/bookings/${id}/decline`, { method: 'PATCH' })
+      if (!res.ok) throw new Error('Failed to decline')
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'cancelled' } : b))
+      toast.success('Booking declined — customer notified')
+    } catch {
+      toast.error('Failed to decline booking')
+    } finally {
+      setApprovalLoadingId(null)
+    }
+  }
+
   const handleRescheduleSaved = async () => {
     await load()
     toast.success('Booking rescheduled')
   }
 
-  const activeCount = bookings.filter(b => b.status === 'confirmed').length
+  const pendingCount = bookings.filter(b => b.status === 'pending').length
+  const activeCount  = bookings.filter(b => b.status === 'confirmed').length
 
   return (
     <div className="p-4 md:p-8">
@@ -193,7 +220,14 @@ export default function BookingsPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
-          <p className="text-gray-400 mt-1">{activeCount} confirmed booking{activeCount !== 1 ? 's' : ''}</p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-gray-400">{activeCount} confirmed</p>
+            {pendingCount > 0 && (
+              <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                &#9200; {pendingCount} awaiting approval
+              </span>
+            )}
+          </div>
         </div>
         <button onClick={load}
           className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-indigo-600 border-2 border-gray-100 hover:border-indigo-300 px-3 py-2 rounded-xl transition-all">
@@ -202,7 +236,7 @@ export default function BookingsPage() {
       </div>
 
       {error && (
-        <div className="mb-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">⚠ {error}</div>
+        <div className="mb-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">&#9888; {error}</div>
       )}
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -230,22 +264,29 @@ export default function BookingsPage() {
         <div className="space-y-3">
           {bookings.length === 0 && (
             <div className="text-center py-16 text-gray-400">
-              <p className="text-4xl mb-3">📬</p>
+              <p className="text-4xl mb-3">&#128236;</p>
               <p className="font-medium">No bookings yet</p>
               <p className="text-sm mt-1">Bookings will appear here once customers book through your booking page.</p>
             </div>
           )}
           {bookings.length > 0 && filtered.length === 0 && (
             <div className="text-center py-16 text-gray-400">
-              <p className="text-4xl mb-2">🔍</p>
+              <p className="text-4xl mb-2">&#128269;</p>
               <p>No bookings match your search</p>
             </div>
           )}
           {filtered.map(b => (
-            <div key={b.id} className="bg-white border-2 border-gray-100 rounded-2xl p-5 hover:border-indigo-100 transition-all shadow-soft">
+            <div key={b.id}
+              className={`bg-white border-2 rounded-2xl p-5 transition-all shadow-soft ${
+                b.status === 'pending'
+                  ? 'border-amber-200 hover:border-amber-300'
+                  : 'border-gray-100 hover:border-indigo-100'
+              }`}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-lg font-bold text-indigo-600 flex-shrink-0">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold flex-shrink-0 ${
+                    b.status === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-indigo-50 text-indigo-600'
+                  }`}>
                     {b.customer_name[0].toUpperCase()}
                   </div>
                   <div>
@@ -259,11 +300,11 @@ export default function BookingsPage() {
                     <p className="text-sm font-medium text-indigo-600 mt-0.5">{b.service_name}</p>
                     <div className="flex items-center gap-4 mt-1.5 flex-wrap">
                       <span className="text-xs text-gray-400">{format(parseISO(b.date), 'EEE d MMM')} · {b.time}</span>
-                      <span className="text-xs text-gray-400">{b.service_duration} min · €{b.service_price}</span>
+                      <span className="text-xs text-gray-400">{b.service_duration} min · &#8364;{b.service_price}</span>
                       {b.staff_name && <span className="text-xs text-gray-400">{b.staff_name}</span>}
                     </div>
                     {b.customer_notes && (
-                      <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-lg mt-2 inline-block">📝 {b.customer_notes}</p>
+                      <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-lg mt-2 inline-block">&#128221; {b.customer_notes}</p>
                     )}
                   </div>
                 </div>
@@ -274,6 +315,32 @@ export default function BookingsPage() {
                   <div className="flex items-center gap-1.5 text-xs text-gray-400">
                     <Phone className="w-3.5 h-3.5" /> {b.customer_phone}
                   </div>
+
+                  {/* ── Pending: Approve / Decline ── */}
+                  {b.status === 'pending' && (
+                    <div className="flex gap-2 mt-1">
+                      <button
+                        onClick={() => handleApprove(b.id)}
+                        disabled={approvalLoadingId === b.id}
+                        className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {approvalLoadingId === b.id
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : '&#10003;'} Approve
+                      </button>
+                      <button
+                        onClick={() => handleDecline(b.id)}
+                        disabled={approvalLoadingId === b.id}
+                        className="flex items-center gap-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {approvalLoadingId === b.id
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : '&#10005;'} Decline
+                      </button>
+                    </div>
+                  )}
+
+                  {/* ── Confirmed: Reschedule / Complete / Cancel ── */}
                   {b.status === 'confirmed' && (
                     <div className="flex gap-2 mt-1 flex-wrap justify-end">
                       <button onClick={() => setRescheduling(b)}
@@ -290,8 +357,9 @@ export default function BookingsPage() {
                       </button>
                     </div>
                   )}
+
                   {b.status === 'completed' && (
-                    <span className="text-xs text-gray-400 italic mt-1">Completed ✓</span>
+                    <span className="text-xs text-gray-400 italic mt-1">Completed &#10003;</span>
                   )}
                   {b.status === 'cancelled' && (
                     <button onClick={() => handleStatus(b.id, 'confirmed')}
