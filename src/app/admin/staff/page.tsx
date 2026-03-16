@@ -203,6 +203,9 @@ export default function StaffPage() {
     s.name.toLowerCase().includes(skillSearch.toLowerCase())
   )
 
+  // Shared class for time inputs — max-w-full prevents iOS overflow
+  const timeInputCls = 'w-full max-w-full block border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors bg-white'
+
   return (
     <div className="p-4 md:p-8">
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
@@ -307,7 +310,6 @@ export default function StaffPage() {
         </div>
       )}
 
-      {/* Modal — overscroll-contain prevents page scroll bleed on iOS */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center p-4 overflow-y-auto overscroll-contain">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 my-8">
@@ -465,23 +467,23 @@ export default function StaffPage() {
                 </div>
               </div>
 
-              {/* Work hours */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Work hours — always stacked to prevent iOS time input overflow */}
+              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.startTime}</label>
                   <input type="time" value={form.work_start}
                     onChange={e => setForm(p => ({ ...p, work_start: e.target.value }))}
-                    className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors" />
+                    className={timeInputCls} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.endTime}</label>
                   <input type="time" value={form.work_end}
                     onChange={e => setForm(p => ({ ...p, work_end: e.target.value }))}
-                    className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors" />
+                    className={timeInputCls} />
                 </div>
               </div>
 
-              {/* Lunch break — toggle first, inputs only shown when opted in */}
+              {/* Lunch break */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -510,21 +512,21 @@ export default function StaffPage() {
                 </div>
 
                 {showBreak && (
-                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="mt-4 grid grid-cols-1 gap-3">
                     <div>
                       <label className="block text-xs text-gray-500 mb-1.5">Break starts</label>
                       <input type="time" value={form.break_start}
                         onChange={e => setForm(p => ({ ...p, break_start: e.target.value }))}
-                        className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors bg-white" />
+                        className={timeInputCls} />
                     </div>
                     <div>
                       <label className="block text-xs text-gray-500 mb-1.5">Break ends</label>
                       <input type="time" value={form.break_end}
                         onChange={e => setForm(p => ({ ...p, break_end: e.target.value }))}
-                        className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors bg-white" />
+                        className={timeInputCls} />
                     </div>
                     {form.break_start && form.break_end && (
-                      <p className="sm:col-span-2 text-xs text-amber-600">
+                      <p className="text-xs text-amber-600">
                         ☕ Slots from {form.break_start} to {form.break_end} will be blocked.
                       </p>
                     )}
