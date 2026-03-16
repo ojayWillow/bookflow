@@ -113,10 +113,10 @@ export default function BookingsPage() {
 
   const FILTERS = [
     { key: 'All',       label: t.bookings.filterAll },
-    { key: 'confirmed', label: 'confirmed' },
-    { key: 'pending',   label: 'pending'   },
-    { key: 'cancelled', label: 'cancelled' },
-    { key: 'completed', label: 'completed' },
+    { key: 'confirmed', label: t.bookings.filterConfirmed },
+    { key: 'pending',   label: t.bookings.filterPending },
+    { key: 'cancelled', label: t.bookings.filterCancelled },
+    { key: 'completed', label: t.bookings.filterCompleted },
   ]
 
   const load = useCallback(async () => {
@@ -225,10 +225,10 @@ export default function BookingsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{t.bookings.title}</h1>
           <div className="flex items-center gap-3 mt-1">
-            <p className="text-gray-400">{activeCount} {t.bookings.filterAll === 'All' ? 'confirmed' : 'apstiprinātas'}</p>
+            <p className="text-gray-400">{activeCount} {t.bookings.filterConfirmed.toLowerCase()}</p>
             {pendingCount > 0 && (
               <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-                ⏰ {pendingCount} {t.bookings.statsPending ?? 'awaiting approval'}
+                ⏰ {pendingCount} {t.bookings.statsPending}
               </span>
             )}
           </div>
@@ -256,7 +256,7 @@ export default function BookingsPage() {
               className={`px-4 py-2.5 rounded-xl text-sm font-medium border-2 transition-all ${
                 filter === f.key ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-100 text-gray-500 hover:border-indigo-300'
               }`}>
-              {f.label.charAt(0).toUpperCase() + f.label.slice(1)}
+              {f.label}
             </button>
           ))}
         </div>
