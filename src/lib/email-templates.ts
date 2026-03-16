@@ -336,3 +336,130 @@ export function adminEmailHtml(p: {
 </body>
 </html>`
 }
+
+// ── Cancellation: notify the business owner ────────────────────
+export function cancelledAdminEmailHtml(p: {
+  businessName: string
+  customerName: string
+  customerEmail: string
+  customerPhone: string
+  serviceName: string
+  date: string
+  time: string
+  duration: number
+  ref: string
+}) {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:40px 20px">
+    <tr><td align="center">
+      <table width="100%" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden">
+        <tr><td style="background:#dc2626;padding:24px 32px">
+          <p style="margin:0;color:rgba(255,255,255,0.7);font-size:13px">Cancellation &#8212; ${p.businessName}</p>
+          <h1 style="margin:4px 0 0;color:#fff;font-size:20px;font-weight:700">&#10060; ${p.customerName} cancelled their booking</h1>
+        </td></tr>
+        <tr><td style="padding:24px 32px">
+          <table width="100%" style="border:2px solid #fee2e2;border-radius:12px">
+            <tr><td style="background:#fff5f5;padding:12px 16px;border-radius:10px 10px 0 0">
+              <p style="margin:0;font-weight:700;color:#111827">${p.serviceName}</p>
+              <p style="margin:2px 0 0;color:#6b7280;font-size:13px">${p.date} at ${p.time} &middot; ${p.duration} min</p>
+            </td></tr>
+            <tr><td style="padding:16px">
+              <table width="100%">
+                <tr>
+                  <td style="padding:5px 0;color:#6b7280;font-size:14px;width:110px">Customer</td>
+                  <td style="padding:5px 0;color:#111827;font-size:14px;font-weight:600">${p.customerName}</td>
+                </tr>
+                <tr>
+                  <td style="padding:5px 0;color:#6b7280;font-size:14px">Email</td>
+                  <td style="padding:5px 0;font-size:14px"><a href="mailto:${p.customerEmail}" style="color:#4f46e5">${p.customerEmail}</a></td>
+                </tr>
+                <tr>
+                  <td style="padding:5px 0;color:#6b7280;font-size:14px">Phone</td>
+                  <td style="padding:5px 0;font-size:14px"><a href="tel:${p.customerPhone}" style="color:#4f46e5">${p.customerPhone}</a></td>
+                </tr>
+                <tr>
+                  <td style="padding:5px 0;color:#6b7280;font-size:14px">Ref</td>
+                  <td style="padding:5px 0;font-family:monospace;font-size:14px;font-weight:700;color:#dc2626">${p.ref}</td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+          <p style="margin:20px 0 0;color:#6b7280;font-size:13px;text-align:center">
+            This time slot is now free. The booking has been marked as cancelled in your dashboard.
+          </p>
+        </td></tr>
+        <tr><td style="background:#f9fafb;padding:16px 32px;text-align:center">
+          <p style="margin:0;color:#9ca3af;font-size:12px">BookFlow &#8212; ${p.businessName}</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
+// ── Cancellation: confirm to the customer ──────────────────────
+export function cancelledCustomerEmailHtml(p: {
+  businessName: string
+  businessPhone: string
+  customerName: string
+  serviceName: string
+  date: string
+  time: string
+  ref: string
+  logoUrl?: string | null
+}) {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:40px 20px">
+    <tr><td align="center">
+      <table width="100%" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden">
+
+        <!-- Header -->
+        <tr><td style="background:#4f46e5;padding:32px;text-align:center">
+          ${headerBrand(p.businessName, p.logoUrl)}
+        </td></tr>
+
+        <!-- Icon + message -->
+        <tr><td style="padding:36px 32px 24px;text-align:center">
+          <table cellpadding="0" cellspacing="0" style="margin:0 auto 16px">
+            <tr><td style="width:64px;height:64px;background:#fee2e2;border-radius:50%;text-align:center;vertical-align:middle">
+              <span style="font-size:30px;line-height:64px">&#10060;</span>
+            </td></tr>
+          </table>
+          <h2 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#111827">Booking Cancelled</h2>
+          <p style="margin:0;color:#6b7280;font-size:15px">Hi ${p.customerName}, your booking has been successfully cancelled.</p>
+        </td></tr>
+
+        <!-- Summary -->
+        <tr><td style="padding:0 32px 24px">
+          <table width="100%" style="background:#f9fafb;border-radius:12px;border:2px solid #fee2e2">
+            <tr><td style="background:#fee2e2;padding:12px 16px;border-radius:10px 10px 0 0">
+              <p style="margin:0;font-weight:700;color:#991b1b">${p.serviceName}</p>
+              <p style="margin:4px 0 0;color:#b91c1c;font-size:14px">${p.date} at ${p.time}</p>
+            </td></tr>
+            <tr><td style="padding:14px 16px;text-align:center">
+              <p style="margin:0;color:#6b7280;font-size:13px">Booking reference</p>
+              <p style="margin:4px 0 0;font-family:monospace;font-size:16px;font-weight:800;color:#dc2626;letter-spacing:2px">${p.ref}</p>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="background:#f9fafb;padding:16px 32px;text-align:center">
+          <p style="margin:0;color:#d1d5db;font-size:12px">Need to rebook? Call us on ${p.businessPhone}</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
