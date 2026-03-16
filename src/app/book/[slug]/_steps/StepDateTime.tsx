@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { format, parseISO, type Locale } from 'date-fns'
 import { lv, ru, enGB } from 'date-fns/locale'
 import { CalendarX } from 'lucide-react'
@@ -27,6 +28,7 @@ export default function StepDateTime({
   dict: t, onSelectDate, onSelectTime,
 }: Props) {
   const dfLocale = DATE_FNS_LOCALE[t.locale ?? 'lv'] ?? lv
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   return (
     <div>
@@ -58,20 +60,37 @@ export default function StepDateTime({
           <p className="text-sm text-gray-400 max-w-xs leading-relaxed">{t.noAvailableDatesSub}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-6">
-          {availableDates.slice(0, 14).map(date => {
+        <div
+          ref={scrollRef}
+          className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6"
+          style={{ scrollSnapType: 'x mandatory' }}
+        >
+          {availableDates.map(date => {
             const d = parseISO(date)
             const isSelected = date === selectedDate
             return (
-              <button key={date} onClick={() => onSelectDate(date)}
-                className={`flex flex-col items-center py-3 rounded-xl border-2 transition-all ${
-                  isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-100 bg-white hover:border-indigo-300'
+              <button
+                key={date}
+                onClick={() => onSelectDate(date)}
+                style={{ scrollSnapAlign: 'start', minWidth: '3.75rem' }}
+                className={`flex flex-col items-center py-2.5 px-1 rounded-xl border-2 transition-all flex-shrink-0 ${
+                  isSelected
+                    ? 'border-indigo-600 bg-indigo-600 text-white'
+                    : 'border-gray-100 bg-white hover:border-indigo-300'
                 }`}>
-                <span className={`text-xs font-medium ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
+                <span className={`text-xs font-medium ${
+                  isSelected ? 'text-white/80' : 'text-gray-400'
+                }`}>
                   {format(d, 'EEE', { locale: dfLocale })}
                 </span>
-                <span className={`text-lg font-bold ${isSelected ? 'text-white' : 'text-gray-900'}`}>{format(d, 'd')}</span>
-                <span className={`text-xs ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>
+                <span className={`text-base font-bold leading-tight ${
+                  isSelected ? 'text-white' : 'text-gray-900'
+                }`}>
+                  {format(d, 'd')}
+                </span>
+                <span className={`text-xs ${
+                  isSelected ? 'text-white/70' : 'text-gray-400'
+                }`}>
                   {format(d, 'MMM', { locale: dfLocale })}
                 </span>
               </button>
@@ -95,9 +114,11 @@ export default function StepDateTime({
                 <button key={slot.time} disabled={!slot.available}
                   onClick={() => onSelectTime(slot.time)}
                   className={`py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                    !slot.available              ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through'
-                    : selectedTime === slot.time  ? 'border-indigo-600 bg-indigo-600 text-white'
-                    : 'border-gray-100 bg-white hover:border-indigo-400 text-gray-700'
+                    !slot.available
+                      ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through'
+                      : selectedTime === slot.time
+                      ? 'border-indigo-600 bg-indigo-600 text-white'
+                      : 'border-gray-100 bg-white hover:border-indigo-400 text-gray-700'
                   }`}>
                   {slot.time}
                 </button>
