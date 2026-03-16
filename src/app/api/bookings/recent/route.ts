@@ -8,7 +8,6 @@ export async function GET() {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  // Get this user's business
   const { data: biz, error: bizError } = await supabase
     .from('business_settings')
     .select('id')
@@ -19,18 +18,30 @@ export async function GET() {
     return NextResponse.json([], { status: 200 })
   }
 
-  // Return the 10 most recent bookings for this business
-  const { data, error } = await supabase
+  // Fetch new bookings (not cancelled) — ordered by created_at
+  const { data: newBookings } = await supabase
     .from('bookings')
-    .select('id, ref, customer_name, service_name, date, time, created_at')
+    .select('id, ref, customer_name, service_name, date, time, created_at, status')
     .eq('business_id', biz.id)
     .neq('status', 'cancelled')
     .order('created_at', { ascending: false })
     .limit(10)
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  // Fetch recently cancelled bookings — use updated_at if available, fallback to created_at
+  const { data: cancelledBookings } = await supabase
+    .from('bookings')
+    .select('id, ref, customer_name, service_name, date, time, created_at, status')
+    .eq('business_id', biz.id)
+    .eq('status', 'cancelled')
+    .order('created_at', { ascending: false })
+    .limit(10)
 
-  return NextResponse.json(data ?? [])
+  // Merge, tag with type, sort by created_at desc, return top 20
+  const merged = [
+    ...(newBookings ?? []).map(b => ({ ...b, type: 'new' as const })),
+    ...(cancelledBookings ?? []).map(b => ({ ...b, type: 'cancelled' as const })),
+  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+   .slice(0, 20)
+
+  return NextResponse.json(merged)
 }
