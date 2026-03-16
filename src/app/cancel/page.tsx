@@ -1,6 +1,6 @@
 'use client'
 import { Suspense, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Loader2, CalendarX, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 
@@ -11,7 +11,7 @@ type BookingData = {
     date: string; time: string; customer_name: string
   }
   business: {
-    name: string; primary_color: string; logo_url: string
+    name: string; slug: string; primary_color: string; logo_url: string
   }
   policy: {
     windowHours: number
@@ -23,6 +23,7 @@ type BookingData = {
 
 function CancelPageInner() {
   const params = useSearchParams()
+  const router = useRouter()
   const id     = params.get('id')
   const token  = params.get('token')
   const error  = params.get('error')
@@ -83,6 +84,11 @@ function CancelPageInner() {
     }
   }
 
+  const goToBookingPage = () => {
+    const slug = data?.business.slug
+    if (slug) router.push(`/book/${slug}`)
+  }
+
   const color = data?.business.primary_color ?? '#6366f1'
 
   if (loading) return (
@@ -104,6 +110,14 @@ function CancelPageInner() {
           <strong>{data?.booking.time}</strong> has been cancelled.
         </p>
         <p className="text-gray-400 text-xs mt-4">You will receive a confirmation email shortly.</p>
+        {data?.business.slug && (
+          <button
+            onClick={goToBookingPage}
+            className="mt-6 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+          >
+            Book a new appointment →
+          </button>
+        )}
       </div>
     </div>
   )
@@ -210,7 +224,7 @@ function CancelPageInner() {
           <div className="flex gap-3 pt-1">
             <button
               type="button"
-              onClick={() => window.history.back()}
+              onClick={goToBookingPage}
               className="flex-1 border-2 border-gray-100 text-gray-500 py-3 rounded-xl text-sm font-medium hover:border-gray-200 transition-colors"
             >
               Keep booking

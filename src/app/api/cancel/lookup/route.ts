@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service-role'
 import { generateCancelToken } from '@/lib/cancel-token'
 
 function verifyCancelToken(bookingId: string, token: string): boolean {
@@ -12,8 +12,6 @@ function verifyCancelToken(bookingId: string, token: string): boolean {
   return diff === 0
 }
 
-// GET /api/cancel/lookup?id=&token=
-// Returns booking details + policy so the confirmation page can render them
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const id    = searchParams.get('id')
@@ -27,7 +25,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 403 })
   }
 
-  const supabase = await createClient()
+  // Service role — customer has no auth session
+  const supabase = createServiceClient()
 
   const { data: booking, error: fetchError } = await supabase
     .from('bookings')
@@ -41,11 +40,11 @@ export async function GET(req: NextRequest) {
 
   const { data: biz } = await supabase
     .from('business_settings')
-    .select('name, cancellation_window_hours, cancellation_policy, primary_color, logo_url')
+    .select('name, slug, cancellation_window_hours, cancellation_policy, primary_color, logo_url')
     .eq('id', booking.business_id)
     .single()
 
-  const windowHours = biz?.cancellation_window_hours ?? 24
+  const windowHours   = biz?.cancellation_window_hours ?? 24
   const appointmentAt = new Date(`${booking.date}T${booking.time}:00`)
   const deadlineAt    = windowHours > 0
     ? new Date(appointmentAt.getTime() - windowHours * 60 * 60 * 1000)
@@ -65,6 +64,7 @@ export async function GET(req: NextRequest) {
     },
     business: {
       name: biz?.name ?? '',
+      slug: biz?.slug ?? '',
       primary_color: biz?.primary_color ?? '#6366f1',
       logo_url: biz?.logo_url ?? '',
     },
