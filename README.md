@@ -13,7 +13,7 @@ Multi-tenant SaaS booking platform. Each business gets their own public booking 
 - [x] Booking saved to Supabase via `/api/book` with full Zod validation
 - [x] Customer confirmation email sent via Resend on booking
 - [x] Business owner alert email sent on every new booking
-- [x] Emails use business’s own `business_settings.email` — fully multi-tenant
+- [x] Emails use business's own `business_settings.email` — fully multi-tenant
 - [x] Customer self-serve cancellation link in confirmation email (HMAC-signed, no DB token needed)
 
 ### Admin Panel
@@ -40,6 +40,61 @@ Multi-tenant SaaS booking platform. Each business gets their own public booking 
 ### Legal
 - [x] Privacy Policy at `/privacy` (GDPR-compliant, EU-focused)
 - [x] Terms of Service at `/terms` (Latvian governing law)
+
+---
+
+## 🔧 Session fixes — 16 Mar 2026
+
+Four bugs found and fixed in this session. All are deployed to `main`.
+
+### 1. Business isolation leak in `/api/slots` — CRITICAL
+**File:** `src/app/api/slots/route.ts`
+
+The "Anyone available" staff query had **no `user_id` or `business_id` filter**. It fetched active staff from ALL businesses that shared a `service_id`, meaning one business's staff hours (e.g. `work_start = 03:00`) would bleed into every other business's booking page.
+
+**Fix:** Fetch `user_id` from `business_settings` first, then scope both the specific-staff and anyone-staff queries with `.eq('user_id', biz.user_id)`.
+
+### 2. Staff hours not clamped to business hours
+**File:** `src/lib/slots.ts` → `getSlotsForDate()`
+
+Staff `work_start` / `work_end` were used **raw** with no clamping. A staff member with `work_start = 03:00` would show 03:00 slots even if the business opens at 09:00.
+
+**Fix:** Clamp in both `getSlotsForDate` and `getUnionSlotsForDate`:
+```ts
+effectiveOpen  = Math.max(staff.workStart, biz.open_time)
+effectiveClose = Math.min(staff.workEnd,   biz.close_time)
+```
+Staff can **never** be bookable outside the business window, regardless of their personal hours.
+
+### 3. Booking page statically cached — settings changes not instant
+**File:** `src/app/book/[slug]/page.tsx`
+
+The Server Component had no `dynamic` export, so Next.js/Vercel cached the page at build time. Changes to `open_time`, `close_time`, `open_days` in business settings had no effect until the next deployment.
+
+**Fix:** Added `export const dynamic = 'force-dynamic'` — every page load now fetches fresh from Supabase. Business settings changes are instant.
+
+### 4. DayView time labels clipping
+**File:** `src/app/admin/_components/DayView.tsx`
+
+Time gutter labels were positioned at `absolute -top-2` (−8px above the row), which placed them outside the row's bounding box and got clipped by the `overflow-y-auto` scroll container.
+
+**Fix:** Changed to `absolute top-1` (inside the row). Also added `padStart(2, '0')` so hours always render as `09:00` not `9:00`.
+
+---
+
+## 🏗️ Architecture — business isolation rules
+
+Every query **must** be scoped to a single business. Here's how each layer enforces isolation:
+
+| Layer | Isolation method |
+|---|---|
+| Admin API routes (`/api/staff`, `/api/services`, `/api/settings`) | `user_id` from Supabase session cookie |
+| Public slot API (`/api/slots`) | `user_id` resolved from `business_settings` via `businessId` param |
+| Public queries (`getServicesForBusiness`, `getStaffForBusiness`) | `user_id` resolved from `business_settings` via `businessId` |
+| Booking creation (`/api/book`) | `business_id` verified against DB before insert |
+| Supabase RLS | Last line of defence — all tables have RLS policies |
+
+**Key rule:** Staff hours are always clamped inside business hours. A staff member working `07:00–20:00` at a business open `09:00–18:00` will only show slots `09:00–18:00`. Business `open_time`/`close_time` is the hard outer boundary.
 
 ---
 
