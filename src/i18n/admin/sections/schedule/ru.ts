@@ -4,6 +4,8 @@ const scheduleRu = {
   sectionTitle:          'Рабочее время',
   bookingRulesTitle:     'Правила бронирования',
   openDays:              'Рабочие дни',
+  startTime:             'Начало работы',
+  endTime:               'Конец работы',
   hours:                 'Часы работы',
   slotInterval:          'Интервал слотов',
   manualApproval:        'Ручное подтверждение бронирований',

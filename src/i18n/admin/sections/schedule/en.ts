@@ -4,6 +4,8 @@ const scheduleEn = {
   sectionTitle:          'Working hours',
   bookingRulesTitle:     'Booking rules',
   openDays:              'Open days',
+  startTime:             'Start time',
+  endTime:               'End time',
   hours:                 'Hours',
   slotInterval:          'Slot interval',
   manualApproval:        'Manual booking approval',

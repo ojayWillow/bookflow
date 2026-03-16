@@ -55,10 +55,10 @@ export default function ScheduleSection({
           </div>
         </div>
 
-        {/* Start & end time — stacked to prevent iOS overflow */}
+        {/* Start & end time — stacked, full-width, prevents iOS overflow */}
         <div className="grid grid-cols-1 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.startTime}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.schedule.startTime}</label>
             <input
               type="time"
               value={openTime}
@@ -67,7 +67,7 @@ export default function ScheduleSection({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.endTime}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.schedule.endTime}</label>
             <input
               type="time"
               value={closeTime}
