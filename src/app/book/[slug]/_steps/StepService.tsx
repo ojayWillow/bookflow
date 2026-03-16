@@ -43,7 +43,7 @@ export default function StepService({ services, loading, dict: t, onSelect }: Pr
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors truncate">{s.name}</p>
                     <span className="flex items-center gap-0.5 text-xs text-gray-400 flex-shrink-0">
-                      <Clock className="w-3 h-3" />{s.duration}{t.min}
+                      <Clock className="w-3 h-3" /> {s.duration} {t.min}
                     </span>
                   </div>
                   {s.description && (
