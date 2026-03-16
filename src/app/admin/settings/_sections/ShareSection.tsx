@@ -35,7 +35,7 @@ interface Props {
 
 export default function ShareSection({ bookingUrl, qrUrl }: Props) {
   const t = useAdminLang()
-  const [btnLabel, setBtnLabel] = useState('Book now')
+  const [btnLabel, setBtnLabel] = useState(t.share.btnDefault)
   const [btnColor, setBtnColor] = useState('#4f46e5')
   const [showQr, setShowQr]     = useState(false)
 
@@ -90,7 +90,7 @@ export default function ShareSection({ bookingUrl, qrUrl }: Props) {
             </div>
             <div>
               <p className="text-xs font-semibold text-indigo-900 mb-1">{t.share.qrTitle}</p>
-              <p className="text-xs text-indigo-600 leading-relaxed mb-2">{t.share.qrDesc}</p>
+              <p className="text-xs text-indigo-600 leading-relaxed mb-2">{t.share.qrSub}</p>
               <a href={qrUrl} download="bookflow-qr.png"
                 className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-100 transition-colors">
                 {t.share.qrDownload}
@@ -102,18 +102,18 @@ export default function ShareSection({ bookingUrl, qrUrl }: Props) {
 
       {/* ── Website button generator ── */}
       <div className="bg-white border-2 border-gray-100 rounded-2xl p-4">
-        <p className="text-sm font-semibold text-gray-900 mb-1">{t.share.buttonTitle}</p>
-        <p className="text-xs text-gray-400 mb-4 leading-relaxed">{t.share.buttonSub}</p>
+        <p className="text-sm font-semibold text-gray-900 mb-1">{t.share.btnGenTitle}</p>
+        <p className="text-xs text-gray-400 mb-4 leading-relaxed">{t.share.btnGenSub}</p>
 
         <div className="flex gap-3 mb-4">
           <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-500 mb-1">{t.share.buttonText}</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">{t.share.btnLabel}</label>
             <input type="text" value={btnLabel} onChange={e => setBtnLabel(e.target.value)}
               placeholder="e.g. Book a visit"
               className="w-full border-2 border-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-300 transition-colors" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">{t.share.buttonColour}</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">{t.share.btnColour}</label>
             <div className="flex items-center gap-2">
               <input type="color" value={btnColor} onChange={e => setBtnColor(e.target.value)}
                 className="w-10 h-10 rounded-lg border-2 border-gray-100 cursor-pointer p-0.5" />
@@ -127,7 +127,7 @@ export default function ShareSection({ bookingUrl, qrUrl }: Props) {
           <a href={bookingUrl} target="_blank" style={{ background: btnColor }}
             className="inline-block text-white font-semibold px-7 py-2.5 rounded-[10px] text-sm no-underline"
             onClick={e => e.preventDefault()}>
-            {btnLabel || 'Book now'}
+            {btnLabel || t.share.btnDefault}
           </a>
         </div>
 

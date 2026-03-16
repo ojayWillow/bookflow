@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────
 
 /** Renders either a logo <img> or a fallback initial square */
-function headerBrand(name: string, logoUrl?: string | null, accentColor = '#4f46e5') {
+function headerBrand(name: string, logoUrl?: string | null) {
   if (logoUrl) {
     return `
       <div style="width:72px;height:72px;border-radius:16px;overflow:hidden;display:inline-block;background:#fff;margin-bottom:12px">
