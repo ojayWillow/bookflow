@@ -50,7 +50,7 @@ function toMins(hhmm: string): number {
   return h * 60 + m
 }
 
-/** Returns true if the proposed slot overlaps any existing booking. */
+/** Returns true if the proposed slot overlaps any confirmed booking for the same staff (or any staff if staffId is null). */
 function hasConflict(
   slotStart: number,
   duration: number,
@@ -59,6 +59,7 @@ function hasConflict(
 ): boolean {
   const slotEnd = slotStart + duration
   return existing.some(b => {
+    // Only conflict if same staff, or either side is "anyone"
     if (staffId !== null && b.staff_id !== null && b.staff_id !== staffId) return false
     const bStart = toMins(b.time)
     const bEnd   = bStart + b.service_duration
@@ -98,13 +99,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    // ── Server-side double-booking check ─────────────────────────────────────
+    // ── Server-side double-booking check (confirmed only) ────────────────────
     const { data: existingBookings } = await supabase
       .from('bookings')
       .select('time, service_duration, staff_id')
       .eq('date', body.date)
       .eq('business_id', body.business_id)
-      .neq('status', 'cancelled')
+      .eq('status', 'confirmed')
 
     if (existingBookings) {
       const slotStart = toMins(body.time)
@@ -179,7 +180,6 @@ export async function POST(req: NextRequest) {
     }
 
     const emailResults = await Promise.allSettled([
-      // Customer email — pending or confirmed version
       resend.emails.send({
         from:    `BookFlow <${fromEmail}>`,
         to:      body.customer_email,
@@ -216,7 +216,6 @@ export async function POST(req: NextRequest) {
               cancelUrl,
             }),
       }),
-      // Admin notification email
       ...(adminEmail ? [resend.emails.send({
         from:    `BookFlow <${fromEmail}>`,
         to:      adminEmail,
