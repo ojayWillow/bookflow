@@ -56,11 +56,6 @@ function isBlocked(
   })
 }
 
-/**
- * Returns true if the slot overlaps with the staff member's lunch break.
- * A slot is blocked if it starts inside the break, or if the service
- * would run into the break (i.e. slot finishes after break starts).
- */
 function isDuringBreak(
   slotStart: number,
   durationMins: number,
@@ -70,7 +65,6 @@ function isDuringBreak(
   const breakStart = toMins(staff.breakStart)
   const breakEnd   = toMins(staff.breakEnd)
   const slotEnd    = slotStart + durationMins
-  // Block if the slot overlaps the break window at all
   return slotStart < breakEnd && slotEnd > breakStart
 }
 
@@ -100,8 +94,8 @@ export function getSlotsForDate(
   staffMember?: SlotStaffMember | null,
   settings?: Settings | null
 ): { time: string; available: boolean }[] {
-  const interval  = settings?.slot_interval  ?? 30
-  const leadHours = settings?.lead_time_hours ?? 2
+  const interval  = Number(settings?.slot_interval  ?? 30) || 30
+  const leadHours = Number(settings?.lead_time_hours ?? 2)  || 2
 
   const bizStart = toMins(settings?.open_time  ?? '09:00')
   const bizEnd   = toMins(settings?.close_time ?? '18:00')
@@ -165,8 +159,8 @@ export function getUnionSlotsForDate(
     return getSlotsForDate(date, durationMins, allBooked, null, settings)
   }
 
-  const interval     = settings.slot_interval  ?? 30
-  const leadHours    = settings.lead_time_hours ?? 2
+  const interval     = Number(settings.slot_interval  ?? 30) || 30
+  const leadHours    = Number(settings.lead_time_hours ?? 2)  || 2
   const bizStart     = toMins(settings.open_time  ?? '09:00')
   const bizEnd       = toMins(settings.close_time ?? '18:00')
   const leadCutoffMs = Date.now() + leadHours * 3_600_000
@@ -190,7 +184,6 @@ export function getUnionSlotsForDate(
       const staffStart = Math.max(toMins(staff.workStart), bizStart)
       const staffEnd   = Math.min(toMins(staff.workEnd),   bizEnd)
       if (m < staffStart || m + durationMins > staffEnd) return false
-      // Block if the slot falls in this staff member's break
       if (isDuringBreak(m, durationMins, staff)) return false
       const staffBooked: BookedSlotRaw[] = [
         ...allBooked.filter(b => b.staff_id === staff.id),
