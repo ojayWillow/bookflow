@@ -18,7 +18,7 @@ export default function ScheduleSection({ openDays, openTime, closeTime, slotInt
 
   return (
     <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
-      <h2 className="font-semibold text-gray-900 mb-5">📅 {t.settings.sectionTitle ?? t.schedule.sectionTitle}</h2>
+      <h2 className="font-semibold text-gray-900 mb-5">📅 {t.schedule.sectionTitle}</h2>
 
       <div className="space-y-5">
 
