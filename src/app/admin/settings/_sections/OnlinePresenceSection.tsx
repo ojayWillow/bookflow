@@ -1,5 +1,6 @@
 'use client'
 import { Globe, Instagram, Facebook } from 'lucide-react'
+import { useAdminLang } from '@/hooks/useAdminLang'
 
 function TikTokIcon({ className }: { className?: string }) {
   return (
@@ -25,10 +26,12 @@ interface Props {
 }
 
 export default function OnlinePresenceSection({ websiteUrl, instagramUrl, facebookUrl, tiktokUrl, onChange }: Props) {
+  const t = useAdminLang()
+
   return (
     <section className="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-soft">
-      <h2 className="font-semibold text-gray-900 mb-1">🔗 Online presence</h2>
-      <p className="text-sm text-gray-400 mb-5">These appear as icons on your booking page. You can paste just the domain or a full URL.</p>
+      <h2 className="font-semibold text-gray-900 mb-1">🔗 {t.branding.onlinePresence}</h2>
+      <p className="text-sm text-gray-400 mb-5">{t.branding.onlinePresenceSub}</p>
       <div className="space-y-3">
         <div className="flex items-center gap-3">
           <Globe className="w-5 h-5 text-gray-400 flex-shrink-0" />
