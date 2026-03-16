@@ -50,7 +50,6 @@ function toMins(hhmm: string): number {
   return h * 60 + m
 }
 
-/** Returns true if the proposed slot overlaps any confirmed booking for the same staff (or any staff if staffId is null). */
 function hasConflict(
   slotStart: number,
   duration: number,
@@ -59,7 +58,6 @@ function hasConflict(
 ): boolean {
   const slotEnd = slotStart + duration
   return existing.some(b => {
-    // Only conflict if same staff, or either side is "anyone"
     if (staffId !== null && b.staff_id !== null && b.staff_id !== staffId) return false
     const bStart = toMins(b.time)
     const bEnd   = bStart + b.service_duration
@@ -99,7 +97,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    // ── Server-side double-booking check (confirmed only) ────────────────────
     const { data: existingBookings } = await supabase
       .from('bookings')
       .select('time, service_duration, staff_id')
@@ -125,10 +122,9 @@ export async function POST(req: NextRequest) {
 
     const ref = 'BF-' + randomBytes(4).toString('hex').toUpperCase()
 
-    // ── Fetch business settings including approval mode ───────────────────────
     const { data: biz } = await supabase
       .from('business_settings')
-      .select('name,address,phone,email,cancellation_policy,require_approval')
+      .select('name,address,phone,email,cancellation_policy,require_approval,logo_url')
       .eq('id', body.business_id)
       .single()
 
@@ -139,6 +135,7 @@ export async function POST(req: NextRequest) {
     const businessPhone    = biz?.phone               ?? ''
     const businessEmail    = biz?.email               ?? ''
     const cancelPolicy     = biz?.cancellation_policy ?? ''
+    const logoUrl          = biz?.logo_url            ?? null
 
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
@@ -198,6 +195,7 @@ export async function POST(req: NextRequest) {
               duration:      body.service_duration,
               price:         body.service_price,
               ref:           booking.ref,
+              logoUrl,
             })
           : customerEmailHtml({
               businessName,
@@ -214,6 +212,7 @@ export async function POST(req: NextRequest) {
               ref:                booking.ref,
               cancellationPolicy: cancelPolicy,
               cancelUrl,
+              logoUrl,
             }),
       }),
       ...(adminEmail ? [resend.emails.send({

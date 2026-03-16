@@ -18,13 +18,12 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Fetch booking and verify the business belongs to this user
   const { data: booking, error: fetchErr } = await supabase
     .from('bookings')
     .select(`
       *,
       business_settings!inner(
-        user_id, name, address, phone, email, cancellation_policy
+        user_id, name, address, phone, email, cancellation_policy, logo_url
       )
     `)
     .eq('id', id)
@@ -44,7 +43,6 @@ export async function PATCH(
     return NextResponse.json({ error: 'Booking is not pending' }, { status: 400 })
   }
 
-  // Update status to confirmed
   const { error: updateErr } = await supabase
     .from('bookings')
     .update({ status: 'confirmed' })
@@ -54,7 +52,6 @@ export async function PATCH(
     return NextResponse.json({ error: updateErr.message }, { status: 500 })
   }
 
-  // Send confirmation email to customer
   const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow-three.vercel.app'
   const fromDomain = process.env.RESEND_FROM_DOMAIN  ?? 'kolab.lv'
   const cancelToken = generateCancelToken(booking.id)
@@ -80,11 +77,11 @@ export async function PATCH(
         ref:                booking.ref,
         cancellationPolicy: biz.cancellation_policy,
         cancelUrl,
+        logoUrl:            biz.logo_url ?? null,
       }),
     })
   } catch (emailErr) {
     console.error('Approve email failed:', emailErr)
-    // Don't fail the request — booking is already confirmed
   }
 
   return NextResponse.json({ ok: true })
