@@ -5,7 +5,7 @@ import { useAdminLang } from '@/hooks/useAdminLang'
 
 function CopyButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false)
-  const t = useAdminLang()
+  const { t } = useAdminLang()
   return (
     <button
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
@@ -34,7 +34,7 @@ interface Props {
 }
 
 export default function ShareSection({ bookingUrl, qrUrl }: Props) {
-  const t = useAdminLang()
+  const { t } = useAdminLang()
   const [btnLabel, setBtnLabel] = useState(t.share.btnDefault)
   const [btnColor, setBtnColor] = useState('#4f46e5')
   const [showQr, setShowQr]     = useState(false)
