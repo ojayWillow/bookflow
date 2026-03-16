@@ -2,6 +2,29 @@
 import { useState, useRef } from 'react'
 import { Loader2, Upload, X } from 'lucide-react'
 
+/** Resize + compress any image to max 400×400 JPEG at 80% quality */
+function resizeImage(file: File, maxPx = 400, quality = 0.8): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image()
+    img.onload = () => {
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height))
+      const w = Math.round(img.width  * scale)
+      const h = Math.round(img.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width  = w
+      canvas.height = h
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+      canvas.toBlob(
+        blob => blob ? resolve(blob) : reject(new Error('Canvas toBlob failed')),
+        'image/jpeg',
+        quality,
+      )
+    }
+    img.onerror = () => reject(new Error('Failed to load image'))
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 export default function ImageUpload({
   label, hint, field, currentUrl, onUploaded,
 }: {
@@ -16,17 +39,20 @@ export default function ImageUpload({
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFile = async (file: File) => {
-    const MAX     = 5 * 1024 * 1024
     const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
     if (!ALLOWED.includes(file.type)) { setUploadError('Only JPEG, PNG, WebP or GIF allowed'); return }
-    if (file.size > MAX)              { setUploadError('File must be under 5 MB'); return }
+    if (file.size > 10 * 1024 * 1024)  { setUploadError('File must be under 10 MB'); return }
 
     setUploading(true)
     setUploadError('')
 
     try {
+      // Resize + compress before sending to the server
+      const resized = await resizeImage(file)
+      const resizedFile = new File([resized], 'upload.jpg', { type: 'image/jpeg' })
+
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', resizedFile)
       formData.append('field', field)
 
       const res  = await fetch('/api/upload-asset', { method: 'POST', body: formData })
@@ -86,7 +112,7 @@ export default function ImageUpload({
             ? <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
             : <>
                 <Upload className="w-6 h-6 text-gray-300" />
-                <p className="text-xs text-gray-400 text-center">Click or drag &amp; drop<br /><span className="text-gray-300">JPEG, PNG, WebP &middot; max 5 MB</span></p>
+                <p className="text-xs text-gray-400 text-center">Click or drag &amp; drop<br /><span className="text-gray-300">JPEG, PNG, WebP &middot; auto-resized to 400px</span></p>
               </>
           }
         </div>

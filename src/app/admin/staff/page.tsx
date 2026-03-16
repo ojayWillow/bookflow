@@ -35,6 +35,29 @@ const emptyForm = {
   break_end: '' as string,
 }
 
+/** Resize + compress any image to max 400×400 JPEG at 80% quality */
+function resizeImage(file: File, maxPx = 400, quality = 0.8): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image()
+    img.onload = () => {
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height))
+      const w = Math.round(img.width  * scale)
+      const h = Math.round(img.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width  = w
+      canvas.height = h
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+      canvas.toBlob(
+        blob => blob ? resolve(blob) : reject(new Error('Canvas toBlob failed')),
+        'image/jpeg',
+        quality,
+      )
+    }
+    img.onerror = () => reject(new Error('Failed to load image'))
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 export default function StaffPage() {
   const [members, setMembers]     = useState<DBStaff[]>([])
   const [services, setServices]   = useState<DBService[]>([])
@@ -80,14 +103,21 @@ export default function StaffPage() {
   }
 
   const handleAvatarUpload = async (file: File) => {
+    // Validate type & raw size before even touching canvas
+    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    if (!ALLOWED.includes(file.type)) { toast.error('Only JPEG, PNG, WebP or GIF allowed'); return }
+    if (file.size > 10 * 1024 * 1024)  { toast.error('File must be under 10 MB'); return }
+
     setAvatarUploading(true)
     try {
+      // Resize + compress to max 400×400 JPEG before upload
+      const resized = await resizeImage(file)
+
       const supabase = createClient()
-      const ext  = file.name.split('.').pop()
-      const path = `staff-avatars/${Date.now()}.${ext}`
+      const path = `staff-avatars/${Date.now()}.jpg`
       const { error: upErr } = await supabase.storage
         .from('business-assets')
-        .upload(path, file, { upsert: true })
+        .upload(path, resized, { contentType: 'image/jpeg', upsert: true })
       if (upErr) throw upErr
       const { data: { publicUrl } } = supabase.storage
         .from('business-assets')
@@ -329,7 +359,7 @@ export default function StaffPage() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
                     className="hidden"
                     onChange={e => { const f = e.target.files?.[0]; if (f) handleAvatarUpload(f) }}
                   />
