@@ -70,6 +70,7 @@ export default function StaffPage() {
   const [skillSearch, setSkillSearch] = useState('')
   const [error, setError]         = useState('')
   const [avatarUploading, setAvatarUploading] = useState(false)
+  const [showBreak, setShowBreak] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toasts, toast, dismiss } = useToast()
 
@@ -88,8 +89,14 @@ export default function StaffPage() {
 
   useEffect(() => { loadAll() }, [])
 
-  const openCreate = () => { setForm({ ...emptyForm }); setEditing(null); setSkillSearch(''); setShowModal(true) }
-  const openEdit   = (m: DBStaff) => {
+  const openCreate = () => {
+    setForm({ ...emptyForm })
+    setEditing(null)
+    setSkillSearch('')
+    setShowBreak(false)
+    setShowModal(true)
+  }
+  const openEdit = (m: DBStaff) => {
     setForm({
       name: m.name, role: m.role, bio: m.bio,
       service_ids: [...m.service_ids],
@@ -100,7 +107,10 @@ export default function StaffPage() {
       break_start: m.break_start ?? '',
       break_end: m.break_end ?? '',
     })
-    setEditing(m); setSkillSearch(''); setShowModal(true)
+    setShowBreak(!!(m.break_start && m.break_end))
+    setEditing(m)
+    setSkillSearch('')
+    setShowModal(true)
   }
 
   const handleAvatarUpload = async (file: File) => {
@@ -149,8 +159,8 @@ export default function StaffPage() {
         work_start: form.work_start, work_end: form.work_end,
         active: form.active, color: form.color,
         avatar_url: form.avatar_url,
-        break_start: form.break_start || null,
-        break_end:   form.break_end   || null,
+        break_start: showBreak && form.break_start ? form.break_start : null,
+        break_end:   showBreak && form.break_end   ? form.break_end   : null,
       })
       await loadAll()
       setShowModal(false)
@@ -226,7 +236,6 @@ export default function StaffPage() {
               <div key={m.id} className={`bg-white border-2 rounded-2xl p-5 transition-all shadow-soft ${
                 m.active ? 'border-gray-100 hover:border-indigo-100' : 'border-gray-100 opacity-60'
               }`}>
-                {/* Avatar + info */}
                 <div className="flex items-start gap-4">
                   {m.avatar_url ? (
                     <Image src={m.avatar_url} alt={m.name} width={56} height={56}
@@ -253,7 +262,7 @@ export default function StaffPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-3 mt-2.5 flex-wrap">
-                      <div className="flex flex-wrap gap-1">
+                      <div className="grid grid-cols-7 gap-0.5">
                         {['S','M','T','W','T','F','S'].map((d, i) => (
                           <span key={i} className={`w-5 h-5 rounded-md text-xs flex items-center justify-center font-medium ${
                             m.work_days.includes(i) ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-50 text-gray-300'
@@ -271,7 +280,6 @@ export default function StaffPage() {
                     </div>
                   </div>
                 </div>
-                {/* Action buttons — below info on mobile, right-aligned */}
                 <div className="flex items-center justify-end gap-2 flex-wrap mt-3 pt-3 border-t border-gray-50">
                   <button onClick={() => handleToggleActive(m)}
                     className={`text-xs px-3 py-1.5 rounded-xl font-medium border-2 transition-all ${
@@ -299,8 +307,9 @@ export default function StaffPage() {
         </div>
       )}
 
+      {/* Modal — overscroll-contain prevents page scroll bleed on iOS */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center p-4 overflow-y-auto overscroll-contain">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 my-8">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-gray-900">
@@ -365,7 +374,7 @@ export default function StaffPage() {
                 </div>
               )}
 
-              {/* Name + Role: stack on mobile */}
+              {/* Name + Role */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.fullName}</label>
@@ -439,12 +448,13 @@ export default function StaffPage() {
                 <p className="text-xs text-gray-400 mt-1.5">{t.staff.skillsHint}</p>
               </div>
 
+              {/* Working days — always 7 columns */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.staff.workingDays}</label>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-7 gap-1.5">
                   {DAYS.map((day, i) => (
                     <button key={day} type="button" onClick={() => toggleDay(i)}
-                      className={`w-10 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all ${
+                      className={`py-2 rounded-xl text-xs font-semibold border-2 transition-all ${
                         form.work_days.includes(i)
                           ? 'bg-indigo-600 text-white border-indigo-600'
                           : 'border-gray-100 text-gray-400 hover:border-indigo-300'
@@ -455,7 +465,7 @@ export default function StaffPage() {
                 </div>
               </div>
 
-              {/* Work hours: stack on mobile */}
+              {/* Work hours */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.staff.startTime}</label>
@@ -471,38 +481,54 @@ export default function StaffPage() {
                 </div>
               </div>
 
+              {/* Lunch break — toggle first, inputs only shown when opted in */}
               <div className="bg-gray-50 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Coffee className="w-4 h-4 text-amber-500" />
-                  <label className="text-sm font-medium text-gray-700">Lunch break</label>
-                  <span className="text-xs text-gray-400 font-normal">(optional)</span>
-                </div>
-                {/* Break times: stack on mobile */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1.5">Break starts</label>
-                    <input type="time" value={form.break_start}
-                      onChange={e => setForm(p => ({ ...p, break_start: e.target.value }))}
-                      className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors bg-white" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Coffee className="w-4 h-4 text-amber-500" />
+                    <span className="text-sm font-medium text-gray-700">Lunch break</span>
+                    <span className="text-xs text-gray-400">(optional)</span>
                   </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1.5">Break ends</label>
-                    <input type="time" value={form.break_end}
-                      onChange={e => setForm(p => ({ ...p, break_end: e.target.value }))}
-                      className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors bg-white" />
-                  </div>
-                </div>
-                {form.break_start && form.break_end && (
-                  <p className="text-xs text-amber-600 mt-2">
-                    ☕ Slots from {form.break_start} to {form.break_end} will be blocked for this staff member.
-                  </p>
-                )}
-                {form.break_start && form.break_end && (
-                  <button type="button"
-                    onClick={() => setForm(p => ({ ...p, break_start: '', break_end: '' }))}
-                    className="text-xs text-gray-400 hover:text-red-400 mt-1 transition-colors">
-                    Clear break
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (showBreak) {
+                        setShowBreak(false)
+                        setForm(p => ({ ...p, break_start: '', break_end: '' }))
+                      } else {
+                        setShowBreak(true)
+                      }
+                    }}
+                    className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${
+                      showBreak ? 'bg-amber-400' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                      showBreak ? 'translate-x-4' : 'translate-x-0.5'
+                    }`} />
                   </button>
+                </div>
+
+                {showBreak && (
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1.5">Break starts</label>
+                      <input type="time" value={form.break_start}
+                        onChange={e => setForm(p => ({ ...p, break_start: e.target.value }))}
+                        className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors bg-white" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1.5">Break ends</label>
+                      <input type="time" value={form.break_end}
+                        onChange={e => setForm(p => ({ ...p, break_end: e.target.value }))}
+                        className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors bg-white" />
+                    </div>
+                    {form.break_start && form.break_end && (
+                      <p className="sm:col-span-2 text-xs text-amber-600">
+                        ☕ Slots from {form.break_start} to {form.break_end} will be blocked.
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

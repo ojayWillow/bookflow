@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Clock, Loader2 } from 'lucide-react'
+import { Clock, Loader2, Plus } from 'lucide-react'
 import { getServices, upsertService, deleteService } from '@/lib/supabase/queries'
 import AdminSkeleton  from '../_components/AdminSkeleton'
 import ToastContainer from '../_components/Toast'
@@ -84,7 +84,6 @@ export default function ServicesPage() {
     <div className="p-4 md:p-8">
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
 
-      {/* Header — button shrinks, never wraps into title */}
       <div className="flex items-start justify-between gap-3 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{t.services.title}</h1>
@@ -92,8 +91,7 @@ export default function ServicesPage() {
         </div>
         <button onClick={openCreate}
           className="shrink-0 flex items-center gap-2 bg-indigo-600 text-white px-3 py-2.5 sm:px-4 rounded-xl font-medium hover:bg-indigo-700 transition-colors text-sm whitespace-nowrap">
-          + <span className="hidden sm:inline">{t.services.addService}</span>
-          <span className="sm:hidden">{t.services.addService}</span>
+          <Plus className="w-4 h-4" />{t.services.addService}
         </button>
       </div>
 
