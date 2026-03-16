@@ -114,6 +114,10 @@ export function getSlotsForDate(
     ? allBooked.filter(b => b.staff_id === staffMember.id || b.staff_id === null)
     : allBooked // no staff = all bookings are relevant blockers
 
+  // Pre-compute staff bounds once (only meaningful when staffMember is provided)
+  const staffStart = staffMember ? toMins(staffMember.workStart) : openMins
+  const staffEnd   = staffMember ? toMins(staffMember.workEnd)   : closeMins
+
   const slots: { time: string; available: boolean }[] = []
 
   for (let m = openMins; m + durationMins <= closeMins; m += interval) {
@@ -124,6 +128,15 @@ export function getSlotsForDate(
       slots.push({ time, available: false })
       continue
     }
+
+    // FIX: ensure the entire slot duration fits within the staff member's
+    // working hours. Without this check a 60-min service would appear
+    // bookable even if the staff member only has a 30-min gap remaining.
+    if (m < staffStart || m + durationMins > staffEnd) {
+      slots.push({ time, available: false })
+      continue
+    }
+
     slots.push({ time, available: !isBlocked(m, durationMins, relevant) })
   }
 
