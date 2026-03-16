@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 
-const SLOT_HEIGHT = 64 // px per hour
+const SLOT_HEIGHT = 64
 
 function timeToMinutes(t: string) {
   const [h, m] = t.split(':').map(Number)
@@ -54,7 +54,6 @@ export default function DayView({
   })
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Update current time every minute
   useEffect(() => {
     const tick = () => {
       const n = new Date()
@@ -64,10 +63,9 @@ export default function DayView({
     return () => clearInterval(id)
   }, [])
 
-  // Scroll to current time (or first booking) on mount
   useEffect(() => {
     if (!scrollRef.current) return
-    const targetMins = isToday ? nowMins : (openHour * 60)
+    const targetMins = isToday ? nowMins : openHour * 60
     const scrollTo = minutesToPx(targetMins - openHour * 60) - 120
     scrollRef.current.scrollTop = Math.max(0, scrollTo)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,9 +92,8 @@ export default function DayView({
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden flex flex-col" style={{ maxHeight: '75vh' }}>
 
-      {/* ── Staff header row ── */}
+      {/* Staff header row */}
       <div className="flex border-b border-gray-100 flex-shrink-0">
-        {/* Time gutter */}
         <div className="w-14 flex-shrink-0 border-r border-gray-100" />
         {staff.map(m => (
           <div key={m.id} className="flex-1 min-w-[120px] px-3 py-3 border-r border-gray-100 last:border-0">
@@ -115,7 +112,7 @@ export default function DayView({
         ))}
       </div>
 
-      {/* ── Scrollable grid ── */}
+      {/* Scrollable grid */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-auto">
         <div className="flex" style={{ minHeight: `${totalHeight}px` }}>
 
@@ -126,8 +123,7 @@ export default function DayView({
                 <span className="absolute -top-2 right-2 text-[10px] text-gray-300 font-medium select-none">
                   {h}:00
                 </span>
-                {/* Half-hour tick */}
-                <span className="absolute top-[calc(50%-1px)] right-3 text-[9px] text-gray-200 select-none">
+                <span className="absolute right-3 text-[9px] text-gray-200 select-none" style={{ top: SLOT_HEIGHT / 2 }}>
                   –
                 </span>
               </div>
@@ -136,7 +132,7 @@ export default function DayView({
 
           {/* Staff columns */}
           {staff.map(m => {
-            const colBookings = dayBookings(m.id)
+            const colBookings   = dayBookings(m.id)
             const workStartMins = timeToMinutes(m.work_start)
             const workEndMins   = timeToMinutes(m.work_end)
             const offTopPx      = minutesToPx(workStartMins - openHour * 60)
@@ -147,38 +143,28 @@ export default function DayView({
 
                 {/* Hour grid lines */}
                 {hours.map(h => (
-                  <div key={h} style={{ height: SLOT_HEIGHT }}
-                    className="border-b border-gray-50 relative">
-                    {/* Half-hour line */}
-                    <div className="absolute bottom-0 left-0 right-0 border-b border-dashed border-gray-50"
-                      style={{ bottom: SLOT_HEIGHT / 2 }} />
+                  <div key={h} style={{ height: SLOT_HEIGHT }} className="border-b border-gray-50 relative">
+                    <div className="absolute left-0 right-0 border-b border-dashed border-gray-50"
+                      style={{ top: SLOT_HEIGHT / 2 }} />
                   </div>
                 ))}
 
                 {/* Off-hours shading — before work start */}
                 {offTopPx > 0 && (
-                  <div
-                    className="absolute top-0 left-0 right-0 bg-gray-50/70 pointer-events-none"
-                    style={{ height: offTopPx }}
-                  />
+                  <div className="absolute top-0 left-0 right-0 bg-gray-50/70 pointer-events-none"
+                    style={{ height: offTopPx }} />
                 )}
 
                 {/* Off-hours shading — after work end */}
                 {offBottomPx > 0 && (
-                  <div
-                    className="absolute bottom-0 left-0 right-0 bg-gray-50/70 pointer-events-none"
-                    style={{ height: offBottomPx }}
-                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-gray-50/70 pointer-events-none"
+                    style={{ height: offBottomPx }} />
                 )}
 
-                {/* Empty state for this staff column */}
+                {/* Empty state per column */}
                 {colBookings.length === 0 && (
-                  <div
-                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                    style={{
-                      top: offTopPx,
-                      bottom: offBottomPx,
-                    }}>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    style={{ top: offTopPx, bottom: offBottomPx }}>
                     <p className="text-[10px] text-gray-300 font-medium">No bookings</p>
                   </div>
                 )}
@@ -193,15 +179,8 @@ export default function DayView({
                     <button
                       key={b.id}
                       onClick={() => onSelectBooking(isSelected ? null : b)}
-                      style={{
-                        top,
-                        height,
-                        left: 4,
-                        right: 4,
-                        borderLeftColor: m.color,
-                      }}
                       className={`absolute rounded-xl border border-gray-100 border-l-4 px-2 py-1.5 text-left overflow-hidden transition-all hover:z-10 hover:shadow-md bg-white ${
-                        isSelected ? 'z-10 shadow-lg ring-2 ring-offset-1' : 'shadow-sm'
+                        isSelected ? 'z-10 shadow-lg' : 'shadow-sm'
                       }`}
                       style={{
                         top,
@@ -209,8 +188,8 @@ export default function DayView({
                         left: 4,
                         right: 4,
                         borderLeftColor: m.color,
-                        // @ts-expect-error css var
-                        '--tw-ring-color': m.color,
+                        outline: isSelected ? `2px solid ${m.color}` : undefined,
+                        outlineOffset: isSelected ? '2px' : undefined,
                       } as React.CSSProperties}>
                       <div className="pl-1">
                         <p className="text-xs font-bold leading-tight truncate text-gray-800">
@@ -232,8 +211,7 @@ export default function DayView({
 
                 {/* Current time indicator */}
                 {isToday && nowTop !== null && nowTop >= 0 && nowTop <= totalHeight && (
-                  <div
-                    className="absolute left-0 right-0 pointer-events-none z-20 flex items-center"
+                  <div className="absolute left-0 right-0 pointer-events-none z-20 flex items-center"
                     style={{ top: nowTop }}>
                     <div className="w-2 h-2 rounded-full bg-red-500 -ml-1 flex-shrink-0" />
                     <div className="flex-1 h-px bg-red-400" />
