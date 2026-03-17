@@ -12,8 +12,10 @@ export default function PricingSection({ dict, locale }: Props) {
     <section id="pricing" className="py-16 sm:py-24 px-4 sm:px-6 bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       <div className="max-w-md mx-auto">
 
+        <p className="text-center text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-4">Simple pricing</p>
+
         {/* Floating card */}
-        <div className="bg-white rounded-2xl shadow-xl ring-1 ring-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-2xl ring-1 ring-gray-100 overflow-hidden hover:-translate-y-1 transition-transform duration-300">
 
           {/* Card header */}
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-8 text-center">
@@ -32,7 +34,7 @@ export default function PricingSection({ dict, locale }: Props) {
           <div className="px-6 py-8">
             {/* Price */}
             <div className="flex items-baseline justify-center gap-2 mb-1">
-              <span className="text-5xl sm:text-6xl font-bold text-gray-900">€2.99</span>
+              <span className="text-6xl font-extrabold tracking-tight text-gray-900">€2.99</span>
               <span className="text-gray-400 text-base">{dict.perWeek}</span>
             </div>
             <p className="text-gray-400 text-sm text-center mb-8">{dict.afterTrial}</p>
@@ -53,7 +55,7 @@ export default function PricingSection({ dict, locale }: Props) {
             {/* Full-width CTA */}
             <Link
               href={`/${locale}/signup`}
-              className="flex items-center justify-center w-full bg-indigo-600 text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-indigo-700 transition-colors text-sm"
+              className="flex items-center justify-center w-full bg-indigo-600 text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-indigo-700 transition-colors text-sm shadow-lg shadow-indigo-200"
             >
               {dict.cta}
             </Link>
