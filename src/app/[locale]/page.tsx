@@ -29,12 +29,6 @@ export default async function LandingPage({
             <span className="text-base sm:text-lg font-bold text-gray-900">BookFlow</span>
           </div>
 
-          {/* Desktop nav links */}
-          <div className="hidden md:flex items-center gap-8 text-sm text-gray-500">
-            <a href="#features" className="hover:text-gray-900 transition-colors">{t.nav.features}</a>
-            <a href="#pricing"  className="hover:text-gray-900 transition-colors">{t.nav.pricing}</a>
-          </div>
-
           {/* Right side */}
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="scale-90 sm:scale-100 origin-right">
