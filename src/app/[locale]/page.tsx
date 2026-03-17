@@ -1,11 +1,10 @@
 import { Calendar } from 'lucide-react'
 import Link from 'next/link'
 import { getDictionary, type Locale } from '@/i18n/index'
-import HeroSignupForm      from '../_components/landing/HeroSignupForm'
-import FeaturesSection     from '../_components/landing/FeaturesSection'
-import PricingSection      from '../_components/landing/PricingSection'
-import TestimonialsSection from '../_components/landing/TestimonialsSection'
-import LanguageSwitcher    from '../_components/LanguageSwitcher'
+import HeroSignupForm  from '../_components/landing/HeroSignupForm'
+import FeaturesSection from '../_components/landing/FeaturesSection'
+import PricingSection  from '../_components/landing/PricingSection'
+import LanguageSwitcher from '../_components/LanguageSwitcher'
 
 export default async function LandingPage({
   params,
@@ -41,11 +40,9 @@ export default async function LandingPage({
             <div className="scale-90 sm:scale-100 origin-right">
               <LanguageSwitcher />
             </div>
-            {/* Sign in — visible on all screen sizes */}
             <Link href="/admin/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors font-medium">
               {t.nav.signIn}
             </Link>
-            {/* CTA — desktop only; mobile uses sticky bottom bar */}
             <Link
               href={`/${locale}/signup`}
               className="hidden md:inline-flex items-center bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors whitespace-nowrap"
@@ -71,19 +68,6 @@ export default async function LandingPage({
             <HeroSignupForm locale={locale} emailPlaceholder={t.hero.emailPlaceholder} cta={t.hero.cta} />
           </div>
           <p className="hidden md:block text-sm text-gray-400 mt-4">{t.hero.trialNote}</p>
-
-          <div className="mt-5 sm:mt-8 flex items-center justify-center gap-2 sm:gap-3">
-            <div className="flex -space-x-1.5">
-              {['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981'].map((color, i) => (
-                <div
-                  key={i}
-                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-white"
-                  style={{ backgroundColor: color }}
-                />
-              ))}
-            </div>
-            <span className="text-xs sm:text-sm text-gray-400">Trusted by <strong className="text-gray-600">1,200+ businesses</strong></span>
-          </div>
         </div>
       </section>
 
@@ -98,62 +82,8 @@ export default async function LandingPage({
         <p className="text-center text-xs text-gray-400 mt-1.5">{t.hero.trialNote}</p>
       </div>
 
-      {/* ── Mock UI Preview ── */}
-      <section className="py-8 sm:py-12 px-4 sm:px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-12">
-            <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
-              <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6">
-                <div className="flex items-center gap-3 mb-4 sm:mb-5">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900 text-sm sm:text-base">Glow Beauty Studio</p>
-                    <p className="text-xs text-gray-400">{t.booking.stepService}</p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {['Classic Manicure — 45 min — €25', 'Gel Manicure — 60 min — €35', 'Lash Lift & Tint — 60 min — €45'].map((s, i) => (
-                    <div key={i} className={`p-2.5 sm:p-3 rounded-xl border-2 text-xs sm:text-sm ${i === 1 ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'}`}>
-                      {s}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6">
-                <p className="font-bold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">{t.overview?.statsToday ?? "Today's bookings"}</p>
-                <div className="space-y-3">
-                  {[
-                    ['10:00', 'Anna B.',  'Gel Manicure',   t.overview?.statusConfirmed ?? 'confirmed'],
-                    ['11:00', 'Laura K.', 'Lash Lift',      t.overview?.statusConfirmed ?? 'confirmed'],
-                    ['14:00', 'Marta O.', 'Classic Facial', t.overview?.statusPending   ?? 'pending'],
-                  ].map(([time, name, service, status]) => (
-                    <div key={time} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <span className="text-xs sm:text-sm font-mono font-medium text-indigo-600 w-10 sm:w-12">{time}</span>
-                        <div>
-                          <p className="text-xs sm:text-sm font-medium text-gray-900">{name}</p>
-                          <p className="text-xs text-gray-400">{service}</p>
-                        </div>
-                      </div>
-                      <span className={`text-xs px-2 py-0.5 sm:py-1 rounded-full font-medium ${
-                        status === (t.overview?.statusConfirmed ?? 'confirmed')
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-yellow-100 text-yellow-700'
-                      }`}>{status}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <FeaturesSection dict={t.features} />
       <PricingSection  dict={t.pricing} locale={locale} />
-      <TestimonialsSection dict={t.testimonials} />
 
       {/* ── Final CTA ── */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 bg-indigo-600">
