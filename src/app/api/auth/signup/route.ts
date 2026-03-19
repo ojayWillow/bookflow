@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getCategoryById } from '@/lib/service-templates'
 
 function makeServiceClient() {
   return createClient(
@@ -18,7 +19,8 @@ function makeAnonClient() {
 }
 
 export async function POST(request: NextRequest) {
-  const { email, password, firstName, lastName, businessName, slug } = await request.json()
+  const { email, password, firstName, lastName, businessName, slug, businessCategory } =
+    await request.json()
 
   if (!email || !password || !firstName || !lastName || !businessName || !slug) {
     return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
@@ -33,6 +35,7 @@ export async function POST(request: NextRequest) {
 
   const serviceClient = makeServiceClient()
 
+  // Check slug uniqueness
   const { data: existing } = await serviceClient
     .from('business_settings')
     .select('id')
@@ -46,6 +49,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Create auth user
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const { data: authData, error: authError } = await makeAnonClient().auth.signUp({
     email,
@@ -53,9 +57,9 @@ export async function POST(request: NextRequest) {
     options: {
       emailRedirectTo: `${appUrl}/auth/callback?next=/admin`,
       data: {
-        first_name:    firstName,
-        last_name:     lastName,
-        display_name:  `${firstName} ${lastName}`,
+        first_name:   firstName,
+        last_name:    lastName,
+        display_name: `${firstName} ${lastName}`,
       },
     },
   })
@@ -69,6 +73,7 @@ export async function POST(request: NextRequest) {
 
   const userId = authData.user.id
 
+  // Insert business_settings
   const { error: bizError } = await serviceClient.from('business_settings').insert({
     user_id:             userId,
     name:                businessName,
@@ -90,6 +95,23 @@ export async function POST(request: NextRequest) {
   if (bizError) {
     await serviceClient.auth.admin.deleteUser(userId)
     return NextResponse.json({ error: bizError.message }, { status: 500 })
+  }
+
+  // Seed services from template (if a valid category was chosen)
+  if (businessCategory && businessCategory !== 'skip') {
+    const category = getCategoryById(businessCategory)
+    if (category && category.services.length > 0) {
+      const rows = category.services.map(s => ({
+        user_id:     userId,
+        name:        s.name,
+        description: s.description,
+        duration:    s.duration,
+        price:       s.price,
+        currency:    'EUR',
+      }))
+      // Best-effort: do not fail signup if seed fails
+      await serviceClient.from('services').insert(rows)
+    }
   }
 
   return NextResponse.json({ ok: true, confirm_email: true })
