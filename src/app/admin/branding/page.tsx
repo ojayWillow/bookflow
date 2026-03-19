@@ -14,6 +14,7 @@ type Settings = {
   cancellation_policy: string; primary_color: string
   logo_url: string; require_approval: boolean
   instagram_url: string; facebook_url: string; tiktok_url: string; website_url: string
+  google_maps_url: string
 }
 
 function isValidHex(v: string) {
@@ -123,6 +124,7 @@ export default function BrandingPage() {
           instagramUrl={settings.instagram_url}
           facebookUrl={settings.facebook_url}
           tiktokUrl={settings.tiktok_url}
+          googleMapsUrl={settings.google_maps_url}
           onChange={set}
         />
 
