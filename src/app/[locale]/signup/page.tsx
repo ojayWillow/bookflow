@@ -15,7 +15,6 @@ function SignupForm() {
   const params = useSearchParams()
   const { locale } = useParams() as { locale: string }
 
-  // Pick the right dictionary based on locale (default to English)
   const t = locale === 'lv' ? lv : en
 
   const [step, setStep] = useState<1 | 2>(1)
@@ -67,10 +66,11 @@ function SignupForm() {
     setLoading(true)
     const category = overrideCategory !== undefined ? overrideCategory : selectedCategory
 
-    const signupRes  = await fetch('/api/auth/signup', {
+    const signupRes = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, businessCategory: category ?? 'skip' }),
+      // locale is passed so the API seeds service names in the right language
+      body: JSON.stringify({ ...form, businessCategory: category ?? 'skip', locale }),
     })
     const signupData = await signupRes.json()
     if (!signupRes.ok) {
@@ -79,7 +79,7 @@ function SignupForm() {
       return
     }
 
-    router.push('/signup/confirm')
+    router.push(`/${locale}/signup/confirm`)
   }
 
   const passwordMismatch = confirmPassword.length > 0 && form.password !== confirmPassword

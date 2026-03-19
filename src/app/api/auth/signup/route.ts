@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
-import { getCategoryById } from '@/lib/service-templates'
+import { getCategoryById, getServiceName, getServiceDescription } from '@/lib/service-templates'
 
 function makeServiceClient() {
   return createClient(
@@ -19,8 +19,11 @@ function makeAnonClient() {
 }
 
 export async function POST(request: NextRequest) {
-  const { email, password, firstName, lastName, businessName, slug, businessCategory } =
+  const { email, password, firstName, lastName, businessName, slug, businessCategory, locale } =
     await request.json()
+
+  // locale determines which language the seeded service names use (EN default, LV if 'lv')
+  const seedLocale: string = locale === 'lv' ? 'lv' : 'en'
 
   if (!email || !password || !firstName || !lastName || !businessName || !slug) {
     return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
@@ -97,14 +100,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: bizError.message }, { status: 500 })
   }
 
-  // Seed services from template (if a valid category was chosen)
+  // Seed services from template in the user's signup locale
   if (businessCategory && businessCategory !== 'skip') {
     const category = getCategoryById(businessCategory)
     if (category && category.services.length > 0) {
       const rows = category.services.map(s => ({
         user_id:     userId,
-        name:        s.name,
-        description: s.description,
+        name:        getServiceName(s, seedLocale),
+        description: getServiceDescription(s, seedLocale),
         duration:    s.duration,
         price:       s.price,
         currency:    'EUR',
