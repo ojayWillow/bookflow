@@ -175,6 +175,16 @@ const ru: PublicDict = {
     errorPasswordMismatch:   'Пароли не совпадают',
     errorPasswordShort:      'Пароль должен содержать не менее 8 символов',
     errorGeneric:            'Что-то пошло не так. Попробуйте ещё раз.',
+    // Step 2 — business category picker
+    step2Title:              'Какой тип бизнеса вы ведёте?',
+    step2Sub:                'Мы заранее загрузим готовые услуги, чтобы вы сразу могли принимать записи.',
+    step2Services:           '{{count}} услуги',
+    step2Continue:           'Создать аккаунт →',
+    step2ContinueWith:       'Создать аккаунт с шаблонами {{label}} →',
+    step2Creating:           'Создаём аккаунт…',
+    step2Skip:               'Пропустить — настрою сам',
+    step1Continue:           'Продолжить →',
+    stepOf:                  'Шаг {{step}} из 2',
   },
 }
 

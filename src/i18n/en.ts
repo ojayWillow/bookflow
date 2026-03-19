@@ -186,6 +186,16 @@ const en = {
     errorPasswordMismatch:   'Passwords don\'t match',
     errorPasswordShort:      'Password must be at least 8 characters',
     errorGeneric:            'Something went wrong. Please try again.',
+    // Step 2 — business category picker
+    step2Title:              'What type of business are you?',
+    step2Sub:                'We\'ll pre-load ready-to-use services so you can start taking bookings immediately.',
+    step2Services:           '{{count}} services',
+    step2Continue:           'Create account →',
+    step2ContinueWith:       'Create account with {{label}} templates →',
+    step2Creating:           'Creating account…',
+    step2Skip:               'Skip — I\'ll set it up myself',
+    step1Continue:           'Continue →',
+    stepOf:                  'Step {{step}} of 2',
   },
 }
 

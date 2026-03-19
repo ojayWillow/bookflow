@@ -5,12 +5,14 @@ import Link from 'next/link'
 import { Calendar, Loader2, Lock, ChevronLeft } from 'lucide-react'
 import { Suspense } from 'react'
 import { BUSINESS_CATEGORIES } from '@/lib/service-templates'
+import { usePublicLang } from '@/hooks/usePublicLang'
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow.app'
 
 function SignupForm() {
   const router = useRouter()
   const params = useSearchParams()
+  const { t } = usePublicLang()
 
   const [step, setStep] = useState<1 | 2>(1)
 
@@ -42,39 +44,40 @@ function SignupForm() {
     setForm(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))
   }
 
-  // Step 1 → Step 2 validation
   const handleNextStep = (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     if (form.password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(t.signup.errorPasswordMismatch)
       return
     }
     if (form.password.length < 8) {
-      setError('Password must be at least 8 characters')
+      setError(t.signup.errorPasswordShort)
       return
     }
     setStep(2)
   }
 
-  // Final submit (Step 2)
-  const handleSubmit = async () => {
+  const handleSubmit = async (overrideCategory?: string | null) => {
     setError('')
     setLoading(true)
-    const res  = await fetch('/api/auth/signup', {
+    const category = overrideCategory !== undefined ? overrideCategory : selectedCategory
+    const res = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...form,
-        businessCategory: selectedCategory ?? 'skip',
+        businessCategory: category ?? 'skip',
       }),
     })
     const data = await res.json()
-    if (!res.ok) { setError(data.error || 'Something went wrong'); setLoading(false); return }
+    if (!res.ok) { setError(data.error || t.signup.errorGeneric); setLoading(false); return }
     router.push('/admin')
   }
 
   const passwordMismatch = confirmPassword.length > 0 && form.password !== confirmPassword
+
+  const selectedCat = BUSINESS_CATEGORIES.find(c => c.id === selectedCategory)
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
@@ -94,7 +97,9 @@ function SignupForm() {
           <div className={`flex-1 h-1.5 rounded-full transition-colors ${
             step === 2 ? 'bg-indigo-600' : 'bg-gray-200'
           }`} />
-          <span className="text-xs text-gray-400 ml-1">Step {step} of 2</span>
+          <span className="text-xs text-gray-400 ml-1">
+            {t.signup.stepOf.replace('{{step}}', String(step))}
+          </span>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
@@ -102,44 +107,44 @@ function SignupForm() {
           {/* ───────── STEP 1 ───────── */}
           {step === 1 && (
             <>
-              <h1 className="text-xl font-bold text-gray-900 mb-1">Create your account</h1>
-              <p className="text-sm text-gray-400 mb-6">Your booking page will be live in 2 minutes.</p>
+              <h1 className="text-xl font-bold text-gray-900 mb-1">{t.signup.heading}</h1>
+              <p className="text-sm text-gray-400 mb-6">{t.signup.subheading}</p>
 
               <form onSubmit={handleNextStep} className="space-y-4">
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">First name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.signup.labelFirstName}</label>
                     <input
                       value={form.firstName} onChange={set('firstName')}
                       required disabled={loading}
                       className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors disabled:opacity-50"
-                      placeholder="Jane"
+                      placeholder={t.signup.placeholderFirstName}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Last name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.signup.labelLastName}</label>
                     <input
                       value={form.lastName} onChange={set('lastName')}
                       required disabled={loading}
                       className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors disabled:opacity-50"
-                      placeholder="Smith"
+                      placeholder={t.signup.placeholderLastName}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Business name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.signup.labelBusinessName}</label>
                   <input
                     value={form.businessName} onChange={handleBusinessNameChange}
                     required disabled={loading}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors disabled:opacity-50"
-                    placeholder="e.g. Glow Beauty Studio"
+                    placeholder={t.signup.placeholderBusinessName}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Your booking page URL</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.signup.labelUrl}</label>
                   <div className="flex items-center border-2 border-gray-100 rounded-xl overflow-hidden focus-within:border-indigo-400 transition-colors">
                     <span className="bg-gray-50 px-3 py-2.5 text-xs text-gray-400 border-r border-gray-100 whitespace-nowrap">/book/</span>
                     <input
@@ -155,33 +160,33 @@ function SignupForm() {
                   <div className="flex items-start gap-1.5 mt-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
                     <Lock className="w-3.5 h-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
                     <p className="text-xs text-amber-700 leading-relaxed">
-                      <strong>This URL is permanent</strong> and cannot be changed after signup.
+                      <strong>This URL is permanent</strong> — {t.signup.slugWarning}
                     </p>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.signup.labelEmail}</label>
                   <input
                     type="email" value={form.email} onChange={set('email')}
                     required disabled={loading}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors disabled:opacity-50"
-                    placeholder="you@example.com"
+                    placeholder={t.signup.placeholderEmail}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.signup.labelPassword}</label>
                   <input
                     type="password" value={form.password} onChange={set('password')}
                     required minLength={8} disabled={loading}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors disabled:opacity-50"
-                    placeholder="Min. 8 characters"
+                    placeholder={t.signup.placeholderPassword}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm password</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.signup.labelConfirmPassword}</label>
                   <input
                     type="password"
                     value={confirmPassword}
@@ -193,10 +198,10 @@ function SignupForm() {
                         ? 'border-red-300 focus:border-red-400'
                         : 'border-gray-100 focus:border-indigo-400'
                     }`}
-                    placeholder="Repeat your password"
+                    placeholder={t.signup.placeholderConfirmPassword}
                   />
                   {passwordMismatch && (
-                    <p className="text-xs text-red-500 mt-1.5">⚠ Passwords do not match</p>
+                    <p className="text-xs text-red-500 mt-1.5">⚠ {t.signup.errorPasswordMismatch}</p>
                   )}
                 </div>
 
@@ -209,10 +214,10 @@ function SignupForm() {
                   disabled={loading || passwordMismatch}
                   className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Continue →
+                  {t.signup.step1Continue}
                 </button>
 
-                <p className="text-xs text-center text-gray-400">No credit card required</p>
+                <p className="text-xs text-center text-gray-400">{t.signup.noCreditCard}</p>
               </form>
             </>
           )}
@@ -224,13 +229,11 @@ function SignupForm() {
                 onClick={() => setStep(1)}
                 className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 mb-4 -ml-1 transition-colors"
               >
-                <ChevronLeft className="w-4 h-4" /> Back
+                <ChevronLeft className="w-4 h-4" /> {t.booking.back}
               </button>
 
-              <h1 className="text-xl font-bold text-gray-900 mb-1">What type of business are you?</h1>
-              <p className="text-sm text-gray-400 mb-6">
-                We’ll pre-load ready-to-use services so you can start taking bookings immediately.
-              </p>
+              <h1 className="text-xl font-bold text-gray-900 mb-1">{t.signup.step2Title}</h1>
+              <p className="text-sm text-gray-400 mb-6">{t.signup.step2Sub}</p>
 
               <div className="grid grid-cols-2 gap-3 mb-6">
                 {BUSINESS_CATEGORIES.map(cat => (
@@ -250,7 +253,7 @@ function SignupForm() {
                     <span className="text-xs font-medium text-gray-700 leading-tight">{cat.label}</span>
                     {selectedCategory === cat.id && (
                       <span className="text-xs text-indigo-500 font-medium">
-                        {cat.services.length} services
+                        {t.signup.step2Services.replace('{{count}}', String(cat.services.length))}
                       </span>
                     )}
                   </button>
@@ -262,34 +265,34 @@ function SignupForm() {
               )}
 
               <button
-                onClick={handleSubmit}
+                onClick={() => handleSubmit()}
                 disabled={loading}
                 className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 mb-3"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {loading
-                  ? 'Creating account…'
-                  : selectedCategory
-                    ? `Create account with ${BUSINESS_CATEGORIES.find(c => c.id === selectedCategory)?.label} templates →`
-                    : 'Create account →'
+                  ? t.signup.step2Creating
+                  : selectedCat
+                    ? t.signup.step2ContinueWith.replace('{{label}}', selectedCat.label)
+                    : t.signup.step2Continue
                 }
               </button>
 
               <button
                 type="button"
-                onClick={() => { setSelectedCategory(null); handleSubmit() }}
+                onClick={() => handleSubmit('skip')}
                 disabled={loading}
                 className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
               >
-                Skip — I’ll set it up myself
+                {t.signup.step2Skip}
               </button>
             </>
           )}
         </div>
 
         <p className="text-center text-sm text-gray-400 mt-5">
-          Already have an account?{' '}
-          <Link href="/admin/login" className="text-indigo-600 hover:underline font-medium">Sign in</Link>
+          {t.signup.alreadyHaveAccount}{' '}
+          <Link href="/admin/login" className="text-indigo-600 hover:underline font-medium">{t.signup.signIn}</Link>
         </p>
       </div>
     </div>

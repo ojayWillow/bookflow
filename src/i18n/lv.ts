@@ -175,6 +175,16 @@ const lv: PublicDict = {
     errorPasswordMismatch:   'Paroles nesakrīt',
     errorPasswordShort:      'Parolei jābūt vismaz 8 rakstzīmēm',
     errorGeneric:            'Kaut kas nogāja greizi. Lūdzu mēģini vēlreiz.',
+    // Step 2 — business category picker
+    step2Title:              'Kāda veida bizness tas ir?',
+    step2Sub:                'Mēs iepriekš ielādēsim gatavus pakalpojumus, lai varētu uzreiz sākt pieņemt rezervācijas.',
+    step2Services:           '{{count}} pakalpojumi',
+    step2Continue:           'Izveidot kontu →',
+    step2ContinueWith:       'Izveidot kontu ar {{label}} veidnēm →',
+    step2Creating:           'Izveido kontu…',
+    step2Skip:               'Izlaist — iestatīšu pats',
+    step1Continue:           'Turpināt →',
+    stepOf:                  '{{step}}. solis no 2',
   },
 }
 
