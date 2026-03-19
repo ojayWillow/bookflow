@@ -10,7 +10,7 @@ const settingsLv = {
   fixUrl:             'Labo URL, lai saglabātu',
   businessInfo:       'Uzņēmuma informācija',
   businessName:       'Uzņēmuma nosaukums',
-  shortDesc:          'Īss apraksts',
+  shortDesc:          'Ĭss apraksts',
   shortDescHint:      'redzams rezervācijas lapā',
   address:            'Adrese',
   phone:              'Tālrunis',
@@ -20,7 +20,7 @@ const settingsLv = {
   copied:             'Kopēts',
   bookingRules:       'Rezervācijas noteikumi',
   manualApproval:     'Manuāla rezervāciju apstiprināšana',
-  manualApprovalDesc: 'Ja ieslēgts, jaunas rezervācijas jāapstiprina manuāli.',
+  manualApprovalDesc: 'Ja iesleģts, jaunas rezervācijas jāapstiprina manuāli.',
   leadTime:           'Minimālais laiks (stundas)',
   leadTimeSub:        'Cik stundas iepriekš jāveic rezervācija',
   maxAdvance:         'Maksimālais periods (dienas)',
@@ -34,5 +34,7 @@ const settingsLv = {
   slotInterval:       'Laika intervāls',
   onlinePresence:     'Tiešsaistes klātbūtne',
   onlinePresenceSub:  'Tās parādās kā ikonas tavā rezervācijas lapā. Vari ielīmēt domēnu vai pilnu URL.',
+  googleMapsUrl:      'Google atsauksmes saite',
+  googleMapsUrlSub:   'Ielīmē savu Google atsauksmes saiti. Pēc katras rezervācijas klienti tiks aicināti atstāt atsauksmi.',
 }
 export default settingsLv

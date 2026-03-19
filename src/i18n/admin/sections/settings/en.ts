@@ -34,5 +34,7 @@ const settingsEn = {
   slotInterval:       'Slot interval',
   onlinePresence:     'Online presence',
   onlinePresenceSub:  'These appear as icons on your booking page. You can paste just the domain or a full URL.',
+  googleMapsUrl:      'Google Reviews link',
+  googleMapsUrlSub:   'Paste your Google review link here. After each booking, customers will be invited to leave a review.',
 }
 export default settingsEn

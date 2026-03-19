@@ -1,5 +1,5 @@
 'use client'
-import { Globe, Instagram, Facebook } from 'lucide-react'
+import { Globe, Instagram, Facebook, Star } from 'lucide-react'
 import { useAdminLang } from '@/hooks/useAdminLang'
 
 function TikTokIcon({ className }: { className?: string }) {
@@ -18,14 +18,15 @@ function ensureHttps(url: string): string {
 }
 
 interface Props {
-  websiteUrl: string
-  instagramUrl: string
-  facebookUrl: string
-  tiktokUrl: string
+  websiteUrl:    string
+  instagramUrl:  string
+  facebookUrl:   string
+  tiktokUrl:     string
+  googleMapsUrl: string
   onChange: (field: string, value: string) => void
 }
 
-export default function OnlinePresenceSection({ websiteUrl, instagramUrl, facebookUrl, tiktokUrl, onChange }: Props) {
+export default function OnlinePresenceSection({ websiteUrl, instagramUrl, facebookUrl, tiktokUrl, googleMapsUrl, onChange }: Props) {
   const { t } = useAdminLang()
 
   return (
@@ -33,6 +34,8 @@ export default function OnlinePresenceSection({ websiteUrl, instagramUrl, facebo
       <h2 className="font-semibold text-gray-900 mb-1">🔗 {t.settings.onlinePresence}</h2>
       <p className="text-sm text-gray-400 mb-5">{t.settings.onlinePresenceSub}</p>
       <div className="space-y-3">
+
+        {/* Website */}
         <div className="flex items-center gap-3">
           <Globe className="w-5 h-5 text-gray-400 flex-shrink-0" />
           <input
@@ -43,6 +46,8 @@ export default function OnlinePresenceSection({ websiteUrl, instagramUrl, facebo
             className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
           />
         </div>
+
+        {/* Instagram */}
         <div className="flex items-center gap-3">
           <Instagram className="w-5 h-5 text-pink-400 flex-shrink-0" />
           <input
@@ -53,6 +58,8 @@ export default function OnlinePresenceSection({ websiteUrl, instagramUrl, facebo
             className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
           />
         </div>
+
+        {/* Facebook */}
         <div className="flex items-center gap-3">
           <Facebook className="w-5 h-5 text-blue-500 flex-shrink-0" />
           <input
@@ -63,6 +70,8 @@ export default function OnlinePresenceSection({ websiteUrl, instagramUrl, facebo
             className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
           />
         </div>
+
+        {/* TikTok */}
         <div className="flex items-center gap-3">
           <TikTokIcon className="w-5 h-5 text-gray-500 flex-shrink-0" />
           <input
@@ -73,6 +82,22 @@ export default function OnlinePresenceSection({ websiteUrl, instagramUrl, facebo
             className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
           />
         </div>
+
+        {/* Google Maps review link — divider + subtle label */}
+        <div className="pt-2 border-t border-gray-100">
+          <p className="text-xs text-gray-400 mb-2.5">{t.settings.googleMapsUrlSub}</p>
+          <div className="flex items-center gap-3">
+            <Star className="w-5 h-5 text-yellow-400 flex-shrink-0" fill="currentColor" />
+            <input
+              value={googleMapsUrl}
+              onChange={e => onChange('google_maps_url', e.target.value)}
+              onBlur={e => onChange('google_maps_url', ensureHttps(e.target.value))}
+              placeholder="search.google.com/local/writereview?placeid=…"
+              className="flex-1 border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-yellow-400 transition-colors"
+            />
+          </div>
+        </div>
+
       </div>
     </section>
   )

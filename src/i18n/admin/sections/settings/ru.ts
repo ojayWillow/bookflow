@@ -34,5 +34,7 @@ const settingsRu = {
   slotInterval:       'Интервал слотов',
   onlinePresence:     'Присутствие онлайн',
   onlinePresenceSub:  'Отображаются как иконки на вашей странице. Можно вставить домен или полный URL.',
+  googleMapsUrl:      'Ссылка на Google отзывы',
+  googleMapsUrlSub:   'Вставьте ссылку на Google отзывы. После каждого бронирования клиенты будут приглашены оставить отзыв.',
 }
 export default settingsRu

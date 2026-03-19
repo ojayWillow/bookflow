@@ -1,7 +1,9 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Loader2 } from 'lucide-react'
-import BusinessInfoSection from './_sections/BusinessInfoSection'
+import BusinessInfoSection   from './_sections/BusinessInfoSection'
+import OnlinePresenceSection from './_sections/OnlinePresenceSection'
+import BookingRulesSection   from './_sections/BookingRulesSection'
 import { useAdminLang } from '@/hooks/useAdminLang'
 
 type Settings = {
@@ -13,6 +15,7 @@ type Settings = {
   cancellation_policy: string; primary_color: string
   logo_url: string; require_approval: boolean
   instagram_url: string; facebook_url: string; tiktok_url: string; website_url: string
+  google_maps_url: string
 }
 
 export default function SettingsPage() {
@@ -132,6 +135,24 @@ export default function SettingsPage() {
           slugStatus={slugStatus}
           onChange={set}
           onSlugChange={v => { set('slug', v); checkSlug(v) }}
+        />
+
+        <OnlinePresenceSection
+          websiteUrl={settings.website_url}
+          instagramUrl={settings.instagram_url}
+          facebookUrl={settings.facebook_url}
+          tiktokUrl={settings.tiktok_url}
+          googleMapsUrl={settings.google_maps_url}
+          onChange={set}
+        />
+
+        <BookingRulesSection
+          requireApproval={settings.require_approval}
+          leadTimeHours={settings.lead_time_hours}
+          maxAdvanceDays={settings.max_advance_days}
+          cancellationWindowHours={settings.cancellation_window_hours}
+          cancellationPolicy={settings.cancellation_policy}
+          onChange={set}
         />
 
         <button
