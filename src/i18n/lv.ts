@@ -185,6 +185,13 @@ const lv: PublicDict = {
     step2Skip:               'Izlaist — iestatīšu pats',
     step1Continue:           'Turpināt →',
     stepOf:                  '{{step}}. solis no 2',
+    // Confirm email page
+    confirmTitle:            'Pārbaudi savu e-pastu',
+    confirmSub:              'Mēs nosūtījām apstiprinājuma saiti uz tavu e-pasta adresi.',
+    confirmInstruction:      'Noklikšķini uz saites e-pastā, lai aktivizētu kontu, pēc tam atgriezies un pierakstīties.',
+    confirmCta:              'Doties uz ieiet →',
+    confirmNoEmail:          'Nesaņēmi e-pastu? Pārbaudi mēstuļu mapi vai',
+    confirmTryAgain:         'mēģini reģistrēties vēlreiz',
   },
 }
 

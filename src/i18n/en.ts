@@ -196,6 +196,13 @@ const en = {
     step2Skip:               'Skip — I\'ll set it up myself',
     step1Continue:           'Continue →',
     stepOf:                  'Step {{step}} of 2',
+    // Confirm email page
+    confirmTitle:            'Check your inbox',
+    confirmSub:              'We sent a confirmation link to your email address.',
+    confirmInstruction:      'Click the link in the email to activate your account, then come back and sign in.',
+    confirmCta:              'Go to login →',
+    confirmNoEmail:          'Didn\'t get the email? Check your spam folder or',
+    confirmTryAgain:         'try signing up again',
   },
 }
 
