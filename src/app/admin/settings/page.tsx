@@ -1,9 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Loader2 } from 'lucide-react'
-import BusinessInfoSection   from './_sections/BusinessInfoSection'
-import OnlinePresenceSection from './_sections/OnlinePresenceSection'
-import BookingRulesSection   from './_sections/BookingRulesSection'
+import BusinessInfoSection from './_sections/BusinessInfoSection'
+import BookingRulesSection from './_sections/BookingRulesSection'
 import { useAdminLang } from '@/hooks/useAdminLang'
 
 type Settings = {
@@ -135,15 +134,6 @@ export default function SettingsPage() {
           slugStatus={slugStatus}
           onChange={set}
           onSlugChange={v => { set('slug', v); checkSlug(v) }}
-        />
-
-        <OnlinePresenceSection
-          websiteUrl={settings.website_url}
-          instagramUrl={settings.instagram_url}
-          facebookUrl={settings.facebook_url}
-          tiktokUrl={settings.tiktok_url}
-          googleMapsUrl={settings.google_maps_url}
-          onChange={set}
         />
 
         <BookingRulesSection
