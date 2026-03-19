@@ -1,19 +1,22 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Calendar, Loader2, Lock, ChevronLeft } from 'lucide-react'
 import { Suspense } from 'react'
-import { BUSINESS_CATEGORIES } from '@/lib/service-templates'
+import { BUSINESS_CATEGORIES, getCategoryLabel } from '@/lib/service-templates'
 import en from '@/i18n/en'
-
-const t = en
+import lv from '@/i18n/lv'
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow.app'
 
 function SignupForm() {
   const router = useRouter()
   const params = useSearchParams()
+  const { locale } = useParams() as { locale: string }
+
+  // Pick the right dictionary based on locale (default to English)
+  const t = locale === 'lv' ? lv : en
 
   const [step, setStep] = useState<1 | 2>(1)
   const [form, setForm] = useState({
@@ -147,7 +150,7 @@ function SignupForm() {
                   <div className="flex items-start gap-1.5 mt-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
                     <Lock className="w-3.5 h-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
                     <p className="text-xs text-amber-700 leading-relaxed">
-                      <strong>This URL is permanent</strong> &mdash; {t.signup.slugWarning}
+                      <strong>{locale === 'lv' ? 'Šī saite ir pastāvīga' : 'This URL is permanent'}</strong> &mdash; {t.signup.slugWarning}
                     </p>
                   </div>
                 </div>
@@ -212,7 +215,9 @@ function SignupForm() {
                         : 'border-gray-100 bg-white hover:border-indigo-200 hover:bg-gray-50'
                     }`}>
                     <span className="text-2xl">{cat.icon}</span>
-                    <span className="text-xs font-medium text-gray-700 leading-tight">{cat.label}</span>
+                    <span className="text-xs font-medium text-gray-700 leading-tight">
+                      {getCategoryLabel(cat, locale)}
+                    </span>
                     {selectedCategory === cat.id && (
                       <span className="text-xs text-indigo-500 font-medium">
                         {t.signup.step2Services.replace('{{count}}', String(cat.services.length))}
@@ -232,7 +237,7 @@ function SignupForm() {
                 {loading
                   ? t.signup.step2Creating
                   : selectedCat
-                    ? t.signup.step2ContinueWith.replace('{{label}}', selectedCat.label)
+                    ? t.signup.step2ContinueWith.replace('{{label}}', getCategoryLabel(selectedCat, locale))
                     : t.signup.step2Continue}
               </button>
 

@@ -1,7 +1,14 @@
 import Link from 'next/link'
 import { Calendar, Mail } from 'lucide-react'
+import { getDictionary } from '@/i18n/index'
 
-export default function SignupConfirmPage() {
+export default async function SignupConfirmPage({
+  params,
+}: {
+  params: { locale: string }
+}) {
+  const t = await getDictionary(params.locale)
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 w-full max-w-sm p-8 text-center">
@@ -17,24 +24,20 @@ export default function SignupConfirmPage() {
           <Mail className="w-8 h-8 text-indigo-600" />
         </div>
 
-        <h1 className="text-xl font-bold text-gray-900 mb-2">Check your inbox</h1>
-        <p className="text-sm text-gray-500 mb-2">
-          We sent a confirmation link to your email address.
-        </p>
-        <p className="text-sm text-gray-400 mb-8">
-          Click the link in the email to activate your account, then come back and sign in.
-        </p>
+        <h1 className="text-xl font-bold text-gray-900 mb-2">{t.signup.confirmTitle}</h1>
+        <p className="text-sm text-gray-500 mb-2">{t.signup.confirmSub}</p>
+        <p className="text-sm text-gray-400 mb-8">{t.signup.confirmInstruction}</p>
 
         <Link
           href="/admin/login"
           className="block w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors text-sm mb-3"
         >
-          Go to login &rarr;
+          {t.signup.confirmCta}
         </Link>
 
         <p className="text-xs text-gray-400">
-          Didn&apos;t get the email? Check your spam folder or{' '}
-          <Link href="/signup" className="text-indigo-500 hover:underline">try signing up again</Link>.
+          {t.signup.confirmNoEmail}{' '}
+          <Link href="/signup" className="text-indigo-500 hover:underline">{t.signup.confirmTryAgain}</Link>.
         </p>
       </div>
     </div>
