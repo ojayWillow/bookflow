@@ -7,7 +7,6 @@ import { Suspense } from 'react'
 import { BUSINESS_CATEGORIES } from '@/lib/service-templates'
 import en from '@/i18n/en'
 
-// Signup page is always rendered in English (no lang switcher on public signup).
 const t = en
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow.app'
@@ -64,16 +63,36 @@ function SignupForm() {
     setError('')
     setLoading(true)
     const category = overrideCategory !== undefined ? overrideCategory : selectedCategory
-    const res = await fetch('/api/auth/signup', {
+
+    // Step 1 — create the account
+    const signupRes  = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...form,
-        businessCategory: category ?? 'skip',
-      }),
+      body: JSON.stringify({ ...form, businessCategory: category ?? 'skip' }),
     })
-    const data = await res.json()
-    if (!res.ok) { setError(data.error || t.signup.errorGeneric); setLoading(false); return }
+    const signupData = await signupRes.json()
+    if (!signupRes.ok) {
+      setError(signupData.error || t.signup.errorGeneric)
+      setLoading(false)
+      return
+    }
+
+    // Step 2 — immediately sign in to get the session cookie
+    const loginRes  = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: form.email, password: form.password }),
+    })
+    const loginData = await loginRes.json()
+    if (!loginRes.ok) {
+      // Account created but login failed — send to login page with a friendly message
+      setError(loginData.error || t.signup.errorGeneric)
+      setLoading(false)
+      router.push('/admin/login?registered=1')
+      return
+    }
+
+    // Session cookie is now set — go straight into the admin
     router.push('/admin')
   }
 
@@ -105,55 +124,42 @@ function SignupForm() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
 
-          {/* ───────── STEP 1 ───────── */}
+          {/* STEP 1 */}
           {step === 1 && (
             <>
               <h1 className="text-xl font-bold text-gray-900 mb-1">{t.signup.heading}</h1>
               <p className="text-sm text-gray-400 mb-6">{t.signup.subheading}</p>
 
               <form onSubmit={handleNextStep} className="space-y-4">
-
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.signup.labelFirstName}</label>
-                    <input
-                      value={form.firstName} onChange={set('firstName')}
-                      required disabled={loading}
+                    <input value={form.firstName} onChange={set('firstName')} required disabled={loading}
                       className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors disabled:opacity-50"
-                      placeholder={t.signup.placeholderFirstName}
-                    />
+                      placeholder={t.signup.placeholderFirstName} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.signup.labelLastName}</label>
-                    <input
-                      value={form.lastName} onChange={set('lastName')}
-                      required disabled={loading}
+                    <input value={form.lastName} onChange={set('lastName')} required disabled={loading}
                       className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors disabled:opacity-50"
-                      placeholder={t.signup.placeholderLastName}
-                    />
+                      placeholder={t.signup.placeholderLastName} />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.signup.labelBusinessName}</label>
-                  <input
-                    value={form.businessName} onChange={handleBusinessNameChange}
-                    required disabled={loading}
+                  <input value={form.businessName} onChange={handleBusinessNameChange} required disabled={loading}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors disabled:opacity-50"
-                    placeholder={t.signup.placeholderBusinessName}
-                  />
+                    placeholder={t.signup.placeholderBusinessName} />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.signup.labelUrl}</label>
                   <div className="flex items-center border-2 border-gray-100 rounded-xl overflow-hidden focus-within:border-indigo-400 transition-colors">
                     <span className="bg-gray-50 px-3 py-2.5 text-xs text-gray-400 border-r border-gray-100 whitespace-nowrap">/book/</span>
-                    <input
-                      value={form.slug} onChange={handleSlugChange}
-                      required disabled={loading}
+                    <input value={form.slug} onChange={handleSlugChange} required disabled={loading}
                       className="flex-1 px-3 py-2.5 text-sm focus:outline-none bg-transparent disabled:opacity-50"
-                      placeholder="glow-beauty-studio"
-                    />
+                      placeholder="glow-beauty-studio" />
                   </div>
                   {form.slug && (
                     <p className="text-xs text-indigo-500 font-mono mt-1.5 truncate">{BASE}/book/{form.slug}</p>
@@ -168,39 +174,26 @@ function SignupForm() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.signup.labelEmail}</label>
-                  <input
-                    type="email" value={form.email} onChange={set('email')}
-                    required disabled={loading}
+                  <input type="email" value={form.email} onChange={set('email')} required disabled={loading}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors disabled:opacity-50"
-                    placeholder={t.signup.placeholderEmail}
-                  />
+                    placeholder={t.signup.placeholderEmail} />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.signup.labelPassword}</label>
-                  <input
-                    type="password" value={form.password} onChange={set('password')}
-                    required minLength={8} disabled={loading}
+                  <input type="password" value={form.password} onChange={set('password')} required minLength={8} disabled={loading}
                     className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors disabled:opacity-50"
-                    placeholder={t.signup.placeholderPassword}
-                  />
+                    placeholder={t.signup.placeholderPassword} />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.signup.labelConfirmPassword}</label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    required
-                    disabled={loading}
+                  <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                    required disabled={loading}
                     className={`w-full border-2 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-colors disabled:opacity-50 ${
-                      passwordMismatch
-                        ? 'border-red-300 focus:border-red-400'
-                        : 'border-gray-100 focus:border-indigo-400'
+                      passwordMismatch ? 'border-red-300 focus:border-red-400' : 'border-gray-100 focus:border-indigo-400'
                     }`}
-                    placeholder={t.signup.placeholderConfirmPassword}
-                  />
+                    placeholder={t.signup.placeholderConfirmPassword} />
                   {passwordMismatch && (
                     <p className="text-xs text-red-500 mt-1.5">⚠ {t.signup.errorPasswordMismatch}</p>
                   )}
@@ -210,26 +203,20 @@ function SignupForm() {
                   <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">⚠ {error}</p>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={loading || passwordMismatch}
-                  className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
+                <button type="submit" disabled={loading || passwordMismatch}
+                  className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                   {t.signup.step1Continue}
                 </button>
-
                 <p className="text-xs text-center text-gray-400">{t.signup.noCreditCard}</p>
               </form>
             </>
           )}
 
-          {/* ───────── STEP 2 ───────── */}
+          {/* STEP 2 */}
           {step === 2 && (
             <>
-              <button
-                onClick={() => setStep(1)}
-                className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 mb-4 -ml-1 transition-colors"
-              >
+              <button onClick={() => setStep(1)}
+                className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 mb-4 -ml-1 transition-colors">
                 <ChevronLeft className="w-4 h-4" /> {t.booking.back}
               </button>
 
@@ -238,18 +225,13 @@ function SignupForm() {
 
               <div className="grid grid-cols-2 gap-3 mb-6">
                 {BUSINESS_CATEGORIES.map(cat => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setSelectedCategory(
-                      selectedCategory === cat.id ? null : cat.id
-                    )}
+                  <button key={cat.id} type="button"
+                    onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
                     className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all text-center ${
                       selectedCategory === cat.id
                         ? 'border-indigo-500 bg-indigo-50 shadow-sm'
                         : 'border-gray-100 bg-white hover:border-indigo-200 hover:bg-gray-50'
-                    }`}
-                  >
+                    }`}>
                     <span className="text-2xl">{cat.icon}</span>
                     <span className="text-xs font-medium text-gray-700 leading-tight">{cat.label}</span>
                     {selectedCategory === cat.id && (
@@ -265,26 +247,18 @@ function SignupForm() {
                 <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5 mb-4">⚠ {error}</p>
               )}
 
-              <button
-                onClick={() => handleSubmit()}
-                disabled={loading}
-                className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 mb-3"
-              >
+              <button onClick={() => handleSubmit()} disabled={loading}
+                className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 mb-3">
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {loading
                   ? t.signup.step2Creating
                   : selectedCat
                     ? t.signup.step2ContinueWith.replace('{{label}}', selectedCat.label)
-                    : t.signup.step2Continue
-                }
+                    : t.signup.step2Continue}
               </button>
 
-              <button
-                type="button"
-                onClick={() => handleSubmit('skip')}
-                disabled={loading}
-                className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
-              >
+              <button type="button" onClick={() => handleSubmit('skip')} disabled={loading}
+                className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors">
                 {t.signup.step2Skip}
               </button>
             </>
