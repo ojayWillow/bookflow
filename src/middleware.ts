@@ -5,6 +5,7 @@ import { locales, defaultLocale, type Locale } from '@/i18n/index'
 const BYPASS = [
   '/admin', '/api', '/auth', '/book', '/cancel',
   '/forgot-password', '/reset-password', '/verify-email',
+  '/signup',
   '/privacy', '/terms', '/_next', '/favicon',
 ]
 
