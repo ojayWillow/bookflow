@@ -1,11 +1,12 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Clock, Loader2 } from 'lucide-react'
+import { Clock, Loader2, Sparkles } from 'lucide-react'
 import { getServices, upsertService, deleteService } from '@/lib/supabase/queries'
 import AdminSkeleton  from '../_components/AdminSkeleton'
 import ToastContainer from '../_components/Toast'
 import { useToast }   from '@/hooks/useToast'
 import { useAdminLang } from '@/hooks/useAdminLang'
+import { BUSINESS_CATEGORIES } from '@/lib/service-templates'
 
 type Service = {
   id: string; name: string; description: string
@@ -21,14 +22,19 @@ const toForm = (s?: Service) => ({
 
 export default function ServicesPage() {
   const { t } = useAdminLang()
-  const [services, setServices] = useState<Service[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [saving, setSaving]     = useState(false)
-  const [showModal, setShowModal] = useState(false)
-  const [editing, setEditing]   = useState<Service | null>(null)
-  const [form, setForm]         = useState(toForm())
-  const [error, setError]       = useState('')
-  const { toasts, toast, dismiss } = useToast()
+  const [services, setServices]       = useState<Service[]>([])
+  const [loading, setLoading]         = useState(true)
+  const [saving, setSaving]           = useState(false)
+  const [showModal, setShowModal]     = useState(false)
+  const [editing, setEditing]         = useState<Service | null>(null)
+  const [form, setForm]               = useState(toForm())
+  const [error, setError]             = useState('')
+  const { toasts, toast, dismiss }    = useToast()
+
+  // Template picker state
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+  const [pickedCategory, setPickedCategory]         = useState<string | null>(null)
+  const [seeding, setSeeding]                       = useState(false)
 
   const load = async () => {
     try {
@@ -80,6 +86,28 @@ export default function ServicesPage() {
     }
   }
 
+  const handleSeedTemplates = async () => {
+    if (!pickedCategory) return
+    setSeeding(true)
+    try {
+      const res  = await fetch('/api/services/seed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: pickedCategory }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to seed')
+      await load()
+      setShowTemplatePicker(false)
+      setPickedCategory(null)
+      toast.success(`✅ ${data.seeded} services added!`)
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Failed to load templates')
+    } finally {
+      setSeeding(false)
+    }
+  }
+
   return (
     <div className="p-4 md:p-8">
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
@@ -124,16 +152,25 @@ export default function ServicesPage() {
               </div>
             </div>
           ))}
+
+          {/* ── Empty state with template picker ── */}
           {services.length === 0 && (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16">
               <p className="text-4xl mb-3">✨</p>
-              <p className="font-medium">{t.services.noServices}</p>
-              <p className="text-sm mt-1">{t.services.noServicesSub}</p>
+              <p className="font-medium text-gray-700">{t.services.noServices}</p>
+              <p className="text-sm text-gray-400 mt-1 mb-6">{t.services.noServicesSub}</p>
+              <button
+                onClick={() => setShowTemplatePicker(true)}
+                className="inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-indigo-700 transition-colors text-sm">
+                <Sparkles className="w-4 h-4" />
+                Load starter templates
+              </button>
             </div>
           )}
         </div>
       )}
 
+      {/* ── Service edit/create modal ── */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
@@ -177,6 +214,46 @@ export default function ServicesPage() {
                 {t.services.save}
               </button>
               <button onClick={() => setShowModal(false)}
+                className="px-5 py-2.5 border-2 border-gray-100 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">
+                {t.common.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Template picker modal ── */}
+      {showTemplatePicker && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Load starter templates</h2>
+            <p className="text-sm text-gray-400 mb-5">Pick your business type and we'll add ready-to-use services instantly.</p>
+
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {BUSINESS_CATEGORIES.map(cat => (
+                <button key={cat.id} type="button"
+                  onClick={() => setPickedCategory(pickedCategory === cat.id ? null : cat.id)}
+                  className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all text-center ${
+                    pickedCategory === cat.id
+                      ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                      : 'border-gray-100 hover:border-indigo-200 hover:bg-gray-50'
+                  }`}>
+                  <span className="text-2xl">{cat.icon}</span>
+                  <span className="text-xs font-medium text-gray-700 leading-tight">{cat.label}</span>
+                  {pickedCategory === cat.id && (
+                    <span className="text-xs text-indigo-500 font-medium">{cat.services.length} services</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={handleSeedTemplates} disabled={!pickedCategory || seeding}
+                className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
+                {seeding && <Loader2 className="w-4 h-4 animate-spin" />}
+                {seeding ? 'Adding...' : 'Add templates'}
+              </button>
+              <button onClick={() => { setShowTemplatePicker(false); setPickedCategory(null) }}
                 className="px-5 py-2.5 border-2 border-gray-100 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">
                 {t.common.cancel}
               </button>
