@@ -16,7 +16,6 @@ function SignupForm() {
   const params = useSearchParams()
 
   const [step, setStep] = useState<1 | 2>(1)
-
   const [form, setForm] = useState({
     firstName: '', lastName: '', businessName: '', slug: '', email: '', password: '',
   })
@@ -64,7 +63,7 @@ function SignupForm() {
     setLoading(true)
     const category = overrideCategory !== undefined ? overrideCategory : selectedCategory
 
-    // Step 1 — create the account
+    // Create the account (also seeds services)
     const signupRes  = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -77,23 +76,8 @@ function SignupForm() {
       return
     }
 
-    // Step 2 — immediately sign in to get the session cookie
-    const loginRes  = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: form.email, password: form.password }),
-    })
-    const loginData = await loginRes.json()
-    if (!loginRes.ok) {
-      // Account created but login failed — send to login page with a friendly message
-      setError(loginData.error || t.signup.errorGeneric)
-      setLoading(false)
-      router.push('/admin/login?registered=1')
-      return
-    }
-
-    // Session cookie is now set — go straight into the admin
-    router.push('/admin')
+    // Account created — user must confirm email before they can log in
+    router.push('/signup/confirm')
   }
 
   const passwordMismatch = confirmPassword.length > 0 && form.password !== confirmPassword
@@ -167,7 +151,7 @@ function SignupForm() {
                   <div className="flex items-start gap-1.5 mt-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
                     <Lock className="w-3.5 h-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
                     <p className="text-xs text-amber-700 leading-relaxed">
-                      <strong>This URL is permanent</strong> — {t.signup.slugWarning}
+                      <strong>This URL is permanent</strong> &mdash; {t.signup.slugWarning}
                     </p>
                   </div>
                 </div>
