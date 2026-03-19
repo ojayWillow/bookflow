@@ -159,6 +159,13 @@ const en = {
     errorPhoneShort:     'Please enter a valid phone number (min 7 digits)',
     errorPhoneInvalid:   'Only digits, spaces, +, - and () allowed',
     anyoneAvailableStaffName: 'Anyone available',
+    // Review step
+    reviewTitle:         'One last thing ⭐',
+    reviewSubtitle:      'Help {{business}} grow by leaving a quick Google review. It only takes 30 seconds and makes a huge difference.',
+    reviewCta:           '⭐ Leave a Google Review',
+    reviewSkip:          'Skip for now',
+    reviewThanks:        'Thank you so much! 🙏',
+    reviewDone:          'Done — see my booking →',
   },
 
   signup: {

@@ -25,9 +25,11 @@ export type Business = {
   facebook_url:  string
   tiktok_url:    string
   website_url:   string
+  // Reviews
+  google_maps_url: string
 }
 
-export type Step = 'service' | 'staff' | 'datetime' | 'details' | 'confirm' | 'success'
+export type Step = 'service' | 'staff' | 'datetime' | 'details' | 'confirm' | 'review' | 'success'
 
 export type BookingForm = {
   name: string; email: string; phone: string; notes: string

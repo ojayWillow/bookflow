@@ -148,6 +148,13 @@ const lv: PublicDict = {
     errorPhoneShort:     'Lūdzu ievadi derīgu tālruņa numuru (min. 7 cipari)',
     errorPhoneInvalid:   'Atļauti tikai cipari, atstarpes, +, - un ()',
     anyoneAvailableStaffName: 'Jebkurš speciālists',
+    // Review step
+    reviewTitle:         'Viens pēdējais solis ⭐',
+    reviewSubtitle:      'Palīdzi {{business}} augt, atstājot ātru atsauksmi Google. Tas aizņem tikai 30 sekundes.',
+    reviewCta:           '⭐ Atstāt Google atsauksmi',
+    reviewSkip:          'Izlaist pagaidām',
+    reviewThanks:        'Paldies! 🙏',
+    reviewDone:          'Gatavs — skatīt rezervāciju →',
   },
 
   signup: {

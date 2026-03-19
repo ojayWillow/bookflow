@@ -12,6 +12,7 @@ import StepStaff    from './_steps/StepStaff'
 import StepDateTime from './_steps/StepDateTime'
 import StepDetails  from './_steps/StepDetails'
 import StepConfirm  from './_steps/StepConfirm'
+import StepReview   from './_steps/StepReview'
 import StepSuccess  from './_steps/StepSuccess'
 import { getDictionary, locales, type Locale } from '@/i18n/index'
 import type { PublicDict } from '@/i18n/en'
@@ -149,13 +150,19 @@ export default function BookingWizard({ business }: { business: Business }) {
   const errors    = { name: validateName(form.name), email: validateEmail(form.email), phone: validatePhone(form.phone) }
   const formValid = !errors.name && !errors.email && !errors.phone
 
-  const stepKeys: Step[] = ['service', 'staff', 'datetime', 'details', 'confirm']
+  // Review step is only shown when business has a google_maps_url configured
+  const hasReviewStep = Boolean(business.google_maps_url)
+
+  // Wizard step keys — review is conditionally included
+  const stepKeys: Step[] = hasReviewStep
+    ? ['service', 'staff', 'datetime', 'details', 'confirm', 'review']
+    : ['service', 'staff', 'datetime', 'details', 'confirm']
+
   const stepIndex = stepKeys.indexOf(step)
 
   const goBack = () => {
     if (stepIndex <= 0) return
     const prev = stepKeys[stepIndex - 1]
-    // when going back to datetime, clear the selected time so it does not auto-advance
     if (prev === 'datetime') setSelectedTime('')
     setStep(prev)
   }
@@ -189,7 +196,8 @@ export default function BookingWizard({ business }: { business: Business }) {
       setBookingRef(data.booking.ref)
       setEmailSent(data.emailsSent === true)
       setIsPending(data.booking.status === 'pending')
-      setStep('success')
+      // Go to review step if business has Google Maps URL, otherwise go straight to success
+      setStep(hasReviewStep ? 'review' : 'success')
     } catch (err) {
       console.error(err)
       setSubmitError(err instanceof Error ? err.message : (t?.errorGeneric ?? 'Something went wrong. Please try again.'))
@@ -208,7 +216,10 @@ export default function BookingWizard({ business }: { business: Business }) {
     )
   }
 
+  // Progress bar labels — only show the 5 booking steps (not review/success)
+  const PROGRESS_STEP_KEYS: Step[] = ['service', 'staff', 'datetime', 'details', 'confirm']
   const STEP_LABELS = [t.stepService, t.stepStaff, t.stepDateTime, t.stepDetails, t.stepConfirm]
+  const progressIndex = PROGRESS_STEP_KEYS.indexOf(step as Step)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -264,30 +275,30 @@ export default function BookingWizard({ business }: { business: Business }) {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-        {step !== 'success' && (
+        {step !== 'success' && step !== 'review' && (
           <>
             <div className="flex items-center mb-8">
               {STEP_LABELS.map((label, i) => (
                 <div key={label} className="flex items-center flex-1 last:flex-none">
                   <div className="flex items-center gap-1.5">
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                      stepIndex > i     ? 'bg-indigo-600 text-white'
-                      : stepIndex === i ? 'bg-indigo-600 text-white ring-4 ring-indigo-100'
+                      progressIndex > i     ? 'bg-indigo-600 text-white'
+                      : progressIndex === i ? 'bg-indigo-600 text-white ring-4 ring-indigo-100'
                       : 'bg-gray-200 text-gray-400'
                     }`}>
-                      {stepIndex > i ? <CheckCircle className="w-3.5 h-3.5" /> : i + 1}
+                      {progressIndex > i ? <CheckCircle className="w-3.5 h-3.5" /> : i + 1}
                     </div>
                     <span className={`text-xs font-medium hidden sm:block ${
-                      stepIndex >= i ? 'text-indigo-600' : 'text-gray-400'
+                      progressIndex >= i ? 'text-indigo-600' : 'text-gray-400'
                     }`}>{label}</span>
                   </div>
                   {i < STEP_LABELS.length - 1 && (
-                    <div className={`flex-1 h-0.5 mx-2 ${stepIndex > i ? 'bg-indigo-600' : 'bg-gray-200'}`} />
+                    <div className={`flex-1 h-0.5 mx-2 ${progressIndex > i ? 'bg-indigo-600' : 'bg-gray-200'}`} />
                   )}
                 </div>
               ))}
             </div>
-            {stepIndex > 0 && (
+            {progressIndex > 0 && (
               <button onClick={goBack}
                 className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-700 mb-5 transition-colors">
                 <ChevronLeft className="w-4 h-4" /> {t.back}
@@ -301,6 +312,7 @@ export default function BookingWizard({ business }: { business: Business }) {
         {step === 'datetime' && selectedService && <StepDateTime service={selectedService} selectedStaffMember={selectedStaffMember ?? null} availableDates={availableDates} selectedDate={selectedDate} selectedTime={selectedTime} slots={slots} loadingSlots={loadingSlots} dict={t} onSelectDate={date => { setSelectedDate(date); setSelectedTime('') }} onSelectTime={time => { setSelectedTime(time); setStep('details') }} />}
         {step === 'details'  && <StepDetails form={form} errors={errors} touched={touched} dict={t} onChange={(field, value) => setForm(p => ({ ...p, [field]: value }))} onBlur={field => setTouched(p => ({ ...p, [field]: true }))} onNext={() => { setTouched({ name: true, email: true, phone: true }); if (formValid) setStep('confirm') }} />}
         {step === 'confirm'  && selectedService && <StepConfirm business={business} service={selectedService} staffMember={selectedStaffMember ?? null} date={selectedDate} time={selectedTime} form={form} submitting={submitting} submitError={submitError} dict={t} onConfirm={handleConfirm} />}
+        {step === 'review'   && <StepReview business={business} dict={t} onDone={() => setStep('success')} />}
         {step === 'success'  && selectedService && <StepSuccess business={business} service={selectedService} staffMember={selectedStaffMember ?? null} date={selectedDate} time={selectedTime} form={form} bookingRef={bookingRef} emailSent={emailSent} isPending={isPending} dict={t} />}
       </main>
     </div>

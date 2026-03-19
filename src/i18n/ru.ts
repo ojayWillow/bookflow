@@ -148,6 +148,13 @@ const ru: PublicDict = {
     errorPhoneShort:     'Введите корректный номер телефона (мин. 7 цифр)',
     errorPhoneInvalid:   'Допустимы только цифры, пробелы, +, - и ()',
     anyoneAvailableStaffName: 'Любой специалист',
+    // Review step
+    reviewTitle:         'Последний шаг ⭐',
+    reviewSubtitle:      'Помогите {{business}} расти — оставьте быстрый отзыв в Google. Это займёт всего 30 секунд.',
+    reviewCta:           '⭐ Оставить отзыв в Google',
+    reviewSkip:          'Пропустить',
+    reviewThanks:        'Большое спасибо! 🙏',
+    reviewDone:          'Готово — посмотреть запись →',
   },
 
   signup: {

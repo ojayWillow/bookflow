@@ -113,6 +113,7 @@ create table if not exists business_settings (
   facebook_url         text not null default '',
   tiktok_url           text not null default '',
   website_url          text not null default '',
+  google_maps_url      text not null default '',
   created_at           timestamptz not null default now()
 );
 
@@ -203,3 +204,4 @@ create index if not exists idx_business_slug       on business_settings(slug);
 -- ─────────────────────────────────────────────────────────────
 -- alter table business_settings add column if not exists cancellation_window_hours integer not null default 24;
 -- alter table business_settings add column if not exists require_approval boolean not null default false;
+-- alter table business_settings add column if not exists google_maps_url text not null default '';
