@@ -173,7 +173,7 @@ const ru: PublicDict = {
     alreadyHaveAccount:      'Уже есть аккаунт?',
     signIn:                  'Войти',
     errorPasswordMismatch:   'Пароли не совпадают',
-    errorPasswordShort:      'Пароль должен содержать не менее 8 символов',
+    errorPasswordShort:      'Пароль должна содержать не менее 8 символов',
     errorGeneric:            'Что-то пошло не так. Попробуйте ещё раз.',
     // Step 2 — business category picker
     step2Title:              'Какой тип бизнеса вы ведёте?',
@@ -185,6 +185,13 @@ const ru: PublicDict = {
     step2Skip:               'Пропустить — настрою сам',
     step1Continue:           'Продолжить →',
     stepOf:                  'Шаг {{step}} из 2',
+    // Confirm email page
+    confirmTitle:            'Проверьте почту',
+    confirmSub:              'Мы отправили ссылку для подтверждения на ваш e-mail.',
+    confirmInstruction:      'Нажмите на ссылку в письме, чтобы активировать аккаунт, затем вернитесь и войдите.',
+    confirmCta:              'Перейти к входу →',
+    confirmNoEmail:          'Не получили письмо? Проверьте папку спама или',
+    confirmTryAgain:         'попробуйте зарегистрироваться снова',
   },
 }
 
