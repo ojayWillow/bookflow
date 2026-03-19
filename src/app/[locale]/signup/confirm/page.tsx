@@ -1,13 +1,14 @@
 import Link from 'next/link'
 import { Calendar, Mail } from 'lucide-react'
 import { getDictionary } from '@/i18n/index'
+import type { Locale } from '@/i18n/index'
 
 export default async function SignupConfirmPage({
   params,
 }: {
   params: { locale: string }
 }) {
-  const t = await getDictionary(params.locale)
+  const t = await getDictionary(params.locale as Locale)
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
