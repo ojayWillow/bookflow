@@ -31,7 +31,6 @@ export default function ServicesPage() {
   const [error, setError]             = useState('')
   const { toasts, toast, dismiss }    = useToast()
 
-  // Template picker state
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [pickedCategory, setPickedCategory]         = useState<string | null>(null)
   const [seeding, setSeeding]                       = useState(false)
@@ -153,7 +152,6 @@ export default function ServicesPage() {
             </div>
           ))}
 
-          {/* ── Empty state with template picker ── */}
           {services.length === 0 && (
             <div className="text-center py-16">
               <p className="text-4xl mb-3">✨</p>
@@ -170,7 +168,6 @@ export default function ServicesPage() {
         </div>
       )}
 
-      {/* ── Service edit/create modal ── */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
@@ -222,12 +219,11 @@ export default function ServicesPage() {
         </div>
       )}
 
-      {/* ── Template picker modal ── */}
       {showTemplatePicker && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-1">Load starter templates</h2>
-            <p className="text-sm text-gray-400 mb-5">Pick your business type and we'll add ready-to-use services instantly.</p>
+            <p className="text-sm text-gray-400 mb-5">Pick your business type and we&apos;ll add ready-to-use services instantly.</p>
 
             <div className="grid grid-cols-2 gap-3 mb-6">
               {BUSINESS_CATEGORIES.map(cat => (
