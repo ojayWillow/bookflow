@@ -5,14 +5,16 @@ import Link from 'next/link'
 import { Calendar, Loader2, Lock, ChevronLeft } from 'lucide-react'
 import { Suspense } from 'react'
 import { BUSINESS_CATEGORIES } from '@/lib/service-templates'
-import { usePublicLang } from '@/hooks/usePublicLang'
+import en from '@/i18n/en'
+
+// Signup page is always rendered in English (no lang switcher on public signup).
+const t = en
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bookflow.app'
 
 function SignupForm() {
   const router = useRouter()
   const params = useSearchParams()
-  const { t } = usePublicLang()
 
   const [step, setStep] = useState<1 | 2>(1)
 
@@ -76,7 +78,6 @@ function SignupForm() {
   }
 
   const passwordMismatch = confirmPassword.length > 0 && form.password !== confirmPassword
-
   const selectedCat = BUSINESS_CATEGORIES.find(c => c.id === selectedCategory)
 
   return (
