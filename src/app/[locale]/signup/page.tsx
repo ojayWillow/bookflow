@@ -24,7 +24,8 @@ function SignupForm() {
   const [confirmPassword, setConfirmPassword]   = useState('')
   const [slugTouched, setSlugTouched]           = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [error, setError]   = useState('')
+  const [error, setError]     = useState('')
+  const [emailError, setEmailError] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -32,8 +33,10 @@ function SignupForm() {
     if (email) setForm(p => ({ ...p, email }))
   }, [params])
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(p => ({ ...p, [k]: e.target.value }))
+    if (k === 'email') setEmailError('')
+  }
 
   const handleBusinessNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name     = e.target.value
@@ -46,9 +49,11 @@ function SignupForm() {
     setForm(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))
   }
 
-  const handleNextStep = (e: React.FormEvent) => {
+  const handleNextStep = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setEmailError('')
+
     if (form.password !== confirmPassword) {
       setError(t.signup.errorPasswordMismatch)
       return
@@ -57,6 +62,26 @@ function SignupForm() {
       setError(t.signup.errorPasswordShort)
       return
     }
+
+    // Check email availability before moving to step 2
+    setLoading(true)
+    try {
+      const res  = await fetch(`/api/auth/check-email?email=${encodeURIComponent(form.email)}`)
+      const data = await res.json()
+      if (data.taken) {
+        setEmailError(
+          locale === 'lv'
+            ? 'E-pasts jau ir reģistrēts. Ieej savā kontā.'
+            : 'This email is already registered. Please sign in instead.'
+        )
+        setLoading(false)
+        return
+      }
+    } catch {
+      // If the check fails, let the API handle it on submit
+    }
+    setLoading(false)
+
     setStep(2)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -69,11 +94,21 @@ function SignupForm() {
     const signupRes = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // locale is passed so the API seeds service names in the right language
       body: JSON.stringify({ ...form, businessCategory: category ?? 'skip', locale }),
     })
     const signupData = await signupRes.json()
     if (!signupRes.ok) {
+      // If duplicate email slipped through, go back to step 1 and show error on the field
+      if (signupRes.status === 409 && signupData.error?.toLowerCase().includes('email')) {
+        setEmailError(
+          locale === 'lv'
+            ? 'E-pasts jau ir reģistrēts. Ieej savā kontā.'
+            : 'This email is already registered. Please sign in instead.'
+        )
+        setStep(1)
+        setLoading(false)
+        return
+      }
       setError(signupData.error || t.signup.errorGeneric)
       setLoading(false)
       return
@@ -157,9 +192,25 @@ function SignupForm() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">{t.signup.labelEmail}</label>
-                  <input type="email" value={form.email} onChange={set('email')} required disabled={loading}
-                    className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 transition-colors disabled:opacity-50"
-                    placeholder={t.signup.placeholderEmail} />
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={set('email')}
+                    required
+                    disabled={loading}
+                    className={`w-full border-2 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-colors disabled:opacity-50 ${
+                      emailError ? 'border-red-300 focus:border-red-400' : 'border-gray-100 focus:border-indigo-400'
+                    }`}
+                    placeholder={t.signup.placeholderEmail}
+                  />
+                  {emailError && (
+                    <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                      ⚠ {emailError}{' '}
+                      <Link href="/admin/login" className="underline font-medium">
+                        {t.signup.signIn}
+                      </Link>
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -187,7 +238,8 @@ function SignupForm() {
                 )}
 
                 <button type="submit" disabled={loading || passwordMismatch}
-                  className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                  className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                   {t.signup.step1Continue}
                 </button>
                 <p className="text-xs text-center text-gray-400">{t.signup.noCreditCard}</p>

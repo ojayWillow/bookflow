@@ -22,7 +22,6 @@ export async function POST(request: NextRequest) {
   const { email, password, firstName, lastName, businessName, slug, businessCategory, locale } =
     await request.json()
 
-  // locale determines which language the seeded service names use (EN default, LV if 'lv')
   const seedLocale: string = locale === 'lv' ? 'lv' : 'en'
 
   if (!email || !password || !firstName || !lastName || !businessName || !slug) {
@@ -38,14 +37,28 @@ export async function POST(request: NextRequest) {
 
   const serviceClient = makeServiceClient()
 
+  // Check email uniqueness using the admin API before attempting signUp.
+  // Supabase signUp does NOT error on duplicate email — it returns a fake user
+  // with an empty identities array, which then causes FK violations downstream.
+  const { data: existingUsers } = await serviceClient.auth.admin.listUsers()
+  const emailTaken = existingUsers?.users?.some(
+    u => u.email?.toLowerCase() === email.toLowerCase()
+  )
+  if (emailTaken) {
+    return NextResponse.json(
+      { error: 'An account with this email already exists. Please sign in instead.' },
+      { status: 409 }
+    )
+  }
+
   // Check slug uniqueness
-  const { data: existing } = await serviceClient
+  const { data: existingSlug } = await serviceClient
     .from('business_settings')
     .select('id')
     .eq('slug', slug)
     .single()
 
-  if (existing) {
+  if (existingSlug) {
     return NextResponse.json(
       { error: 'That booking URL is already taken — try a different one' },
       { status: 409 }
@@ -71,6 +84,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: authError?.message ?? 'Failed to create account' },
       { status: 400 }
+    )
+  }
+
+  // Extra safety: Supabase may still return a fake user with empty identities
+  // if the email was registered after our check above (race condition).
+  if (!authData.user.identities || authData.user.identities.length === 0) {
+    return NextResponse.json(
+      { error: 'An account with this email already exists. Please sign in instead.' },
+      { status: 409 }
     )
   }
 
@@ -112,7 +134,6 @@ export async function POST(request: NextRequest) {
         price:       s.price,
         currency:    'EUR',
       }))
-      // Best-effort: do not fail signup if seed fails
       await serviceClient.from('services').insert(rows)
     }
   }
