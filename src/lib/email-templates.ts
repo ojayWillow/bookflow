@@ -511,18 +511,11 @@ export function reviewRequestEmailHtml(p: {
         </td></tr>
 
         <!-- CTA -->
-        <tr><td style="padding:32px 32px 8px;text-align:center">
+        <tr><td style="padding:32px 32px 36px;text-align:center">
           <a href="${p.reviewUrl}"
             style="display:inline-block;background:#4f46e5;color:#ffffff;font-size:16px;font-weight:700;padding:16px 40px;border-radius:12px;text-decoration:none;letter-spacing:0.2px">
             &#11088;&nbsp; Share Your Experience
           </a>
-        </td></tr>
-
-        <!-- Soft nudge -->
-        <tr><td style="padding:16px 32px 36px;text-align:center">
-          <p style="margin:0;color:#9ca3af;font-size:13px;line-height:1.6">
-            No account needed &mdash; just open the link and leave a quick note.
-          </p>
         </td></tr>
 
         <!-- Footer -->
