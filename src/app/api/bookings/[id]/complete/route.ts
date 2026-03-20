@@ -21,7 +21,7 @@ export async function PATCH(
     .from('bookings')
     .select(`
       *,
-      business_settings!inner(
+      business_settings(
         user_id, name, phone, logo_url, google_maps_url
       )
     `)
@@ -34,7 +34,7 @@ export async function PATCH(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const biz = (booking as any).business_settings
-  if (biz.user_id !== user.id) {
+  if (!biz || biz.user_id !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -52,6 +52,7 @@ export async function PATCH(
   }
 
   // Send review request email only if google_maps_url is configured
+  let emailWarning: string | null = null
   if (biz.google_maps_url) {
     const fromDomain = process.env.RESEND_FROM_DOMAIN ?? 'kolab.lv'
     try {
@@ -60,7 +61,7 @@ export async function PATCH(
         to:      booking.customer_email,
         subject: `How was your ${booking.service_name}? ⭐ Leave us a review`,
         html: reviewRequestEmailHtml({
-          businessName: biz.name,
+          businessName:  biz.name,
           businessPhone: biz.phone,
           customerName:  booking.customer_name,
           serviceName:   booking.service_name,
@@ -71,8 +72,9 @@ export async function PATCH(
       })
     } catch (emailErr) {
       console.error('Review request email failed:', emailErr)
+      emailWarning = emailErr instanceof Error ? emailErr.message : 'Email send failed'
     }
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, ...(emailWarning ? { emailWarning } : {}) })
 }
