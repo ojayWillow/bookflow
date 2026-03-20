@@ -463,3 +463,63 @@ export function cancelledCustomerEmailHtml(p: {
 </body>
 </html>`
 }
+
+// ── Post-appointment: Google review request ────────────────────
+export function reviewRequestEmailHtml(p: {
+  businessName: string
+  businessPhone: string
+  customerName: string
+  serviceName: string
+  date: string
+  reviewUrl: string
+  logoUrl?: string | null
+}) {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:40px 20px">
+    <tr><td align="center">
+      <table width="100%" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden">
+
+        <!-- Header -->
+        <tr><td style="background:#4f46e5;padding:32px;text-align:center">
+          ${headerBrand(p.businessName, p.logoUrl)}
+        </td></tr>
+
+        <!-- Icon + message -->
+        <tr><td style="padding:36px 32px 8px;text-align:center">
+          <table cellpadding="0" cellspacing="0" style="margin:0 auto 16px">
+            <tr><td style="width:64px;height:64px;background:#fef9c3;border-radius:50%;text-align:center;vertical-align:middle">
+              <span style="font-size:32px;line-height:64px">&#11088;</span>
+            </td></tr>
+          </table>
+          <h2 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#111827">How did it go?</h2>
+          <p style="margin:0;color:#6b7280;font-size:15px">Hi ${p.customerName}, we hope you enjoyed your <strong>${p.serviceName}</strong> on ${p.date}.</p>
+          <p style="margin:12px 0 0;color:#6b7280;font-size:15px">If you have a moment, we&apos;d love to hear your feedback &mdash; it really helps us grow.</p>
+        </td></tr>
+
+        <!-- CTA button -->
+        <tr><td style="padding:32px 32px 8px;text-align:center">
+          <a href="${p.reviewUrl}"
+            style="display:inline-block;background:#4f46e5;color:#ffffff;font-size:16px;font-weight:700;padding:14px 36px;border-radius:12px;text-decoration:none;letter-spacing:0.2px">
+            &#11088; Leave a Google Review
+          </a>
+        </td></tr>
+
+        <tr><td style="padding:16px 32px 32px;text-align:center">
+          <p style="margin:0;color:#9ca3af;font-size:13px">Takes less than a minute &mdash; and it means the world to us.</p>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="background:#f9fafb;padding:16px 32px;text-align:center">
+          <p style="margin:0;color:#d1d5db;font-size:12px">Thank you for choosing ${p.businessName} &mdash; see you next time!</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
