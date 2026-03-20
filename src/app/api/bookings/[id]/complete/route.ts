@@ -17,25 +17,27 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Fetch business settings directly by user_id — guaranteed to have all fields
+  const { data: biz, error: bizErr } = await supabase
+    .from('business_settings')
+    .select('id, user_id, name, phone, logo_url, google_maps_url')
+    .eq('user_id', user.id)
+    .single()
+
+  if (bizErr || !biz) {
+    return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+  }
+
+  // Fetch the booking and verify it belongs to this business
   const { data: booking, error: fetchErr } = await supabase
     .from('bookings')
-    .select(`
-      *,
-      business_settings(
-        user_id, name, phone, logo_url, google_maps_url
-      )
-    `)
+    .select('*')
     .eq('id', id)
+    .eq('business_id', biz.id)
     .single()
 
   if (fetchErr || !booking) {
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const biz = (booking as any).business_settings
-  if (!biz || biz.user_id !== user.id) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   if (booking.status !== 'confirmed') {
@@ -51,7 +53,7 @@ export async function PATCH(
     return NextResponse.json({ error: updateErr.message }, { status: 500 })
   }
 
-  // Send review request email only if google_maps_url is configured
+  // Send review request email
   let emailWarning: string | null = null
   if (biz.google_maps_url) {
     const fromDomain = process.env.RESEND_FROM_DOMAIN ?? 'kolab.lv'
@@ -74,6 +76,8 @@ export async function PATCH(
       console.error('Review request email failed:', emailErr)
       emailWarning = emailErr instanceof Error ? emailErr.message : 'Email send failed'
     }
+  } else {
+    console.warn('No google_maps_url set — review email skipped for booking', id)
   }
 
   return NextResponse.json({ ok: true, ...(emailWarning ? { emailWarning } : {}) })
