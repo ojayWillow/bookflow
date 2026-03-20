@@ -162,16 +162,17 @@ export default function BookingsPage() {
     return matchFilter && matchSearch
   })
 
+  // Only for confirmed → cancelled / cancelled → confirmed / pending transitions.
+  // 'completed' is intentionally excluded — use handleComplete instead so the review email fires.
   const handleStatus = async (
     id: string,
-    status: 'confirmed' | 'pending' | 'cancelled' | 'completed',
+    status: 'confirmed' | 'pending' | 'cancelled',
   ) => {
     try {
       await updateBookingStatus(id, status)
       await load(page)
       const labels: Record<string, string> = {
         confirmed: t.bookings.toastRestored,
-        completed: t.bookings.toastCompleted,
         cancelled: t.bookings.toastCancelled,
       }
       toast.success(labels[status] ?? 'Status updated')
@@ -184,9 +185,13 @@ export default function BookingsPage() {
     setCompleteLoadingId(id)
     try {
       const res = await fetch(`/api/bookings/${id}/complete`, { method: 'PATCH' })
-      if (!res.ok) throw new Error('Failed to complete')
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(json.error ?? 'Failed to complete')
       await load(page)
       toast.success(t.bookings.toastCompleted)
+      if (json.emailWarning) {
+        console.warn('Review email warning:', json.emailWarning)
+      }
     } catch {
       toast.error(t.bookings.toastStatusFail)
     } finally {

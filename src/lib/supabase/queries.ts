@@ -182,9 +182,14 @@ export async function getBookings(page = 0) {
   return { data: data ?? [], total: count ?? 0, pageSize: PAGE_SIZE }
 }
 
+/**
+ * Direct status update — intentionally excludes 'completed'.
+ * Use the /api/bookings/[id]/complete API route to mark a booking complete
+ * so that the review request email is always sent.
+ */
 export async function updateBookingStatus(
   id: string,
-  status: 'confirmed' | 'pending' | 'cancelled' | 'completed'
+  status: 'confirmed' | 'pending' | 'cancelled'
 ) {
   const { supabase, user } = await getAuthUser()
   const { data: biz, error: bizErr } = await supabase
