@@ -474,6 +474,7 @@ export function reviewRequestEmailHtml(p: {
   reviewUrl: string
   logoUrl?: string | null
 }) {
+  const firstName = p.customerName.split(' ')[0]
   return `
 <!DOCTYPE html>
 <html>
@@ -488,28 +489,40 @@ export function reviewRequestEmailHtml(p: {
           ${headerBrand(p.businessName, p.logoUrl)}
         </td></tr>
 
-        <!-- Icon + message -->
-        <tr><td style="padding:36px 32px 8px;text-align:center">
-          <table cellpadding="0" cellspacing="0" style="margin:0 auto 16px">
+        <!-- Message -->
+        <tr><td style="padding:40px 32px 8px;text-align:center">
+          <table cellpadding="0" cellspacing="0" style="margin:0 auto 20px">
             <tr><td style="width:64px;height:64px;background:#fef9c3;border-radius:50%;text-align:center;vertical-align:middle">
               <span style="font-size:32px;line-height:64px">&#11088;</span>
             </td></tr>
           </table>
-          <h2 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#111827">How did it go?</h2>
-          <p style="margin:0;color:#6b7280;font-size:15px">Hi ${p.customerName}, we hope you enjoyed your <strong>${p.serviceName}</strong> on ${p.date}.</p>
-          <p style="margin:12px 0 0;color:#6b7280;font-size:15px">If you have a moment, we&apos;d love to hear your feedback &mdash; it really helps us grow.</p>
+          <h2 style="margin:0 0 16px;font-size:24px;font-weight:700;color:#111827">Thank you, ${firstName}!</h2>
+          <p style="margin:0 0 12px;color:#374151;font-size:15px;line-height:1.7">
+            We hope you enjoyed your <strong>${p.serviceName}</strong> today.
+          </p>
+          <p style="margin:0 0 12px;color:#6b7280;font-size:15px;line-height:1.7">
+            Most people discover ${p.businessName} through reviews left by clients just like you.
+            A few honest words from you genuinely helps the next person decide &mdash;
+            and keeps us doing what we love.
+          </p>
+          <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.7">
+            It takes less than a minute, and it means a lot to us. &#128591;
+          </p>
         </td></tr>
 
-        <!-- CTA button -->
+        <!-- CTA -->
         <tr><td style="padding:32px 32px 8px;text-align:center">
           <a href="${p.reviewUrl}"
-            style="display:inline-block;background:#4f46e5;color:#ffffff;font-size:16px;font-weight:700;padding:14px 36px;border-radius:12px;text-decoration:none;letter-spacing:0.2px">
-            &#11088; Leave a Google Review
+            style="display:inline-block;background:#4f46e5;color:#ffffff;font-size:16px;font-weight:700;padding:16px 40px;border-radius:12px;text-decoration:none;letter-spacing:0.2px">
+            &#11088;&nbsp; Share Your Experience
           </a>
         </td></tr>
 
-        <tr><td style="padding:16px 32px 32px;text-align:center">
-          <p style="margin:0;color:#9ca3af;font-size:13px">Takes less than a minute &mdash; and it means the world to us.</p>
+        <!-- Soft nudge -->
+        <tr><td style="padding:16px 32px 36px;text-align:center">
+          <p style="margin:0;color:#9ca3af;font-size:13px;line-height:1.6">
+            No account needed &mdash; just open the link and leave a quick note.
+          </p>
         </td></tr>
 
         <!-- Footer -->

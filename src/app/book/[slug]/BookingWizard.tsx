@@ -12,7 +12,6 @@ import StepStaff    from './_steps/StepStaff'
 import StepDateTime from './_steps/StepDateTime'
 import StepDetails  from './_steps/StepDetails'
 import StepConfirm  from './_steps/StepConfirm'
-import StepReview   from './_steps/StepReview'
 import StepSuccess  from './_steps/StepSuccess'
 import { getDictionary, locales, type Locale } from '@/i18n/index'
 import type { PublicDict } from '@/i18n/en'
@@ -150,14 +149,7 @@ export default function BookingWizard({ business }: { business: Business }) {
   const errors    = { name: validateName(form.name), email: validateEmail(form.email), phone: validatePhone(form.phone) }
   const formValid = !errors.name && !errors.email && !errors.phone
 
-  // Review step is only shown when business has a google_maps_url configured
-  const hasReviewStep = Boolean(business.google_maps_url)
-
-  // Wizard step keys — review is conditionally included
-  const stepKeys: Step[] = hasReviewStep
-    ? ['service', 'staff', 'datetime', 'details', 'confirm', 'review']
-    : ['service', 'staff', 'datetime', 'details', 'confirm']
-
+  const stepKeys: Step[] = ['service', 'staff', 'datetime', 'details', 'confirm']
   const stepIndex = stepKeys.indexOf(step)
 
   const goBack = () => {
@@ -196,8 +188,7 @@ export default function BookingWizard({ business }: { business: Business }) {
       setBookingRef(data.booking.ref)
       setEmailSent(data.emailsSent === true)
       setIsPending(data.booking.status === 'pending')
-      // Go to review step if business has Google Maps URL, otherwise go straight to success
-      setStep(hasReviewStep ? 'review' : 'success')
+      setStep('success')
     } catch (err) {
       console.error(err)
       setSubmitError(err instanceof Error ? err.message : (t?.errorGeneric ?? 'Something went wrong. Please try again.'))
@@ -216,7 +207,6 @@ export default function BookingWizard({ business }: { business: Business }) {
     )
   }
 
-  // Progress bar labels — only show the 5 booking steps (not review/success)
   const PROGRESS_STEP_KEYS: Step[] = ['service', 'staff', 'datetime', 'details', 'confirm']
   const STEP_LABELS = [t.stepService, t.stepStaff, t.stepDateTime, t.stepDetails, t.stepConfirm]
   const progressIndex = PROGRESS_STEP_KEYS.indexOf(step as Step)
@@ -275,7 +265,7 @@ export default function BookingWizard({ business }: { business: Business }) {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-        {step !== 'success' && step !== 'review' && (
+        {step !== 'success' && (
           <>
             <div className="flex items-center mb-8">
               {STEP_LABELS.map((label, i) => (
@@ -312,7 +302,6 @@ export default function BookingWizard({ business }: { business: Business }) {
         {step === 'datetime' && selectedService && <StepDateTime service={selectedService} selectedStaffMember={selectedStaffMember ?? null} availableDates={availableDates} selectedDate={selectedDate} selectedTime={selectedTime} slots={slots} loadingSlots={loadingSlots} dict={t} onSelectDate={date => { setSelectedDate(date); setSelectedTime('') }} onSelectTime={time => { setSelectedTime(time); setStep('details') }} />}
         {step === 'details'  && <StepDetails form={form} errors={errors} touched={touched} dict={t} onChange={(field, value) => setForm(p => ({ ...p, [field]: value }))} onBlur={field => setTouched(p => ({ ...p, [field]: true }))} onNext={() => { setTouched({ name: true, email: true, phone: true }); if (formValid) setStep('confirm') }} />}
         {step === 'confirm'  && selectedService && <StepConfirm business={business} service={selectedService} staffMember={selectedStaffMember ?? null} date={selectedDate} time={selectedTime} form={form} submitting={submitting} submitError={submitError} dict={t} onConfirm={handleConfirm} />}
-        {step === 'review'   && <StepReview business={business} dict={t} onDone={() => setStep('success')} />}
         {step === 'success'  && selectedService && <StepSuccess business={business} service={selectedService} staffMember={selectedStaffMember ?? null} date={selectedDate} time={selectedTime} form={form} bookingRef={bookingRef} emailSent={emailSent} isPending={isPending} dict={t} />}
       </main>
     </div>
