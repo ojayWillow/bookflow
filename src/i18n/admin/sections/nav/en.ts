@@ -7,6 +7,7 @@ const navEn = {
   branding:   'Branding',
   share:      'Share',
   settings:   'Settings',
+    menu:      'Menu',
   signOut:    'Sign out',
   signingOut: 'Signing out…',
 }
