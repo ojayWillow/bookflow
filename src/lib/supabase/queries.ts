@@ -253,3 +253,62 @@ export async function getBookedSlotsForDate(
   if (staffId === 'any') return all
   return all.filter(b => b.staff_id === staffId || b.staff_id === null)
 }
+
+
+// ─── MENU ─────────────────────────────────────────────────────────────────
+
+export async function getMenuCategories(businessId: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('menu_categories')
+    .select('*, menu_items(*)')
+    .eq('business_id', businessId)
+    .order('sort_order', { ascending: true })
+  if (error) throw error
+  return data ?? []
+}
+
+export async function upsertMenuCategory(businessId: string, cat: { id?: string; name: string; sort_order: number }) {
+  const supabase = createClient()
+  const payload = { ...cat, business_id: businessId }
+  const { data, error } = cat.id
+    ? await supabase.from('menu_categories').update(payload).eq('id', cat.id).select().single()
+    : await supabase.from('menu_categories').insert(payload).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteMenuCategory(id: string) {
+  const supabase = createClient()
+  const { error } = await supabase.from('menu_categories').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function upsertMenuItem(item: {
+  id?: string; category_id: string; name: string
+  description: string; price: number; available: boolean; image_url: string
+}) {
+  const supabase = createClient()
+  const { data, error } = item.id
+    ? await supabase.from('menu_items').update(item).eq('id', item.id).select().single()
+    : await supabase.from('menu_items').insert(item).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteMenuItem(id: string) {
+  const supabase = createClient()
+  const { error } = await supabase.from('menu_items').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function getBusinessSettings() {
+  const { supabase, user } = await getAuthUser()
+  const { data, error } = await supabase
+    .from('business_settings')
+    .select('id, restaurant_mode')
+    .eq('user_id', user.id)
+    .single()
+  if (error) throw error
+  return data
+}
