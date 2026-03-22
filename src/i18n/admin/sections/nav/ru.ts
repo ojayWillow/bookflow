@@ -7,6 +7,7 @@ const navRu = {
   branding:   'Дизайн',
   share:      'Поделиться',
   settings:   'Настройки',
+    menu:      'Меню',
   signOut:    'Выйти',
   signingOut: 'Выходим…',
 }
