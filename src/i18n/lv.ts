@@ -85,6 +85,7 @@ const lv: PublicDict = {
     stepStaff:           'Speciālists',
     stepDateTime:        'Datums un laiks',
     stepDetails:         'Dati',
+        stepPreorder:   'Priekšpasūtījums',
     stepConfirm:         'Apstiprināt',
     back:                'Atpakaļ',
     stepServiceTitle:    'Izvēlies pakalpojumu',
