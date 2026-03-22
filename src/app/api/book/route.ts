@@ -39,6 +39,7 @@ const BookingSchema = z.object({
   customer_email: z.string().email(),
   customer_phone: z.string().min(1).max(50),
   customer_notes: z.string().max(1000).optional().default(''),
+    preorder_items: z.record(z.string(), z.number().int().min(0)).optional().default({}),
 })
 
 type BookingBody = z.infer<typeof BookingSchema>
@@ -178,6 +179,7 @@ export async function POST(req: NextRequest) {
         customer_email:   body.customer_email,
         customer_phone:   body.customer_phone,
         customer_notes:   body.customer_notes,
+                preorder_items: body.preorder_items ?? {},
         status:           bookingStatus,
       })
       .select()
