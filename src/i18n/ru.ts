@@ -85,6 +85,7 @@ const ru: PublicDict = {
     stepStaff:           'Специалист',
     stepDateTime:        'Дата и время',
     stepDetails:         'Данные',
+        stepPreorder:   'Предзаказ',
     stepConfirm:         'Подтверждение',
     back:                'Назад',
     stepServiceTitle:    'Выберите услугу',
