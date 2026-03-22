@@ -27,10 +27,12 @@ export type Business = {
   website_url:   string
   // Reviews
   google_maps_url: string
+    restaurant_mode: boolean
 }
 
-export type Step = 'service' | 'staff' | 'datetime' | 'details' | 'confirm' | 'review' | 'success'
+export type Step = 'service' | 'staff' | 'datetime' | 'details' | 'preorder' | 'confirm' | 'review' | 'success'
 
 export type BookingForm = {
-  name: string; email: string; phone: string; notes: string
+  name: string; email: string; phone: string; notes: string 
+    preorderItems: Record<string, number>
 }
