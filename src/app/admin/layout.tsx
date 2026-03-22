@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { Calendar, BookOpen, Settings, Users, LayoutDashboard, LogOut, Loader2, Menu, X, Clock, Share2, Palette } from 'lucide-react'
+import { Calendar, BookOpen, Settings, Users, LayoutDashboard, LogOut, Loader2, Menu, X, Clock, Share2, Palette, UtensilsCrossed } from 'lucide-react'
 import NotificationBell from './_components/NotificationBell'
 import { AdminLangProvider } from '@/context/AdminLangContext'
 import { useAdminLang } from '@/hooks/useAdminLang'
@@ -28,6 +28,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     { href: '/admin/services',  label: t.nav.services,  icon: Calendar },
     { href: '/admin/staff',     label: t.nav.staff,     icon: Users },
     { href: '/admin/schedule',  label: t.nav.schedule,  icon: Clock },
+        { href: '/admin/menu', label: t.nav.menu, icon: UtensilsCrossed },
     { href: '/admin/branding',  label: t.nav.branding,  icon: Palette },
     { href: '/admin/share',     label: t.nav.share,     icon: Share2 },
     { href: '/admin/settings',  label: t.nav.settings,  icon: Settings },
