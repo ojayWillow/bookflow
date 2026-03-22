@@ -15,6 +15,7 @@ type Settings = {
   logo_url: string; require_approval: boolean
   instagram_url: string; facebook_url: string; tiktok_url: string; website_url: string
   google_maps_url: string
+    restaurant_mode: boolean
 }
 
 export default function SettingsPage() {
@@ -144,6 +145,23 @@ export default function SettingsPage() {
           cancellationPolicy={settings.cancellation_policy}
           onChange={set}
         />
+
+                {/* Restaurant Mode */}
+        <div className="bg-white border-2 border-gray-100 rounded-2xl p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-gray-900">Restaurant mode</p>
+              <p className="text-sm text-gray-400 mt-0.5">Enable to manage your menu and let customers pre-order when booking.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => set('restaurant_mode', !settings.restaurant_mode)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0 ${settings.restaurant_mode ? 'bg-indigo-600' : 'bg-gray-200'}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.restaurant_mode ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+          </div>
+        </div>
 
         <button
           onClick={handleSave}
