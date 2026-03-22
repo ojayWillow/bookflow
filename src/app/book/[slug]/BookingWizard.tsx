@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   getServicesForBusiness,
+      getMenuCategories,
   getStaffForBusiness,
 } from '@/lib/supabase/queries'
 import { getAvailableDates } from '@/lib/slots'
@@ -50,7 +51,7 @@ export default function BookingWizard({ business }: { business: Business }) {
   const [selectedStaffId, setSelectedStaffId]     = useState<string>('any')
   const [selectedDate, setSelectedDate]           = useState('')
   const [selectedTime, setSelectedTime]           = useState('')
-  const [form, setForm]                           = useState<BookingForm>({ name: '', email: '', phone: '', notes: '' })
+  const [form, setForm]                           = useState<BookingForm>({ name: '', email: '', phone: '', notes: '', preorderItems: {} })
   const [touched, setTouched]                     = useState({ name: false, email: false, phone: false })
   const [bookingRef, setBookingRef]               = useState('')
   const [isPending, setIsPending]                 = useState(false)
@@ -63,6 +64,10 @@ export default function BookingWizard({ business }: { business: Business }) {
   const [submitError, setSubmitError]             = useState('')
   const [emailSent, setEmailSent]                 = useState(false)
   const [dict, setDict]                           = useState<PublicDict | null>(null)
+    const [menuCategories, setMenuCategories] = useState<{
+    id: string; name: string
+    menu_items: { id: string; name: string; description: string; price: number; available: boolean }[]
+  }[]>([])
 
   const localeRef = useRef<Locale>('lv')
 
@@ -94,6 +99,14 @@ export default function BookingWizard({ business }: { business: Business }) {
       setStaffMembers(staffData as DBStaffMember[])
     }).finally(() => setLoadingData(false))
   }, [business.id])
+
+    useEffect(() => {
+    if (business.restaurant_mode) {
+      getMenuCategories(business.id).then(data =>
+        setMenuCategories(data as typeof menuCategories)
+      )
+    }
+  }, [business.id, business.restaurant_mode])
 
   useEffect(() => {
     if (!selectedDate || !selectedService) {
@@ -149,7 +162,9 @@ export default function BookingWizard({ business }: { business: Business }) {
   const errors    = { name: validateName(form.name), email: validateEmail(form.email), phone: validatePhone(form.phone) }
   const formValid = !errors.name && !errors.email && !errors.phone
 
-  const stepKeys: Step[] = ['service', 'staff', 'datetime', 'details', 'confirm']
+  const stepKeys: Step[] = business.restaurant_mode
+    ? ['service', 'staff', 'datetime', 'details', 'preorder', 'confirm']
+    : ['service', 'staff', 'datetime', 'details', 'confirm']
   const stepIndex = stepKeys.indexOf(step)
 
   const goBack = () => {
@@ -181,6 +196,7 @@ export default function BookingWizard({ business }: { business: Business }) {
           customer_email:   form.email,
           customer_phone:   form.phone,
           customer_notes:   form.notes,
+          preorder_items: form.preorderItems,
         }),
       })
       const data = await res.json()
@@ -207,8 +223,12 @@ export default function BookingWizard({ business }: { business: Business }) {
     )
   }
 
-  const PROGRESS_STEP_KEYS: Step[] = ['service', 'staff', 'datetime', 'details', 'confirm']
-  const STEP_LABELS = [t.stepService, t.stepStaff, t.stepDateTime, t.stepDetails, t.stepConfirm]
+  const PROGRESS_STEP_KEYS: Step[] = business.restaurant_mode
+    ? ['service', 'staff', 'datetime', 'details', 'preorder', 'confirm']
+    : ['service', 'staff', 'datetime', 'details', 'confirm']
+  const STEP_LABELS = business.restaurant_mode
+    ? [t.stepService, t.stepStaff, t.stepDateTime, t.stepDetails, t.stepPreorder ?? 'Pre-order', t.stepConfirm]
+    : [t.stepService, t.stepStaff, t.stepDateTime, t.stepDetails, t.stepConfirm]
   const progressIndex = PROGRESS_STEP_KEYS.indexOf(step as Step)
 
   return (
@@ -301,6 +321,53 @@ export default function BookingWizard({ business }: { business: Business }) {
         {step === 'staff'    && selectedService && <StepStaff service={selectedService} availableStaff={availableStaff} selectedStaffId={selectedStaffId} loading={loadingData} dict={t} onSelect={id => { setSelectedStaffId(id); setSlots([]); setStep('datetime') }} />}
         {step === 'datetime' && selectedService && <StepDateTime service={selectedService} selectedStaffMember={selectedStaffMember ?? null} availableDates={availableDates} selectedDate={selectedDate} selectedTime={selectedTime} slots={slots} loadingSlots={loadingSlots} dict={t} onSelectDate={date => { setSelectedDate(date); setSelectedTime('') }} onSelectTime={time => { setSelectedTime(time); setStep('details') }} />}
         {step === 'details'  && <StepDetails form={form} errors={errors} touched={touched} dict={t} onChange={(field, value) => setForm(p => ({ ...p, [field]: value }))} onBlur={field => setTouched(p => ({ ...p, [field]: true }))} onNext={() => { setTouched({ name: true, email: true, phone: true }); if (formValid) setStep('confirm') }} />}
+                    {step === 'preorder' && business.restaurant_mode && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Pre-order from the menu</h2>
+                <p className="text-gray-400 mt-1 text-sm">Optional — add items you&apos;d like during your visit.</p>
+              </div>
+                            {menuCategories.filter(c => c.menu_items.some(i => i.available)).map(cat => (
+                <div key={cat.id}>
+                  <p className="font-semibold text-gray-700 mb-3">{cat.name}</p>
+                  <div className="space-y-2">
+                    {cat.menu_items.filter(i => i.available).map(item => {
+                      const qty = form.preorderItems[item.id] ?? 0
+                      return (
+                        <div key={item.id} className="flex items-center gap-3 bg-white border-2 border-gray-100 rounded-xl px-4 py-3 hover:border-indigo-100 transition-colors">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 text-sm">{item.name}</p>
+                            {item.description && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{item.description}</p>}
+                            <p className="text-xs font-semibold text-indigo-600 mt-0.5">€{item.price.toFixed(2)}</p>
+                          </div>
+                                                    <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              onClick={() => setForm(p => ({ ...p, preorderItems: { ...p.preorderItems, [item.id]: Math.max(0, (p.preorderItems[item.id] ?? 0) - 1) } }))}
+                              className="w-7 h-7 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors text-sm font-bold disabled:opacity-30"
+                              disabled={qty === 0}
+                            >−</button>
+                            <span className="w-5 text-center text-sm font-semibold text-gray-900">{qty}</span>
+                            <button
+                              onClick={() => setForm(p => ({ ...p, preorderItems: { ...p.preorderItems, [item.id]: (p.preorderItems[item.id] ?? 0) + 1 } }))}
+                              className="w-7 h-7 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors text-sm font-bold"
+                            >+</button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+                            {menuCategories.every(c => !c.menu_items.some(i => i.available)) && (
+                <p className="text-sm text-gray-400 text-center py-8">No menu items available right now.</p>
+              )}
+              <button
+                onClick={() => setStep('confirm')}
+                className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-semibold hover:bg-indigo-700 transition-colors">
+                Continue →
+              </button>
+            </div>
+          )}
         {step === 'confirm'  && selectedService && <StepConfirm business={business} service={selectedService} staffMember={selectedStaffMember ?? null} date={selectedDate} time={selectedTime} form={form} submitting={submitting} submitError={submitError} dict={t} onConfirm={handleConfirm} />}
         {step === 'success'  && selectedService && <StepSuccess business={business} service={selectedService} staffMember={selectedStaffMember ?? null} date={selectedDate} time={selectedTime} form={form} bookingRef={bookingRef} emailSent={emailSent} isPending={isPending} dict={t} />}
       </main>
