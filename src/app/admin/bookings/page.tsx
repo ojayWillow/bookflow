@@ -14,7 +14,7 @@ type Booking = {
   service_price: number; staff_id: string; staff_name: string
   date: string; time: string; customer_name: string
   customer_email: string; customer_phone: string
-  customer_notes: string; status: string; created_at: string
+  customer_notes: string; preorder_items: Record<string, number> | null; status: string; created_at: string
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -338,6 +338,20 @@ export default function BookingsPage() {
                   {b.customer_notes && (
                     <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-lg mt-2 inline-block">📝 {b.customer_notes}</p>
                   )}
+                                      {b.preorder_items && Object.keys(b.preorder_items).some(k => b.preorder_items![k] > 0) && (
+                      <div className="mt-2 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+                        <p className="text-xs font-semibold text-indigo-700 mb-1">🍽️ Pre-order</p>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                          {Object.entries(b.preorder_items)
+                            .filter(([, qty]) => qty > 0)
+                            .map(([itemId, qty]) => (
+                              <span key={itemId} className="text-xs text-indigo-600">
+                                × {qty} <span className="font-mono text-indigo-400 text-[10px]">{itemId.slice(0, 8)}</span>
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    )}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4 mt-2">
                     <span className="flex items-center gap-1.5 text-xs text-gray-400">
                       <Mail className="w-3.5 h-3.5 shrink-0" /> {b.customer_email}
