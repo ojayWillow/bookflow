@@ -96,6 +96,7 @@ const en = {
     stepStaff:           'Specialist',
     stepDateTime:        'Date & time',
     stepDetails:         'Details',
+        stepPreorder:   'Pre-order',
     stepConfirm:         'Confirm',
     back:                'Back',
     stepServiceTitle:    'Choose a service',
