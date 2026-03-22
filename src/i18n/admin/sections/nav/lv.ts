@@ -7,6 +7,7 @@ const navLv = {
   branding:   'Dizains',
   share:      'Kopīgot',
   settings:   'Iestatījumi',
+    menu:      'Ēdienkarte',
   signOut:    'Iziet',
   signingOut: 'Iziet…',
 }
