@@ -12,13 +12,15 @@ type MenuItem = {
   description: string; price: number; available: boolean; image_url: string
 }
 type MenuCategory = {
-  id: string; business_id: string; name: string; sort_order: number
-  menu_items: MenuItem[]
+  id: string; business_id: string; name: string; description: string
+  image_url: string; sort_order: number; menu_items: MenuItem[]
 }
 
 const emptyItem = (category_id: string) => ({
   category_id, name: '', description: '', price: '0', available: true, image_url: ''
 })
+
+const emptyCat = () => ({ name: '', description: '', image_url: '' })
 
 export default function MenuPage() {
   const [businessId, setBusinessId]     = useState<string | null>(null)
@@ -31,7 +33,7 @@ export default function MenuPage() {
   // Category modal
   const [showCatModal, setShowCatModal] = useState(false)
   const [editingCat, setEditingCat]     = useState<MenuCategory | null>(null)
-  const [catName, setCatName]           = useState('')
+  const [catForm, setCatForm]           = useState(emptyCat())
   const [savingCat, setSavingCat]       = useState(false)
 
   // Item modal
@@ -65,16 +67,22 @@ export default function MenuPage() {
   }, [load])
 
   // ── Category CRUD ──────────────────────────────────────────────────
-  const openNewCat  = () => { setCatName(''); setEditingCat(null); setShowCatModal(true) }
-  const openEditCat = (c: MenuCategory) => { setCatName(c.name); setEditingCat(c); setShowCatModal(true) }
+  const openNewCat  = () => { setCatForm(emptyCat()); setEditingCat(null); setShowCatModal(true) }
+  const openEditCat = (c: MenuCategory) => {
+    setCatForm({ name: c.name, description: c.description ?? '', image_url: c.image_url ?? '' })
+    setEditingCat(c)
+    setShowCatModal(true)
+  }
 
   const saveCat = async () => {
-    if (!businessId || !catName.trim()) return
+    if (!businessId || !catForm.name.trim()) return
     setSavingCat(true)
     try {
       await upsertMenuCategory(businessId, {
         ...(editingCat ? { id: editingCat.id } : {}),
-        name: catName.trim(),
+        name: catForm.name.trim(),
+        description: catForm.description.trim(),
+        image_url: catForm.image_url.trim(),
         sort_order: editingCat ? editingCat.sort_order : categories.length,
       })
       await load(businessId)
@@ -192,19 +200,26 @@ export default function MenuPage() {
             <div key={cat.id} className="bg-white border-2 border-gray-100 rounded-2xl overflow-hidden hover:border-indigo-100 transition-all">
               {/* Category header */}
               <div className="flex items-center gap-3 px-5 py-4">
-                <button onClick={() => toggleExpanded(cat.id)} className="flex-1 flex items-center gap-3 text-left">
-                  {expanded[cat.id] ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                  <span className="font-semibold text-gray-900">{cat.name}</span>
-                  <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">{cat.menu_items.length} items</span>
+                {cat.image_url && (
+                  <img src={cat.image_url} alt={cat.name}
+                    className="w-10 h-10 rounded-xl object-cover shrink-0 border border-gray-100" />
+                )}
+                <button onClick={() => toggleExpanded(cat.id)} className="flex-1 flex items-center gap-3 text-left min-w-0">
+                  {expanded[cat.id] ? <ChevronUp className="w-4 h-4 text-gray-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />}
+                  <div className="min-w-0">
+                    <span className="font-semibold text-gray-900">{cat.name}</span>
+                    {cat.description && <p className="text-xs text-gray-400 mt-0.5 truncate">{cat.description}</p>}
+                  </div>
+                  <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full shrink-0">{cat.menu_items.length} items</span>
                 </button>
                 <button onClick={() => openNewItem(cat.id)}
-                  className="text-sm text-indigo-600 px-3 py-1.5 rounded-xl hover:bg-indigo-50 font-medium transition-colors flex items-center gap-1">
+                  className="text-sm text-indigo-600 px-3 py-1.5 rounded-xl hover:bg-indigo-50 font-medium transition-colors flex items-center gap-1 shrink-0">
                   <Plus className="w-3.5 h-3.5" /> Add item
                 </button>
-                <button onClick={() => openEditCat(cat)} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+                <button onClick={() => openEditCat(cat)} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors shrink-0">
                   <Pencil className="w-4 h-4" />
                 </button>
-                <button onClick={() => deleteCat(cat.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                <button onClick={() => deleteCat(cat.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -217,6 +232,10 @@ export default function MenuPage() {
                   )}
                   {cat.menu_items.map(item => (
                     <div key={item.id} className="flex items-center gap-4 px-5 py-3">
+                      {item.image_url && (
+                        <img src={item.image_url} alt={item.name}
+                          className="w-8 h-8 rounded-lg object-cover shrink-0 border border-gray-100" />
+                      )}
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900 text-sm truncate">{item.name}</p>
                         {item.description && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{item.description}</p>}
@@ -247,12 +266,32 @@ export default function MenuPage() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-5">{editingCat ? 'Edit Category' : 'New Category'}</h2>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Name</label>
-            <input value={catName} onChange={e => setCatName(e.target.value)}
-              className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
-              placeholder="e.g. Starters, Mains, Desserts" />
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Name</label>
+                <input value={catForm.name} onChange={e => setCatForm(p => ({ ...p, name: e.target.value }))}
+                  className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
+                  placeholder="e.g. Starters, Mains, Desserts" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Description <span className="text-gray-400 font-normal">(optional)</span></label>
+                <textarea value={catForm.description} onChange={e => setCatForm(p => ({ ...p, description: e.target.value }))}
+                  className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors resize-none"
+                  rows={2} placeholder="Short note shown under the category name..." />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Image URL <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input value={catForm.image_url} onChange={e => setCatForm(p => ({ ...p, image_url: e.target.value }))}
+                  className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
+                  placeholder="https://..." />
+                {catForm.image_url && (
+                  <img src={catForm.image_url} alt="preview"
+                    className="mt-2 w-full h-24 object-cover rounded-xl border border-gray-100" />
+                )}
+              </div>
+            </div>
             <div className="flex gap-3 mt-5">
-              <button onClick={saveCat} disabled={!catName.trim() || savingCat}
+              <button onClick={saveCat} disabled={!catForm.name.trim() || savingCat}
                 className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
                 {savingCat && <Loader2 className="w-4 h-4 animate-spin" />} Save
               </button>
@@ -304,6 +343,10 @@ export default function MenuPage() {
                 <input value={itemForm.image_url} onChange={e => setItemForm(p => ({ ...p, image_url: e.target.value }))}
                   className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 transition-colors"
                   placeholder="https://..." />
+                {itemForm.image_url && (
+                  <img src={itemForm.image_url} alt="preview"
+                    className="mt-2 w-full h-24 object-cover rounded-xl border border-gray-100" />
+                )}
               </div>
             </div>
             <div className="flex gap-3 mt-6">
