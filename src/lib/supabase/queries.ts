@@ -268,7 +268,9 @@ export async function getMenuCategories(businessId: string) {
   return data ?? []
 }
 
-export async function upsertMenuCategory(businessId: string, cat: { id?: string; name: string; sort_order: number }) {
+export async function upsertMenuCategory(businessId: string, cat: {
+  id?: string; name: string; description?: string; image_url?: string; sort_order: number
+}) {
   const supabase = createClient()
   const payload = { ...cat, business_id: businessId }
   const { data, error } = cat.id

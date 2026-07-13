@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { noStoreFetch } from '@/lib/supabase/fetch'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: { fetch: noStoreFetch },
       cookies: {
         getAll() { return cookieStore.getAll() },
         setAll(cookiesToSet: { name: string; value: string; options: Record<string, unknown> }[]) {

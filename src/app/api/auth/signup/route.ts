@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { noStoreFetch } from '@/lib/supabase/fetch'
 import { NextResponse, type NextRequest } from 'next/server'
 import { getCategoryById, getServiceName, getServiceDescription } from '@/lib/service-templates'
 
@@ -6,7 +7,7 @@ function makeServiceClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
+    { auth: { autoRefreshToken: false, persistSession: false }, global: { fetch: noStoreFetch } }
   )
 }
 
@@ -14,7 +15,7 @@ function makeAnonClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
+    { auth: { autoRefreshToken: false, persistSession: false }, global: { fetch: noStoreFetch } }
   )
 }
 

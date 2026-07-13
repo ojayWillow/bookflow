@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { noStoreFetch } from '@/lib/supabase/fetch'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
@@ -31,6 +32,7 @@ export async function POST(req: NextRequest) {
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { global: { fetch: noStoreFetch } },
   )
 
   const ext    = file.name.split('.').pop() ?? 'jpg'

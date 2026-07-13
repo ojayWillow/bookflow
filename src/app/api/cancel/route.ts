@@ -1,10 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
+import { resend } from '@/lib/resend'
 import { createServiceClient } from '@/lib/supabase/service-role'
 import { generateCancelToken } from '@/lib/cancel-token'
 import { cancelledAdminEmailHtml, cancelledCustomerEmailHtml } from '@/lib/email-templates'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 function verifyCancelToken(bookingId: string, token: string): boolean {
   const expected = generateCancelToken(bookingId)

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { noStoreFetch } from './fetch'
 
 /**
  * Server-only Supabase client that uses the service role key.
@@ -11,5 +12,6 @@ export function createServiceClient() {
   if (!url || !key) throw new Error('Missing Supabase service role env vars')
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: noStoreFetch },
   })
 }

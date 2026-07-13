@@ -90,8 +90,7 @@ src/
 │   │   │   └── seed/              ← POST — seeds template services for authenticated user
 │   │   ├── book/
 │   │   ├── slots/
-│   │   ├── cancel/
-│   │   └── debug-biz/            ← REMOVE before public launch
+│   │   └── cancel/
 │   ├── auth/
 │   │   ├── callback/              ← Supabase email confirmation callback
 │   │   └── confirm/
@@ -179,7 +178,6 @@ Every query **must** be scoped to a single business:
 
 ### High priority
 - [ ] Stripe integration — trial expiry, subscription billing
-- [ ] Remove `src/app/api/debug-biz/route.ts` before public launch
 - [ ] Demo booking page (live example on landing page)
 - [ ] Mobile responsiveness audit
 - [ ] i18n audit — public booking pages (`lv.ts`, `ru.ts`) not fully audited since Settings page expansion
@@ -207,8 +205,19 @@ SUPABASE_SERVICE_ROLE_KEY
 NEXT_PUBLIC_APP_URL
 RESEND_API_KEY
 RESEND_FROM_DOMAIN        # domain verified in Resend, e.g. kolab.lv
-CANCEL_TOKEN_SECRET       # optional — defaults to SUPABASE_SERVICE_ROLE_KEY if not set
+CANCEL_TOKEN_SECRET       # REQUIRED — HMAC secret for cancellation links (no fallback; /api/book crashes without it)
 ```
+
+---
+
+## 🗄️ Supabase Setup
+
+1. **Fresh project:** run `supabase/schema.sql` in Dashboard → SQL Editor.
+2. **Existing database:** run the incremental migrations in `supabase/migrations/` (idempotent, safe to re-run).
+3. **Storage:** create a **public** bucket named `business-assets` (Dashboard → Storage) — used for business logo/cover uploads and staff avatars.
+4. **Auth:** enable email confirmation (Dashboard → Authentication → Providers → Email) — signup flow expects it.
+
+**Preorder data model:** restaurant preorders are stored denormalized on `bookings.preorder_items` (jsonb: `{ "<menu_item_id>": quantity }`). The old normalized `booking_menu_selections` table was never used and has been dropped.
 
 ---
 

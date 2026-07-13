@@ -1,12 +1,11 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { Resend } from 'resend'
+import { resend } from '@/lib/resend'
 import { createClient } from '@/lib/supabase/server'
 import { generateCancelToken } from '@/lib/cancel-token'
 import { randomBytes } from 'crypto'
 import { customerEmailHtml, pendingCustomerEmailHtml, adminEmailHtml } from '@/lib/email-templates'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT_MAX    = 10

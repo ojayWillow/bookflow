@@ -55,8 +55,11 @@ create table if not exists staff (
   work_days   integer[] not null default '{1,2,3,4,5}',  -- 0=Sun … 6=Sat
   work_start  text not null default '09:00',
   work_end    text not null default '18:00',
+  break_start text,                             -- HH:MM, null = no break
+  break_end   text,                             -- HH:MM, null = no break
   active      boolean not null default true,
   color       text not null default '#6366f1',
+  avatar_url  text,                             -- public URL in 'business-assets' bucket
   created_at  timestamptz not null default now()
 );
 
@@ -114,7 +117,7 @@ create table if not exists business_settings (
   tiktok_url           text not null default '',
   website_url          text not null default '',
   google_maps_url      text not null default '',
-    restaurant_mode boolean not null default false,
+  restaurant_mode      boolean not null default false,
   created_at           timestamptz not null default now()
 );
 
@@ -157,6 +160,7 @@ create table if not exists bookings (
   customer_email    text not null,
   customer_phone    text not null,
   customer_notes    text not null default '',
+  preorder_items    jsonb not null default '{}'::jsonb,  -- { "<menu_item_id>": quantity } — restaurant_mode preorders
   status            text not null default 'confirmed' check (status in ('confirmed','pending','cancelled','completed')),
   created_at        timestamptz not null default now()
 );
@@ -201,21 +205,14 @@ create index if not exists idx_bookings_staff_date on bookings(staff_id, date);
 create index if not exists idx_business_slug       on business_settings(slug);
 
 -- ─────────────────────────────────────────────────────────────
--- MIGRATIONS — run these in Supabase SQL Editor for existing DBs
--- ─────────────────────────────────────────────────────────────
--- alter table business_settings add column if not exists cancellation_window_hours integer not null default 24;
--- alter table business_settings add column if not exists require_approval boolean not null default false;
--- alter table business_settings add column if not exists google_maps_url text not null default '';
-
--- alter table business_settings add column if not exists restaurant_mode boolean not null default false;
-
--- ─────────────────────────────────────────────────────────────
 -- MENU CATEGORIES
 -- ─────────────────────────────────────────────────────────────
 create table if not exists menu_categories (
   id          uuid primary key default uuid_generate_v4(),
   business_id uuid not null references business_settings(id) on delete cascade,
   name        text not null,
+  description text not null default '',
+  image_url   text not null default '',
   sort_order  integer not null default 0
 );
 
@@ -278,32 +275,24 @@ create policy "menu_items: public can select available"
   on menu_items for select
   using (available = true);
 
--- ─────────────────────────────────────────────────────────────
--- BOOKING MENU SELECTIONS
--- ─────────────────────────────────────────────────────────────
-create table if not exists booking_menu_selections (
-  id           uuid primary key default uuid_generate_v4(),
-  booking_id   uuid not null references bookings(id) on delete cascade,
-  menu_item_id uuid not null references menu_items(id) on delete set null,
-  course       text not null check (course in ('starter','main','dessert','drink','extra')),
-  quantity     integer not null default 1,
-  guest_index  integer not null default 1
-);
-
-alter table booking_menu_selections enable row level security;
-
-create policy "booking_menu_selections: owner can select"
-  on booking_menu_selections for select
-  using (booking_id in (select b.id from bookings b join business_settings bs on bs.id = b.business_id where bs.user_id = auth.uid()));
-
-create policy "booking_menu_selections: public can insert"
-  on booking_menu_selections for insert
-  with check (true);
-
-create policy "booking_menu_selections: public can select"
-  on booking_menu_selections for select
-  using (true);
+-- NOTE: restaurant preorders are stored denormalized on
+-- bookings.preorder_items (jsonb: { "<menu_item_id>": quantity }).
+-- The old normalized booking_menu_selections table was never used
+-- by the app and has been dropped (see supabase/migrations/).
 
 create index if not exists idx_menu_categories_biz     on menu_categories(business_id);
 create index if not exists idx_menu_items_category     on menu_items(category_id);
-create index if not exists idx_menu_selections_booking on booking_menu_selections(booking_id);
+
+-- ─────────────────────────────────────────────────────────────
+-- MIGRATIONS
+-- ─────────────────────────────────────────────────────────────
+-- This file is the FULL schema for fresh projects.
+-- For an EXISTING database, run the incremental migrations in
+-- supabase/migrations/ instead (Supabase Dashboard → SQL Editor).
+
+-- ─────────────────────────────────────────────────────────────
+-- STORAGE (manual step — not expressible in SQL)
+-- ─────────────────────────────────────────────────────────────
+-- Create a PUBLIC storage bucket named 'business-assets'
+-- (Dashboard → Storage → New bucket → name: business-assets → Public).
+-- Used for business logos/covers (/api/upload-asset) and staff avatars.

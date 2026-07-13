@@ -1,18 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service-role'
 import { getSlotsForDate, getUnionSlotsForDate } from '@/lib/slots'
 import type { BookedSlotRaw, SlotStaffMember } from '@/lib/slots'
 
 // v2 — slot_interval is read from business_settings and passed to getSlotsForDate
 export const dynamic = 'force-dynamic'
-
-function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
@@ -25,7 +17,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing params' }, { status: 400 })
   }
 
-  const supabase = adminClient()
+  const supabase = createServiceClient()
 
   const { data: biz, error: bizErr } = await supabase
     .from('business_settings')
